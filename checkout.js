@@ -426,6 +426,46 @@ async function trySecureFinalization(order){
   }
 }
 
+async function deductPurchasedStock(){
+  const product = await BFStore.getDoc('products/smooth', {
+    colors: {},
+    styles: {}
+  });
+
+  const styles = JSON.parse(JSON.stringify(product.styles || {}));
+
+  for(const item of cart){
+    if(item.type !== 'retail') continue;
+    if((item.material || 'smooth') !== 'smooth') continue;
+
+    const style = item.style === 'twisted' ? 'twisted' : 'flat';
+    const color = item.color;
+    const qty = Number(item.qty || 0);
+
+    if(!color || qty <= 0) continue;
+
+    styles[style] ||= { colors: {} };
+    styles[style].colors ||= {};
+
+    const current =
+      styles[style].colors[color] ||
+      product.colors?.[color] ||
+      {};
+
+    const currentStock = Number(current.stock || 0);
+
+    styles[style].colors[color] = {
+      ...current,
+      stock: Math.max(0, currentStock - qty)
+    };
+  }
+
+  await BFStore.setDoc('products/smooth', {
+    styles,
+    colors: styles.flat?.colors || {}
+  }, true);
+}
+
 async function completeOrder(transaction, fd){
   const fulfilment = fd.get('fulfilment');
   const id = 'BF-' + Date.now().toString().slice(-7);
@@ -478,6 +518,12 @@ async function completeOrder(transaction, fd){
 
   setPaymentState('Payment received. Preparing your confirmation and receipt…','success');
 
+  try {
+  await deductPurchasedStock();
+} catch(error) {
+  console.error('[Band Factory] Stock could not update:', error);
+}
+  
   // Sync Firebase and send confirmation emails, but do not treat those services as payment verification.
   const syncOrder = async()=>{
     if(await trySecureFinalization(order))return;
