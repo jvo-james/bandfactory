@@ -371,7 +371,36 @@ document.addEventListener('keydown',e=>{
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
-  BFStore.onAuth(async admin=>{if(!admin){location.href='admin-login.html';return}document.getElementById('profileEmail').textContent=admin.email;document.getElementById('adminName').textContent=admin.name||admin.email;await loadAll()});
+
+  BFStore.onAuth(async admin=>{
+  if(!admin){
+    location.href='admin-login.html';
+    return
+  }
+
+  document.getElementById('profileEmail').textContent=admin.email;
+  document.getElementById('adminName').textContent=admin.name||admin.email;
+
+  await loadAll();
+
+  __bfDb.doc('products/smooth').onSnapshot(snapshot=>{
+    if(!snapshot.exists) return;
+
+    const products={
+      id:snapshot.id,
+      ...snapshot.data()
+    };
+
+    DATA.products=products;
+    DATA.colors=products.colors||{};
+
+    renderProducts();
+    renderInventorySummary();
+    renderNavCounts();
+    renderOverview();
+  });
+});
+  
   document.getElementById('adminMenu').onclick=toggleSidebar;
   document.getElementById('adminSideClose').onclick=closeSidebar;
   document.getElementById('adminSideScreen').onclick=closeSidebar;
