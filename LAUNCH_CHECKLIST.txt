@@ -1,0 +1,11 @@
+BAND FACTORY LAUNCH CHECK
+
+Before switching the site to official sales:
+1. Replace the Paystack test public key in config.js with the live public key.
+2. Add PAYSTACK_SECRET_KEY and the Firebase Admin environment variables in Netlify.
+3. Replace the pickup address placeholder in config.js.
+4. Replace the Instagram and TikTok placeholder links in config.js.
+5. Publish the updated FIRESTORE_RULES.txt rules in Firebase Console.
+6. Connect bandfactory.store in Netlify and make it the primary domain.
+7. Submit https://bandfactory.store/sitemap.xml in Google Search Console.
+8. Test one small live order and confirm: payment, confirmation, email, transaction row, order row, and stock reduction.

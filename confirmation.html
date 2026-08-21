@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order Confirmed | Band Factory</title><meta name="description" content="Your Band Factory payment and order confirmation.">
+  <link rel="icon" href="logo.jpg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="confirmation.css">
+<link rel="canonical" href="https://bandfactory.store/confirmation.html"><meta name="robots" content="noindex,follow"><meta property="og:type" content="website"><meta property="og:site_name" content="Band Factory"><meta property="og:title" content="Order Confirmed | Band Factory"><meta property="og:description" content="Your Band Factory payment and order confirmation."><meta property="og:url" content="https://bandfactory.store/confirmation.html"><meta property="og:image" content="https://bandfactory.store/images/brand-logo-pink.jpg"><meta name="twitter:card" content="summary_large_image"></head>
+<body class="confirmation-page">
+  <header class="confirmation-header">
+    <a class="brand brand-with-logo" href="index.html" aria-label="Band Factory home"><img src="images/brand-monogram.jpg" alt=""><span>BΛND<small>FΛCTORY</small></span></a>
+    <span><i class="fa-solid fa-shield-check"></i> Secure payment confirmation</span>
+  </header>
+
+  <main class="confirmation-shell" id="confirmationShell" hidden>
+    <section class="success-hero">
+      <div class="success-orbit orbit-one"></div>
+      <div class="success-orbit orbit-two"></div>
+      <div class="success-mark"><i class="fa-solid fa-check"></i></div>
+      <p class="success-kicker">Payment successful</p>
+      <h1>It’s officially yours.</h1>
+      <p class="success-lead" id="successLead">Your Band Factory order has been confirmed.</p>
+      <div class="success-reference"><span>Order</span><strong id="orderReference">-</strong></div>
+      <div class="success-actions">
+        <button class="confirmation-btn dark" id="viewReceipt"><i class="fa-regular fa-file-lines"></i> View receipt</button>
+        <button class="confirmation-btn light" id="downloadReceipt"><i class="fa-solid fa-download"></i> Download receipt</button>
+      </div>
+      <p class="auto-download-note"><i class="fa-solid fa-circle-check"></i> Your receipt is downloaded automatically after payment.</p>
+    </section>
+
+    <section class="next-card">
+      <div>
+        <p class="eyebrow">What happens next</p>
+        <h2 id="nextTitle">We’re preparing your order.</h2>
+      </div>
+      <div class="next-steps">
+        <article><span>01</span><div><strong>Payment confirmed</strong><p>Your Paystack payment was received successfully.</p></div></article>
+        <article><span>02</span><div><strong id="fulfilmentStepTitle">Order preparation</strong><p id="fulfilmentStepCopy">Band Factory will prepare your order for fulfilment.</p></div></article>
+        <article><span>03</span><div><strong>Keep your receipt</strong><p>Your receipt contains your order and payment reference.</p></div></article>
+      </div>
+    </section>
+
+    <section class="confirmation-footer-card">
+      <p>Need anything before your order arrives?</p>
+      <div><a href="contact.html">Contact Band Factory</a><a href="shop.html">Keep shopping</a><a href="index.html">Back home</a></div>
+    </section>
+  </main>
+
+  <div class="receipt-modal" id="receiptModal" aria-hidden="true">
+    <button class="receipt-modal-backdrop" id="closeReceiptBackdrop" aria-label="Close receipt"></button>
+    <section class="receipt-sheet-wrap" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
+      <div class="receipt-modal-toolbar">
+        <strong id="receiptTitle">Your receipt</strong>
+        <div>
+          <button id="printReceipt" title="Print receipt"><i class="fa-solid fa-print"></i></button>
+          <button id="downloadReceiptModal" title="Download receipt"><i class="fa-solid fa-download"></i></button>
+          <button id="closeReceipt" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <article class="receipt-sheet" id="receiptSheet"></article>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="confirmation.js"></script>
+</body>
+</html>

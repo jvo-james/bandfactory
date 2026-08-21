@@ -1,0 +1,55 @@
+BAND FACTORY — IMAGE REPLACEMENT GUIDE
+======================================
+
+Every important image location is commented directly in the code. Search the project for: IMAGE:
+
+FASTEST LOCATIONS
+-----------------
+1. Homepage hero:
+   File: home.css
+   Search: HOMEPAGE HERO IMAGE
+
+2. Homepage 3 editorial cards:
+   File: index.html
+   Search: HOMEPAGE EDITORIAL
+
+3. Homepage wholesale image:
+   File: home.css
+   Search: HOMEPAGE WHOLESALE IMAGE
+
+4. Product images for every colour:
+   File: script.js
+   Search: PRODUCT IMAGE MAP
+   Each colour already has its own filename inside /images.
+   You can replace those files one by one without changing any HTML.
+
+5. Wholesale hero:
+   File: wholesale.css
+   Search: WHOLESALE HERO IMAGE
+
+6. Campus Hustle image:
+   File: wholesale.css
+   Search: CAMPUS HUSTLE IMAGE
+
+7. Wholesale business/lifestyle cards:
+   File: wholesale.html
+   Search: WHOLESALE BUSINESS
+
+8. Wholesale Bag thumbnail:
+   File: script.js
+   Search: WHOLESALE BAG THUMBNAIL
+
+TIP
+---
+The product image files in /images are currently demo copies so the site never shows broken images. Replace them with the real colour photographs while keeping the same filenames and the whole site updates automatically.
+
+
+NEW STYLE PLACEHOLDERS (Flat / Twisted update)
+------------------------------------------------
+images/twisted-placeholder.svg
+  Used anywhere a Smooth Twisted product photo is required. Replace the mapping in script.js -> imageForProduct() when real twisted photos are ready. Ideally create one real photo per colour and map them by colour.
+
+images/ribbed-placeholder.svg
+  Used for the Ribbed preview while Ribbed Flat and Ribbed Twisted are out of stock. Replace with campaign/product photography when stock returns.
+
+The existing colour JPG files remain the Smooth Flat product photography.

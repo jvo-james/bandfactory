@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Secure Checkout | Band Factory</title><meta name="description" content="Complete your Band Factory order securely with Paystack.">
+  <link rel="icon" href="logo.jpg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/country-select-js/2.1.1/css/countrySelect.min.css">
+  <style>
+    :root{--checkout-pink:#f8dce7;--checkout-pink-2:#fff2f7;--checkout-black:#111;--checkout-muted:#70686c;--checkout-line:#eadfe3}
+    .checkout-page{background:#fffdfd;min-height:100vh;color:#111}.checkout-header{height:66px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--checkout-line);position:sticky;top:0;z-index:40;backdrop-filter:blur(14px)}.checkout-head-inner{height:100%;width:min(1180px,calc(100% - 28px));margin:auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.checkout-head-inner>a:last-child{text-align:right;font-size:11px}.secure-label{font-size:11px;letter-spacing:.04em;color:#5f575b}.checkout-progress{width:min(1180px,calc(100% - 28px));margin:25px auto 0;display:flex;align-items:center;justify-content:center;gap:10px;color:#8b8186;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.13em}.checkout-progress .step{display:flex;align-items:center;gap:7px}.checkout-progress .dot{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;border:1px solid #d9cdd2;background:#fff;font-size:9px}.checkout-progress .done,.checkout-progress .active{color:#111}.checkout-progress .done .dot{background:#111;color:#fff;border-color:#111}.checkout-progress .active .dot{background:var(--checkout-pink);border-color:#efc5d5}.checkout-progress .line{width:44px;height:1px;background:#ddd2d6}
+    .checkout-wrap{width:min(1180px,calc(100% - 28px));margin:28px auto 110px;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(330px,.82fr);gap:58px}.checkout-main h1{font-family:var(--serif);font-size:clamp(42px,5.6vw,68px);line-height:.98;margin:8px 0 10px;letter-spacing:-.035em}.checkout-intro{color:var(--checkout-muted);margin:0 0 30px;max-width:620px;line-height:1.7}.step-card{background:#fff;border-top:1px solid var(--checkout-line);padding:28px 0;margin-bottom:2px}.step-card:first-of-type{border-top:0}.step-card h2{font-family:var(--serif);font-size:29px;margin:0 0 21px}.section-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:#9b8d93;font-weight:700;margin-bottom:8px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field-help{display:block;margin-top:7px;color:#8b8085;font-size:10px;line-height:1.5}.form-group.invalid .field,.confirm-check.invalid{border-color:#d84f65!important;box-shadow:0 0 0 3px rgba(216,79,101,.08)}.field-error{display:none;margin-top:6px;color:#b12c42;font-size:10px}.form-group.invalid .field-error{display:block}
+    .fulfilment-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}.method-card{position:relative;border:1px solid var(--checkout-line);border-radius:18px;padding:20px;cursor:pointer;display:grid;grid-template-columns:42px 1fr auto;gap:13px;align-items:start;transition:.22s ease;background:#fff}.method-card:hover{transform:translateY(-2px);border-color:#d9c8cf}.method-card:has(input:checked){border-color:#111;background:var(--checkout-pink-2);box-shadow:0 10px 32px rgba(20,10,14,.06)}.method-card input{position:absolute;opacity:0;pointer-events:none}.method-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--checkout-pink);font-size:16px}.method-card strong{font-size:14px;display:block;margin:2px 0 5px}.method-card small{font-size:10px;line-height:1.55;color:#766c70}.method-check{width:20px;height:20px;border-radius:50%;border:1px solid #d5c8cd;display:grid;place-items:center;font-size:9px}.method-card:has(input:checked) .method-check{background:#111;color:#fff;border-color:#111}.dispatch-card{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:16px 18px;background:var(--checkout-pink-2);border:1px solid #f0dce4;border-radius:16px;margin-top:14px}.dispatch-card .icon{width:37px;height:37px;border-radius:50%;background:var(--checkout-pink);display:grid;place-items:center}.dispatch-card p{margin:0;font-size:11px;line-height:1.55}.dispatch-card strong{font-size:12px}
+    .autocomplete{position:relative}.suggestions{position:absolute;z-index:25;top:calc(100% - 2px);left:0;right:0;background:#fff;border:1px solid var(--checkout-line);box-shadow:0 18px 45px rgba(0,0,0,.12);max-height:260px;overflow:auto;display:none;border-radius:0 0 12px 12px}.suggestions.open{display:block}.suggestion{padding:12px 14px;border-bottom:1px solid #f0e8eb;cursor:pointer;font-size:11px;line-height:1.45}.suggestion:hover{background:var(--checkout-pink-2)}.manual-note{display:flex;gap:7px;align-items:flex-start;margin-top:8px;color:#8a7f84;font-size:10px;line-height:1.5}.order-note{min-height:105px;resize:vertical}
+    .pickup-card{border:1px solid var(--checkout-line);border-radius:18px;overflow:hidden;background:#fff}.pickup-map{height:190px;background:#f6eff2}.pickup-map iframe{width:100%;height:100%;border:0}.pickup-info{padding:18px}.pickup-address{font-weight:700;font-size:13px;margin:0 0 12px}.pickup-actions{display:flex;gap:8px;flex-wrap:wrap}.mini-action{border:1px solid #d9cdd2;background:#fff;border-radius:999px;padding:9px 13px;font-size:10px;font-weight:700;cursor:pointer}.mini-action:hover{background:var(--checkout-pink-2)}.pickup-date-wrap{margin-top:18px}.pickup-date-status{margin-top:9px;padding:12px 14px;border-radius:12px;background:var(--checkout-pink-2);font-size:11px}.pickup-date-status strong{color:#111}.confirm-check{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--checkout-line);border-radius:14px;padding:15px 16px;margin-top:5px;font-size:11px;line-height:1.55;cursor:pointer}.confirm-check input{margin-top:2px;accent-color:#111}
+    .order-summary{position:sticky;top:90px;background:#111;color:#fff;padding:28px;border-radius:22px;height:max-content;box-shadow:0 20px 55px rgba(17,17,17,.13)}.summary-mobile-toggle{display:none}.order-summary h2{font-family:var(--serif);font-size:34px;margin:0 0 20px}.summary-row{display:grid;grid-template-columns:58px 1fr auto;gap:12px;padding:13px 0;border-bottom:1px solid #302d2f;align-items:center}.summary-row img{width:58px;height:68px;object-fit:cover;border-radius:8px;background:#fff}.summary-row p{font-size:11px;margin:0;line-height:1.5}.summary-row small{color:#aaa}.summary-total{display:flex;justify-content:space-between;padding:12px 0;font-size:11px}.summary-total.summary-fee{border-bottom:1px solid #302d2f;color:#c8c1c4}.summary-total.grand{padding:18px 0;font-size:17px}.trust-cues{display:grid;gap:8px;margin:8px 0 16px;padding:13px 0;border-top:1px solid #302d2f;border-bottom:1px solid #302d2f}.trust-cue{display:flex;gap:9px;align-items:center;color:#c7c0c3;font-size:10px}.trust-cue i{width:18px;color:var(--checkout-pink)}.pay-btn{width:100%;min-height:58px;border:0;border-radius:999px;background:#fff;color:#111;font-weight:800;text-transform:uppercase;letter-spacing:.055em;display:flex;justify-content:center;align-items:center;gap:10px;padding:0 18px;cursor:pointer;transition:.2s ease}.pay-btn:hover:not(:disabled){background:var(--checkout-pink);transform:translateY(-1px)}.pay-btn:disabled{opacity:.42;cursor:not-allowed;transform:none}.paystack-mark{width:28px;height:24px;position:relative;display:inline-block;flex:0 0 auto}.paystack-mark:before,.paystack-mark:after,.paystack-mark i,.paystack-mark b{content:'';position:absolute;left:0;height:4px;background:#0aa5c6;border-radius:2px}.paystack-mark:before{width:28px;top:1px}.paystack-mark:after{width:23px;top:7px}.paystack-mark i{width:18px;top:13px}.paystack-mark b{width:13px;top:19px}.payment-state{min-height:17px;text-align:center;font-size:10px;margin-top:10px;color:#bdb5b8}.payment-state.warning{color:#ffd4a6}.payment-state.success{color:#bbf2d2}.secure-note{font-size:9px;color:#8f888b;text-align:center;margin:8px 8px 0;line-height:1.5}.mobile-paybar{display:none}
+    .payment-success-overlay{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:rgba(255,255,255,.34);backdrop-filter:blur(18px) saturate(.9);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .38s ease,visibility .38s ease}.payment-success-overlay::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(248,220,231,.82),rgba(255,255,255,.55) 34%,rgba(255,255,255,.2) 66%)}body.payment-success-loading{overflow:hidden}body.payment-success-loading .payment-success-overlay{opacity:1;visibility:visible;pointer-events:auto}body.payment-success-loading .checkout-header,body.payment-success-loading .checkout-progress,body.payment-success-loading .checkout-wrap,body.payment-success-loading .mobile-paybar{filter:blur(8px);transform:scale(.994);opacity:.58;transition:filter .4s ease,transform .4s ease,opacity .4s ease}.success-loader-card{position:relative;z-index:1;width:min(390px,calc(100vw - 38px));padding:38px 28px 32px;border:1px solid rgba(255,255,255,.85);border-radius:30px;background:rgba(255,255,255,.88);box-shadow:0 28px 90px rgba(17,17,17,.16);text-align:center;overflow:hidden}.success-loader-card::before{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:#f8dce7;filter:blur(2px);opacity:.48;top:-96px;right:-70px}.success-loader-card::after{content:'';position:absolute;width:110px;height:110px;border-radius:50%;border:1px solid rgba(17,17,17,.08);bottom:-55px;left:-34px}.success-orbit{position:relative;width:108px;height:108px;margin:0 auto 25px}.success-orbit-ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(17,17,17,.08);border-top-color:#111;animation:bfOrbit 1.05s linear infinite}.success-orbit-ring:nth-child(2){inset:10px;border-color:rgba(248,220,231,.45);border-right-color:#efb9ce;animation-direction:reverse;animation-duration:.8s}.success-orbit-ring:nth-child(3){inset:21px;border:1px dashed rgba(17,17,17,.28);animation-duration:1.65s}.success-orbit-core{position:absolute;inset:32px;border-radius:50%;display:grid;place-items:center;background:#f8dce7;box-shadow:0 8px 28px rgba(239,185,206,.38);font-size:16px;color:#111;animation:bfPulse 1.2s ease-in-out infinite}.success-spark{position:absolute;width:7px;height:7px;border-radius:50%;background:#111;top:5px;left:50%;transform:translateX(-50%);box-shadow:0 95px 0 #efb9ce}.success-loader-eyebrow{position:relative;z-index:1;margin:0 0 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.19em;color:#9a7c88}.success-loader-title{position:relative;z-index:1;margin:0;font-family:var(--serif);font-size:34px;line-height:1.05;letter-spacing:-.02em;color:#111}.success-loader-copy{position:relative;z-index:1;margin:12px auto 0;max-width:285px;font-size:11px;line-height:1.7;color:#71666b}.success-loader-dots{position:relative;z-index:1;display:flex;justify-content:center;gap:6px;margin-top:18px}.success-loader-dots span{width:5px;height:5px;border-radius:50%;background:#111;opacity:.22;animation:bfDot 1.2s ease-in-out infinite}.success-loader-dots span:nth-child(2){animation-delay:.16s}.success-loader-dots span:nth-child(3){animation-delay:.32s}@keyframes bfOrbit{to{transform:rotate(360deg)}}@keyframes bfPulse{0%,100%{transform:scale(.92)}50%{transform:scale(1.04)}}@keyframes bfDot{0%,100%{opacity:.18;transform:translateY(0)}50%{opacity:.85;transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){.success-orbit-ring,.success-orbit-core,.success-loader-dots span{animation:none}}
+    .delivery-heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:20px}.delivery-heading-row h2{margin-bottom:0}.world-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #eadfe3;border-radius:999px;background:#fff7fa;color:#5f5559;font-size:10px;font-weight:800;letter-spacing:.04em}.world-badge i{color:#c77f9c}.country-field-wrap{position:relative}.country-select{width:100%!important}.country-select .country-list{width:min(440px,calc(100vw - 40px));max-height:260px;border:1px solid #e6d9de;border-radius:14px;box-shadow:0 18px 45px rgba(24,15,18,.14);overflow-x:hidden}.country-select .country-list .country{padding:10px 12px;font-size:12px}.country-select .selected-flag{padding-left:14px}.country-select input.field{width:100%;padding-left:54px!important}.international-payment-note{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:start;margin:14px 0 18px;padding:15px 16px;border:1px solid #eadbe1;border-radius:16px;background:linear-gradient(135deg,#fff6f9,#fff)}.international-payment-note[hidden]{display:none}.international-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#f8dce7;color:#111}.international-payment-note strong{display:block;font-size:12px;margin:1px 0 4px}.international-payment-note p{margin:0;color:#72686c;font-size:10px;line-height:1.6}.optional-label{font-weight:500;text-transform:none;letter-spacing:0;color:#a1979b;font-size:9px}.compact-address-row{align-items:start}
+    @media(max-width:850px){.delivery-heading-row{align-items:center}.world-badge{padding:8px 10px}.checkout-head-inner{grid-template-columns:1fr auto}.checkout-head-inner .secure-label{display:none}.checkout-progress{margin-top:18px}.checkout-progress .line{width:25px}.checkout-wrap{grid-template-columns:1fr;gap:16px;margin-top:20px;margin-bottom:130px}.checkout-main h1{font-size:50px}.order-summary{position:static;order:-1;padding:0;border-radius:16px;overflow:hidden}.summary-mobile-toggle{width:100%;display:flex;background:#111;color:#fff;border:0;padding:17px 18px;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;cursor:pointer}.summary-mobile-toggle span:last-child{display:flex;align-items:center;gap:9px}.summary-panel{display:none;padding:0 20px 20px}.order-summary.open .summary-panel{display:block}.order-summary h2{display:none}.order-summary .pay-btn,.order-summary .payment-state,.order-summary .secure-note{display:none}.form-row{grid-template-columns:1fr}.mobile-paybar{display:block;position:fixed;z-index:50;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--checkout-line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(14px);box-shadow:0 -10px 30px rgba(0,0,0,.07)}.mobile-paybar .pay-btn{background:#111;color:#fff;max-width:600px;margin:auto}.mobile-paybar .payment-state{color:#756b70;margin:6px 0 0}.mobile-paybar .payment-state.warning{color:#a56a25}.mobile-paybar .payment-state.success{color:#248554}}
+    @media(max-width:560px){.delivery-heading-row{align-items:flex-start}.world-badge{font-size:9px;padding:7px 9px}.country-select .country-list{width:calc(100vw - 28px);left:0}.international-payment-note{grid-template-columns:36px 1fr;padding:13px}.international-icon{width:36px;height:36px}.checkout-head-inner>a:last-child{font-size:0}.checkout-head-inner>a:last-child:after{content:'Shop';font-size:11px}.checkout-progress{justify-content:flex-start;overflow:hidden}.checkout-main h1{font-size:44px}.step-card{padding:24px 0}.fulfilment-choice{grid-template-columns:1fr}.dispatch-card{grid-template-columns:auto 1fr}.dispatch-fee{grid-column:2;text-align:left;margin-top:-7px}.method-card{padding:17px}.pickup-map{height:165px}}
+  </style>
+<link rel="canonical" href="https://bandfactory.store/checkout.html"><meta name="robots" content="noindex,follow"><meta property="og:type" content="website"><meta property="og:site_name" content="Band Factory"><meta property="og:title" content="Secure Checkout | Band Factory"><meta property="og:description" content="Complete your Band Factory order securely with Paystack."><meta property="og:url" content="https://bandfactory.store/checkout.html"><meta property="og:image" content="https://bandfactory.store/images/brand-logo-pink.jpg"><meta name="twitter:card" content="summary_large_image"></head>
+<body class="checkout-page">
+  <header class="checkout-header">
+    <div class="checkout-head-inner">
+      <a class="brand brand-with-logo" href="index.html" aria-label="Band Factory home"><img src="images/brand-monogram.jpg" alt=""><span>BΛND<small>FΛCTORY</small></span></a>
+      <span class="secure-label"><i class="fa-solid fa-lock"></i> Secure checkout</span>
+      <a href="shop.html">Continue shopping</a>
+    </div>
+  </header>
+
+  <nav class="checkout-progress" aria-label="Checkout progress">
+    <span class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span> Bag</span>
+    <span class="line"></span>
+    <span class="step active"><span class="dot">2</span> Details</span>
+    <span class="line"></span>
+    <span class="step"><span class="dot">3</span> Payment</span>
+  </nav>
+
+  <main class="checkout-wrap">
+    <section class="checkout-main">
+      <div id="checkoutFormWrap">
+        <div class="section-kicker">Secure checkout</div>
+        <h1>Almost yours.</h1>
+        <p class="checkout-intro">A few details, your preferred fulfilment option, and you’re ready to pay securely.</p>
+
+        <form id="checkoutForm" novalidate>
+          <div class="step-card">
+            <h2>Contact details</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Full name</label>
+                <input class="field" name="name" autocomplete="name" required placeholder="Your full name">
+                <span class="field-error">Please enter your full name.</span>
+              </div>
+              <div class="form-group">
+                <label>Email <span class="optional-label">Optional · strongly recommended</span></label>
+                <input class="field" name="email" type="email" autocomplete="email" placeholder="you@example.com">
+                <small class="field-help"><strong>Very recommended:</strong> add your email so you receive your receipt, order confirmation and a written record of your purchase. You can still order without one.</small>
+                <span class="field-error">If you add an email, please enter a valid address.</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input class="field" name="phone" type="tel" autocomplete="tel" required placeholder="050 000 0000">
+              <small class="field-help">We may use this number for delivery or pickup updates.</small>
+              <span class="field-error">Please enter a phone number we can reach you on.</span>
+            </div>
+            <div class="form-group">
+              <label>How did you hear about Band Factory? <span class="optional-label">Optional</span></label>
+              <select class="field" name="reportedSource" id="reportedSource">
+                <option value="">Choose one if you remember</option><option value="TikTok">TikTok</option><option value="WhatsApp">WhatsApp</option><option value="Snapchat">Snapchat</option><option value="Instagram">Instagram</option><option value="Google">Google</option><option value="Friend / Referral">Friend / Referral</option><option value="Other">Other</option>
+              </select>
+              <small class="field-help">This helps Band Factory know which platforms are bringing customers. It does not affect your order.</small>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <h2>How would you like to receive it?</h2>
+            <div class="fulfilment-choice">
+              <label class="method-card">
+                <input type="radio" name="fulfilment" value="delivery" checked>
+                <span class="method-icon"><i class="fa-solid fa-truck-fast"></i></span>
+                <span><strong>Delivery</strong><small>Have your order sent to the address you provide. Dispatches run on Wednesdays and Saturdays.</small></span>
+                <span class="method-check"><i class="fa-solid fa-check"></i></span>
+              </label>
+              <label class="method-card">
+                <input type="radio" name="fulfilment" value="pickup">
+                <span class="method-icon"><i class="fa-solid fa-bag-shopping"></i></span>
+                <span><strong>Pickup</strong><small>Choose a convenient date and collect from the Band Factory pickup point.</small></span>
+                <span class="method-check"><i class="fa-solid fa-check"></i></span>
+              </label>
+            </div>
+            <div class="dispatch-card" id="dispatchCard">
+              <span class="icon"><i class="fa-regular fa-calendar-check"></i></span>
+              <p id="dispatchNote">Checking the closest available dispatch day…</p>
+            </div>
+          </div>
+
+          <div class="step-card" id="deliveryFields">
+            <div class="delivery-heading-row">
+              <div>
+                <div class="section-kicker">Shipping destination</div>
+                <h2>Delivery details</h2>
+              </div>
+              <span class="world-badge"><i class="fa-solid fa-earth-africa"></i> Worldwide checkout</span>
+            </div>
+
+            <div class="form-group country-field-wrap">
+              <label for="checkoutCountry">Country</label>
+              <input class="field" id="checkoutCountry" name="country" type="text" autocomplete="country-name" required>
+              <input type="hidden" name="countryCode" id="checkoutCountryCode" value="GH">
+              <small class="field-help">Search or scroll to select your country. The selector includes the country flag automatically.</small>
+              <span class="field-error">Please choose your delivery country.</span>
+            </div>
+
+            <div class="international-payment-note" id="internationalPaymentNote" hidden>
+              <span class="international-icon"><i class="fa-solid fa-credit-card"></i></span>
+              <div><strong>International card payment enabled</strong><p>Pay securely in GHS with an eligible international Visa or Mastercard. Your card issuer may convert the amount to your local currency. International shipping is confirmed separately after your order.</p></div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" id="ghanaRegionGroup">
+                <label>Region</label>
+                <select class="field" name="region" id="ghanaRegion">
+                  <option>Greater Accra</option><option>Ashanti</option><option>Central</option><option>Eastern</option><option>Western</option><option>Volta</option><option>Northern</option><option>Bono</option><option>Bono East</option><option>Ahafo</option><option>Upper East</option><option>Upper West</option><option>Oti</option><option>North East</option><option>Savannah</option><option>Western North</option>
+                </select>
+              </div>
+              <div class="form-group" id="internationalRegionGroup" hidden>
+                <label>State / Province / Region</label>
+                <input class="field" name="internationalRegion" id="internationalRegion" autocomplete="address-level1" placeholder="State, province or region">
+                <span class="field-error">Please enter your state, province or region.</span>
+              </div>
+              <div class="form-group">
+                <label>City / Town</label>
+                <input class="field" name="city" autocomplete="address-level2" placeholder="City or town">
+                <span class="field-error">Please enter your city or town.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Address line 1</label>
+              <input class="field" name="address" autocomplete="address-line1" placeholder="House/building number and street">
+              <span class="field-error">Please enter your delivery address.</span>
+            </div>
+
+            <div class="form-row compact-address-row">
+              <div class="form-group">
+                <label>Address line 2 <span class="optional-label">Optional</span></label>
+                <input class="field" name="address2" autocomplete="address-line2" placeholder="Apartment, suite, area">
+              </div>
+              <div class="form-group" id="postalCodeGroup">
+                <label>Postal / ZIP code <span class="optional-label" id="postalOptional">Optional in Ghana</span></label>
+                <input class="field" name="postalCode" id="postalCode" autocomplete="postal-code" placeholder="Postal or ZIP code">
+                <span class="field-error">Please enter your postal or ZIP code.</span>
+              </div>
+            </div>
+
+            <div class="form-group autocomplete">
+              <label>Nearest landmark <span class="optional-label">Optional</span></label>
+              <input class="field" id="landmarkInput" name="landmark" autocomplete="off" placeholder="Search for a nearby landmark or type it manually">
+              <div class="suggestions" id="landmarkSuggestions"></div>
+              <div class="manual-note"><i class="fa-solid fa-location-dot"></i><span id="landmarkHelp">Suggestions will match your selected country. You can always type the landmark manually.</span></div>
+            </div>
+            <input type="hidden" name="landmarkLat"><input type="hidden" name="landmarkLng">
+          </div>
+
+          <div class="step-card" id="pickupFields" hidden>
+            <h2>Pickup details</h2>
+            <div class="pickup-card">
+              <div class="pickup-map" id="pickupMap"></div>
+              <div class="pickup-info">
+                <p class="pickup-address" id="pickupAddress">Pickup address will appear here.</p>
+                <div class="pickup-actions">
+                  <button class="mini-action" type="button" id="openPickupMap"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Maps</button>
+                  <button class="mini-action" type="button" id="copyPickupAddress"><i class="fa-regular fa-copy"></i> Copy address</button>
+                </div>
+              </div>
+            </div>
+            <div class="pickup-date-wrap form-group">
+              <label>Choose your pickup date</label>
+              <input class="field" type="date" name="pickupDate" id="pickupDate">
+              <div class="pickup-date-status" id="pickupDateStatus">Please choose a date.</div>
+              <span class="field-error">Please choose your preferred pickup date.</span>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <h2>Anything else?</h2>
+            <div class="form-group">
+              <label>Order note <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#999">(optional)</span></label>
+              <textarea class="field order-note" name="notes" placeholder="Anything we should know about your order, delivery or pickup?"></textarea>
+            </div>
+            <label class="confirm-check" id="confirmCheck">
+              <input type="checkbox" name="detailsConfirmed" required>
+              <span>I confirm that my phone number and delivery or pickup details are correct.</span>
+            </label>
+            <div class="field-error" id="confirmError">Please confirm your details before continuing to payment.</div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="order-summary" id="orderSummary">
+      <button class="summary-mobile-toggle" id="summaryToggle" type="button" aria-expanded="false">
+        <span>Order summary</span>
+        <span><strong id="summaryToggleTotal">GHS 0</strong> <i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="summary-panel">
+        <h2>Your order</h2>
+        <div id="summaryItems"></div>
+        <div class="summary-total summary-fee"><span>Subtotal</span><strong id="summarySubtotal">GHS 0</strong></div><div class="summary-total summary-fee"><span>Processing fee</span><strong id="summaryProcessingFee">GHS 0</strong></div><div class="summary-total grand"><span>Total</span><strong id="summaryTotal">GHS 0</strong></div>
+        <div class="trust-cues">
+          <div class="trust-cue"><i class="fa-solid fa-shield-halved"></i><span>Secure Paystack payment</span></div>
+          <div class="trust-cue"><i class="fa-regular fa-envelope"></i><span>Email receipt when an email is provided</span></div>
+          <div class="trust-cue"><i class="fa-solid fa-receipt"></i><span>Receipt issued after successful payment</span></div>
+        </div>
+        <button class="pay-btn" id="payButton" type="button" disabled><span class="paystack-mark"><i></i><b></b></span><span class="pay-label">Complete your details to pay</span></button>
+        <div class="payment-state" id="paymentState" aria-live="polite"></div>
+        <p class="secure-note">Your payment details are handled securely by Paystack. Band Factory never sees your card details.</p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="mobile-paybar" id="mobilePaybar">
+    <button class="pay-btn" id="mobilePayButton" type="button" disabled><span class="paystack-mark"><i></i><b></b></span><span class="pay-label">Complete your details to pay</span></button>
+    <div class="payment-state" id="mobilePaymentState" aria-live="polite"></div>
+  </div>
+
+
+  <div class="payment-success-overlay" id="paymentSuccessOverlay" role="status" aria-live="assertive" aria-hidden="true">
+    <div class="success-loader-card">
+      <div class="success-orbit" aria-hidden="true">
+        <span class="success-orbit-ring"></span>
+        <span class="success-orbit-ring"></span>
+        <span class="success-orbit-ring"></span>
+        <span class="success-orbit-core"><i class="fa-solid fa-check"></i></span>
+        <span class="success-spark"></span>
+      </div>
+      <p class="success-loader-eyebrow">Payment successful</p>
+      <h2 class="success-loader-title">Preparing your order</h2>
+      <p class="success-loader-copy">Your payment is confirmed. We are preparing your confirmation and receipt now.</p>
+      <div class="success-loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/country-select-js/2.1.1/js/countrySelect.min.js"></script>
+  <script src="https://js.paystack.co/v2/inline.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="config.js"></script>
+  <script src="firebase.js"></script>
+  <script src="email.js"></script>
+  <script src="script.js"></script>
+  <script src="checkout.js"></script>
+</body>
+</html>
