@@ -55,7 +55,7 @@ const BF = {
       // IMAGE: BLUE BLACK SMOOTH HAIRBAND
       'Blue Black': 'images/blue-black.jpg',
       // IMAGE: SEA BLUE SMOOTH HAIRBAND
-      'Ocean Blue': 'images/ob1.jpg',
+      'Ocean Blue': 'images/ob.png',
       // IMAGE: BABY BLUE SMOOTH HAIRBAND
       'Baby Blue': 'images/baby-blue.jpg',
       // IMAGE: ROYAL BLUE SMOOTH HAIRBAND
@@ -98,7 +98,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
             'Ash': 'images/twisted-ash.jpg',
           'Red': 'images/tred.jpg',
             'Blue Black': 'images/twisted-blueblack.jpg',
-            'Ocean Blue': 'images/tob1.jpg',
+            'Ocean Blue': 'images/tob.png',
             'Baby Blue': 'images/twisted-babyblue.jpg',
             'Royal Blue': 'images/twisted-royalblue.jpg',
             'Nude': 'images/twisted-nude.jpg',
