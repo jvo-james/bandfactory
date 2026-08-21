@@ -98,7 +98,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
             'Ash': 'images/twisted-ash.jpg',
           'Red': 'images/tred.jpg',
             'Blue Black': 'images/twisted-blueblack.jpg',
-            'Ocean Blue': 'images/tob.jpg',
+            'Ocean Blue': 'images/tob1.jpg',
             'Baby Blue': 'images/twisted-babyblue.jpg',
             'Royal Blue': 'images/twisted-royalblue.jpg',
             'Nude': 'images/twisted-nude.jpg',
