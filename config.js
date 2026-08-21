@@ -17,18 +17,18 @@ window.BF_CONFIG = {
   },
     adminEmail: 'bandfactoryy@gmail.com'
   },
-  paystackPublicKey: 'pk_test_297586e51710e83d3c159bfe71ff45c7e23411fa',
+  paystackPublicKey: 'pk_live_f145bbee01396ac2a1c6a78b1ddb694ae1c8bcff',
   secureOrderEndpoint: '/.netlify/functions/verify-payment',
   mapboxAccessToken: 'pk.eyJ1IjoianZvamFtZXMiLCJhIjoiY21zdHlsMnhiMGJ4eDJ5c2ZmZWFwcG55biJ9.keYOyrSD7yFhj39sTHBOQw',
   pickup: {
-    address: 'Pickup details will be shared when your order is confirmed.',
+    address: 'Joy City & Clock Bar',
     latitude: 5.6037,
     longitude: -0.1870
   },
   socials: {
     whatsapp: '233509598005',
     snapchat: 'bandfactory',
-    instagram: '',
-    tiktok: ''
+    instagram: 'bandfactory_',
+    tiktok: 'bandfactory_'
   }
 };
