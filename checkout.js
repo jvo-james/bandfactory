@@ -404,8 +404,107 @@ async function restoreRecoveryCart(){
 function abandonedCartId(){let id=localStorage.getItem(ABANDONED_ID_KEY);if(!id){id='CART-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();localStorage.setItem(ABANDONED_ID_KEY,id)}return id}
 async function saveAbandonedCartNow(){
   if(paymentInProgress||!cart.length)return;const form=$('#checkoutForm');if(!form)return;const fd=new FormData(form),phone=String(fd.get('phone')||'').trim();if(normalizeCheckoutPhone(phone).length<10)return;
-  const id=abandonedCartId(),data={id,status:'active',name:fd.get('name')||'',phone,email:fd.get('email')||'',items:cart,itemsSummary:itemsSummary(),subtotal:subtotal(),processingFee:processingFee(),total:grandTotal(),fulfilment:fd.get('fulfilment')||'delivery',...attributionData(fd),updatedAt:new Date().toISOString()};
-  try{await BFStore.setDoc(`abandonedCarts/${id}`,data,true)}catch(e){console.warn('[Band Factory] Could not save abandoned cart.',e)}
+const fulfilment = fd.get('fulfilment') || 'delivery';
+const countryCode = String(fd.get('countryCode') || 'GH').toUpperCase();
+
+const id = abandonedCartId();
+
+const data = {
+  id,
+  status: 'active',
+
+  // Customer
+  name: fd.get('name') || '',
+  phone,
+  email: fd.get('email') || '',
+
+  // Fulfilment
+  fulfilment,
+
+  // Delivery details
+  country: fulfilment === 'delivery'
+    ? (fd.get('country') || 'Ghana')
+    : 'Ghana',
+
+  countryCode: fulfilment === 'delivery'
+    ? countryCode
+    : 'GH',
+
+  isInternational:
+    fulfilment === 'delivery'
+      ? countryCode !== 'GH'
+      : false,
+
+  region:
+    fulfilment === 'delivery'
+      ? (
+          countryCode === 'GH'
+            ? (fd.get('region') || '')
+            : (fd.get('internationalRegion') || '')
+        )
+      : '',
+
+  city:
+    fulfilment === 'delivery'
+      ? (fd.get('city') || '')
+      : '',
+
+  address:
+    fulfilment === 'delivery'
+      ? (fd.get('address') || '')
+      : '',
+
+  address2:
+    fulfilment === 'delivery'
+      ? (fd.get('address2') || '')
+      : '',
+
+  postalCode:
+    fulfilment === 'delivery'
+      ? (fd.get('postalCode') || '')
+      : '',
+
+  landmark:
+    fulfilment === 'delivery'
+      ? (fd.get('landmark') || '')
+      : '',
+
+  landmarkLat:
+    fulfilment === 'delivery'
+      ? (fd.get('landmarkLat') || '')
+      : '',
+
+  landmarkLng:
+    fulfilment === 'delivery'
+      ? (fd.get('landmarkLng') || '')
+      : '',
+
+  // Pickup details
+  pickupDate:
+    fulfilment === 'pickup'
+      ? (fd.get('pickupDate') || '')
+      : '',
+
+  pickupAddress:
+    fulfilment === 'pickup'
+      ? (checkoutSettings.pickupAddress || BF_CONFIG.pickup.address || '')
+      : '',
+
+  // Other checkout info
+  notes: fd.get('notes') || '',
+
+  // Cart
+  items: cart,
+  itemsSummary: itemsSummary(),
+  subtotal: subtotal(),
+  processingFee: processingFee(),
+  total: grandTotal(),
+
+  ...attributionData(fd),
+
+  updatedAt: new Date().toISOString()
+};
+    try{await BFStore.setDoc(`abandonedCarts/${id}`,data,true)}catch(e){console.warn('[Band Factory] Could not save abandoned cart.',e)}
 }
 function queueAbandonedSave(){clearTimeout(abandonedSaveTimer);abandonedSaveTimer=setTimeout(saveAbandonedCartNow,900)}
 async function markAbandonedRecovered(orderId){const id=localStorage.getItem(ABANDONED_ID_KEY);if(!id)return;try{await BFStore.setDoc(`abandonedCarts/${id}`,{status:'recovered',orderId,recoveredAt:new Date().toISOString(),updatedAt:new Date().toISOString()},true)}catch(e){console.warn(e)}localStorage.removeItem(ABANDONED_ID_KEY)}
