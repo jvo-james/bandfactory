@@ -565,9 +565,9 @@ async function deductPurchasedStock(){
   }, true);
 }
 
-async function completeOrder(transaction, fd){
-  const fulfilment = fd.get('fulfilment');
-  const id = 'BF-' + Date.now().toString().slice(-7);
+async function completeOrder(transaction, fd, orderId){
+ const fulfilment = fd.get('fulfilment');
+const id = orderId;
   const sub = subtotal(), fee = null, processing = processingFee(), total = grandTotal();
   const pickupDate = fulfilment === 'pickup' ? dateFromInput(fd.get('pickupDate')) : null;
   const order = {
@@ -682,8 +682,11 @@ async function pay(){
   if(!cart.length) return;
 
   const form = $('#checkoutForm');
-  const fd = new FormData(form);
-  const key = BF_CONFIG.paystackPublicKey;
+const fd = new FormData(form);
+
+const orderId = 'BF-' + Date.now().toString().slice(-7);
+
+const key = BF_CONFIG.paystackPublicKey;
   if(!key || key.startsWith('REPLACE_')){
     BF.toast('Add your Paystack public key in config.js.');
     return;
@@ -693,9 +696,139 @@ async function pay(){
   setPaymentState('Checking current stock…');
 
   try{
-    await validateCartStock();
-    setPaymentState('Opening Paystack securely…');
-    const popup = new PaystackPop();
+  await validateCartStock();
+
+  setPaymentState('Saving your order…');
+
+  const fulfilment = fd.get('fulfilment');
+  const countryCode = String(fd.get('countryCode') || 'GH').toUpperCase();
+
+  const pendingOrder = {
+    id: orderId,
+
+    name: fd.get('name'),
+    email: String(fd.get('email') || '').trim(),
+    paymentEmail: paymentEmailFor(fd),
+    phone: fd.get('phone'),
+    normalizedPhone: normalizeCheckoutPhone(fd.get('phone')),
+
+    ...attributionData(fd),
+
+    fulfilment,
+
+    fulfilmentDate:
+      fulfilment === 'delivery'
+        ? window.__bfDispatchDate?.toISOString()
+        : '',
+
+    pickupDate:
+      fulfilment === 'pickup'
+        ? (fd.get('pickupDate') || '')
+        : '',
+
+    pickupAddress:
+      fulfilment === 'pickup'
+        ? (checkoutSettings.pickupAddress || BF_CONFIG.pickup.address)
+        : '',
+
+    country:
+      fulfilment === 'delivery'
+        ? (fd.get('country') || 'Ghana')
+        : 'Ghana',
+
+    countryCode:
+      fulfilment === 'delivery'
+        ? countryCode
+        : 'GH',
+
+    isInternational:
+      fulfilment === 'delivery'
+        ? countryCode !== 'GH'
+        : false,
+
+    region:
+      fulfilment === 'delivery'
+        ? (
+            countryCode === 'GH'
+              ? (fd.get('region') || '')
+              : (fd.get('internationalRegion') || '')
+          )
+        : '',
+
+    city:
+      fulfilment === 'delivery'
+        ? (fd.get('city') || '')
+        : '',
+
+    address:
+      fulfilment === 'delivery'
+        ? (fd.get('address') || '')
+        : '',
+
+    address2:
+      fulfilment === 'delivery'
+        ? (fd.get('address2') || '')
+        : '',
+
+    postalCode:
+      fulfilment === 'delivery'
+        ? (fd.get('postalCode') || '')
+        : '',
+
+    landmark:
+      fulfilment === 'delivery'
+        ? (fd.get('landmark') || '')
+        : '',
+
+    landmarkLat:
+      fulfilment === 'delivery'
+        ? (fd.get('landmarkLat') || '')
+        : '',
+
+    landmarkLng:
+      fulfilment === 'delivery'
+        ? (fd.get('landmarkLng') || '')
+        : '',
+
+    notes: fd.get('notes') || '',
+
+    items: cart,
+    itemsSummary: itemsSummary(),
+
+    subtotal: subtotal(),
+    processingFee: processingFee(),
+    deliveryFee: null,
+
+    deliveryFeeStatus:
+      fulfilment === 'delivery'
+        ? 'To be communicated'
+        : 'Not applicable',
+
+    total: grandTotal(),
+
+    payment: 'Pending',
+    status: 'Awaiting Payment',
+
+    type:
+      cart.some(i => i.type === 'wholesale')
+        ? 'Wholesale'
+        : 'Retail',
+
+    abandonedCartId:
+      localStorage.getItem(ABANDONED_ID_KEY) || '',
+
+    createdAt: new Date().toISOString()
+  };
+
+  await BFStore.setDoc(
+    `orders/${orderId}`,
+    pendingOrder,
+    false
+  );
+
+  setPaymentState('Opening Paystack securely…');
+
+  const popup = new PaystackPop();
     popup.newTransaction({
       key,
       email: paymentEmailFor(fd),
@@ -704,9 +837,13 @@ async function pay(){
       phone: fd.get('phone'),
       firstName: String(fd.get('name')).split(' ')[0],
       ...(String(fd.get('countryCode') || 'GH').toUpperCase() !== 'GH' ? {channels:['card']} : {}),
-      metadata:{custom_fields:[
-        {display_name:'Fulfilment',variable_name:'fulfilment',value:fd.get('fulfilment')},
-        {display_name:'Country',variable_name:'country',value:fd.get('country') || 'Ghana'},
+     metadata:{custom_fields:[
+  {
+    display_name:'Order ID',
+    variable_name:'order_id',
+    value:orderId
+  },
+  {display_name:'Fulfilment',variable_name:'fulfilment',value:fd.get('fulfilment')},        {display_name:'Country',variable_name:'country',value:fd.get('country') || 'Ghana'},
         {display_name:'Payment market',variable_name:'payment_market',value:String(fd.get('countryCode') || 'GH').toUpperCase() === 'GH' ? 'Ghana' : 'International'},
         {display_name:'Customer email',variable_name:'customer_email',value:fd.get('email') || 'Not provided'},
         {display_name:'Customer source',variable_name:'customer_source',value:attributionData(fd).source},
@@ -716,11 +853,11 @@ async function pay(){
       onSuccess:transaction=>{
         showPaymentSuccessLoader();
         setPaymentState('Payment received. Confirming your order…','success');
-        completeOrder(transaction,fd).catch(async error=>{
-          // We are already paid at this point. Preserve the payment reference and still continue to confirmation.
+      completeOrder(transaction,fd,orderId).catch(async error=>{
+                  // We are already paid at this point. Preserve the payment reference and still continue to confirmation.
           console.error('[Band Factory] Post-payment processing issue:',error);
           const fallbackOrder = {
-            id:'BF-' + Date.now().toString().slice(-7),
+  id:orderId,
             ...formDataObject(fd),
             email:String(fd.get('email')||'').trim(),paymentEmail:paymentEmailFor(fd),normalizedPhone:normalizeCheckoutPhone(fd.get('phone')),...attributionData(fd),
             items:cart,
