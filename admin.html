@@ -53,9 +53,76 @@
           <h1 id="pageTitle">Overview</h1>
         </div>
         <div class="admin-top-actions">
-          <button class="admin-icon" id="headerNotifications" type="button" title="Notifications" aria-label="Open notifications">
-            <i class="fa-regular fa-bell"></i><span class="notification-count-badge" id="headerNotifCount" hidden>0</span>
-          </button>
+        <div class="notification-menu" id="notificationMenu">
+
+  <button
+    class="admin-icon"
+    id="headerNotifications"
+    type="button"
+    title="Notifications"
+    aria-label="Open notifications"
+    aria-haspopup="true"
+    aria-expanded="false"
+    aria-controls="notificationPopover"
+  >
+    <i class="fa-regular fa-bell"></i>
+
+    <span
+      class="notification-count-badge"
+      id="headerNotifCount"
+      hidden
+    >
+      0
+    </span>
+  </button>
+
+
+  <div
+    class="notification-popover"
+    id="notificationPopover"
+    role="dialog"
+    aria-label="Recent notifications"
+    aria-hidden="true"
+  >
+
+    <div class="notification-popover-arrow"></div>
+
+
+    <div class="notification-popover-head">
+      <div>
+        <span>Updates</span>
+        <h3>Notifications</h3>
+      </div>
+
+      <span
+        class="notification-popover-count"
+        id="notificationPopoverCount"
+      >
+        0
+      </span>
+    </div>
+
+
+    <div
+      class="notification-popover-list"
+      id="notificationPopoverList"
+    ></div>
+
+
+    <button
+      type="button"
+      class="notification-popover-all"
+      id="viewAllNotifications"
+    >
+      <span>View all notifications</span>
+
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
+
+  </div>
+
+</div>
+          
           <a class="admin-icon" href="index.html" target="_blank" rel="noopener" title="Open store" aria-label="Open customer store">
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
@@ -63,7 +130,6 @@
         </div>
       </header>
 
-      <div class="admin-alert-area" id="adminAlertArea" aria-live="polite"></div>
 
       <section class="admin-section active" id="overview">
         <div class="page-intro">
