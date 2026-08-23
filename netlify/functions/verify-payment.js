@@ -66,7 +66,16 @@ exports.handler = async function(event) {
       const serverTime=admin.firestore.FieldValue.serverTimestamp();
       tx.set(orderRef,{...order,payment:'Paid',serverVerified:true,stockSyncStatus,verification:{reference,amount:paidAmount,currency,paidAt:data.paid_at||null,channel:data.channel||''},verifiedAt:serverTime},{merge:false});
       tx.set(paymentRef,{orderId:order.id,amount:paidAmount,currency,createdAt:serverTime},{merge:false});
-    //  if(styles)tx.set(productRef,{styles,updatedAt:serverTime},{merge:true});
+if(styles)tx.set(
+  productRef,
+  {
+    styles,
+    updatedAt: serverTime
+  },
+  {
+    merge: true
+  }
+);
       tx.set(customerRef,{name:order.name||'',email:order.email||'',phone:order.phone||'',normalizedPhone:normalizePhone(order.phone),orderId:order.id,total:number(order.total),type:order.type||'Retail',city:order.city||'',region:order.region||'',country:order.country||'',countryCode:order.countryCode||'',source:order.source||'Direct / Unknown',lastOrderAt:serverTime,createdAt:serverTime});
       tx.set(notifRef,{type:'purchase',title:'New paid order',message:`${order.name||'Customer'} placed ${order.id} for GHS ${number(order.total).toFixed(2)}.`,orderId:order.id,read:false,createdAt:serverTime});
       tx.set(activityRef,{action:'Paid order created',orderId:order.id,total:number(order.total),paystackReference:reference,source:order.source||'Direct / Unknown',createdAt:serverTime});
