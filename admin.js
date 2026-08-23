@@ -218,7 +218,12 @@ window.filterInternationalCountry=filterInternationalCountry;
 
 function renderOrders(){
   const q=(document.getElementById('orderSearch')?.value||'').toLowerCase(),f=document.getElementById('orderFilter')?.value||'All';
-  const rows=DATA.orders.filter(o=>(f==='All'||o.status===f)&&(`${o.id} ${o.name} ${o.email}`.toLowerCase().includes(q)));
+
+  const rows=DATA.orders.filter(o=>
+  o.payment === 'Paid' &&
+  (f === 'All' || o.status === f) &&
+  (`${o.id} ${o.name} ${o.email}`.toLowerCase().includes(q))
+);
   document.getElementById('allOrders').innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="7">No matching orders.</td></tr>';
 }
 function openOrder(id){
