@@ -615,13 +615,11 @@ const id = orderId;
   sessionStorage.removeItem('bf_checkout_draft');
   localStorage.removeItem('bf_cart');
 
-  setPaymentState('Payment received. Preparing your confirmation and receipt…','success');
+setPaymentState(
+  'Payment received. Preparing your confirmation and receipt…',
+  'success'
+);
 
-  try {
-  await deductPurchasedStock();
-} catch(error) {
-  console.error('[Band Factory] Stock could not update:', error);
-}
   
   // Sync Firebase and send confirmation emails, but do not treat those services as payment verification.
   const syncOrder = async()=>{
