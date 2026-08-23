@@ -28,25 +28,131 @@ const normalizePhone = value => {
 };
 
 
-// Find our Band Factory order ID inside Paystack metadata
 function getOrderId(metadata) {
   if (!metadata) return '';
 
-  // In case we later send order_id directly in metadata
   if (metadata.order_id) {
     return String(metadata.order_id).trim();
   }
 
-  // Current checkout sends it as a custom field
   const fields = Array.isArray(metadata.custom_fields)
     ? metadata.custom_fields
     : [];
 
-  const orderField = fields.find(field =>
-    field?.variable_name === 'order_id'
+  const orderField = fields.find(
+    field => field?.variable_name === 'order_id'
   );
 
   return String(orderField?.value || '').trim();
+}
+
+
+function calculateStockDeductions(order) {
+
+  const deductions = {
+    flat: {},
+    twisted: {}
+  };
+
+  let unallocatedWholesale = 0;
+
+  const add = (style, color, qty) => {
+
+    style = String(style || 'flat').toLowerCase();
+    qty = number(qty);
+
+    if (
+      !['flat', 'twisted'].includes(style) ||
+      !color ||
+      qty <= 0
+    ) {
+      return;
+    }
+
+    deductions[style][color] =
+      (deductions[style][color] || 0) + qty;
+  };
+
+
+  for (const item of order.items || []) {
+
+    const multiplier = number(item.qty || 1);
+
+
+    // Retail smooth hairbands
+    if (
+      item.type === 'retail' &&
+      (item.material || 'smooth') === 'smooth'
+    ) {
+      add(
+        item.style || 'flat',
+        item.color,
+        number(item.qty)
+      );
+    }
+
+
+    // Custom wholesale smooth hairbands
+    if (
+      item.type === 'wholesale' &&
+      (item.material || 'smooth') === 'smooth'
+    ) {
+
+      if (
+        item.wholesaleMode === 'custom' &&
+        item.allocations
+      ) {
+
+        if (item.style === 'mixed') {
+
+          for (
+            const [style, colors]
+            of Object.entries(item.allocations || {})
+          ) {
+
+            for (
+              const [color, qty]
+              of Object.entries(colors || {})
+            ) {
+
+              add(
+                style,
+                color,
+                number(qty) * multiplier
+              );
+            }
+          }
+
+        } else {
+
+          for (
+            const [color, qty]
+            of Object.entries(item.allocations || {})
+          ) {
+
+            add(
+              item.style || 'flat',
+              color,
+              number(qty) * multiplier
+            );
+          }
+        }
+
+      } else {
+
+        // Standard wholesale mixes cannot be allocated
+        // reliably to individual colours automatically.
+        unallocatedWholesale +=
+          number(item.bundlePieces) * multiplier;
+      }
+    }
+  }
+
+
+  return {
+    deductions,
+    unallocatedWholesale
+  };
 }
 
 
@@ -59,11 +165,13 @@ exports.handler = async function(event) {
     };
   }
 
+
   try {
 
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
     if (!secret) {
+
       console.error(
         '[Band Factory Webhook] PAYSTACK_SECRET_KEY is missing.'
       );
@@ -75,9 +183,9 @@ exports.handler = async function(event) {
     }
 
 
-    // --------------------------------------------------
-    // 1. VERIFY THAT THIS REQUEST REALLY CAME FROM PAYSTACK
-    // --------------------------------------------------
+    // -------------------------------------------
+    // VERIFY PAYSTACK SIGNATURE
+    // -------------------------------------------
 
     const signature =
       event.headers['x-paystack-signature'] ||
@@ -102,13 +210,12 @@ exports.handler = async function(event) {
     }
 
 
-    // --------------------------------------------------
-    // 2. READ THE PAYSTACK EVENT
-    // --------------------------------------------------
+    // -------------------------------------------
+    // READ EVENT
+    // -------------------------------------------
 
     const payload = JSON.parse(event.body || '{}');
 
-    // We only care about successful payments
     if (payload.event !== 'charge.success') {
 
       return {
@@ -116,6 +223,7 @@ exports.handler = async function(event) {
         body: 'Event ignored'
       };
     }
+
 
     const payment = payload.data || {};
 
@@ -128,15 +236,12 @@ exports.handler = async function(event) {
     }
 
 
-    // --------------------------------------------------
-    // 3. FIND THE BAND FACTORY ORDER
-    // --------------------------------------------------
+    const reference =
+      String(payment.reference || '').trim();
 
-    const reference = String(
-      payment.reference || ''
-    ).trim();
+    const orderId =
+      getOrderId(payment.metadata);
 
-    const orderId = getOrderId(payment.metadata);
 
     if (!reference) {
 
@@ -150,10 +255,11 @@ exports.handler = async function(event) {
       };
     }
 
+
     if (!orderId) {
 
       console.error(
-        '[Band Factory Webhook] Could not find order ID in Paystack metadata.',
+        '[Band Factory Webhook] Could not find order ID.',
         reference
       );
 
@@ -170,7 +276,12 @@ exports.handler = async function(event) {
     const paymentRef =
       db.collection('paymentReferences').doc(reference);
 
-    const orderSnap = await orderRef.get();
+    const productRef =
+      db.doc('products/smooth');
+
+
+    const orderSnap =
+      await orderRef.get();
 
     if (!orderSnap.exists) {
 
@@ -184,12 +295,14 @@ exports.handler = async function(event) {
       };
     }
 
-    const order = orderSnap.data() || {};
+
+    const order =
+      orderSnap.data() || {};
 
 
-    // --------------------------------------------------
-    // 4. CHECK THAT THE MONEY MATCHES THE ORDER
-    // --------------------------------------------------
+    // -------------------------------------------
+    // VERIFY AMOUNT
+    // -------------------------------------------
 
     const expectedAmount =
       Math.round(number(order.total) * 100);
@@ -199,6 +312,7 @@ exports.handler = async function(event) {
 
     const currency =
       String(payment.currency || '').toUpperCase();
+
 
     if (
       paidAmount !== expectedAmount ||
@@ -222,56 +336,165 @@ exports.handler = async function(event) {
     }
 
 
-    // --------------------------------------------------
-    // 5. MARK THE ORDER AS PAID
-    // --------------------------------------------------
+    // -------------------------------------------
+    // CALCULATE INVENTORY
+    // -------------------------------------------
+
+    const {
+      deductions,
+      unallocatedWholesale
+    } = calculateStockDeductions(order);
+
+
+    const hasManagedStock =
+      Object.values(deductions.flat).some(Boolean) ||
+      Object.values(deductions.twisted).some(Boolean);
+
+
+    // -------------------------------------------
+    // FINALISE PAYMENT
+    // -------------------------------------------
 
     await db.runTransaction(async transaction => {
 
-      const existingPayment =
+      const seen =
         await transaction.get(paymentRef);
 
-      // Browser/server already processed this reference.
-      // Don't create duplicates.
-      if (existingPayment.exists) {
+
+      // Another trusted server path already handled it.
+      if (seen.exists) {
         return;
       }
+
 
       const latestOrderSnap =
         await transaction.get(orderRef);
 
       if (!latestOrderSnap.exists) {
-        throw new Error('Order disappeared before finalisation.');
+        throw new Error(
+          'Order disappeared before finalisation.'
+        );
       }
+
 
       const latestOrder =
         latestOrderSnap.data() || {};
+
+
+      let productSnap = null;
+      let styles = null;
+
+      let stockSyncStatus = 'not-required';
+
+      const shortages = [];
+
+
+      if (hasManagedStock) {
+        productSnap =
+          await transaction.get(productRef);
+      }
+
+
+      if (
+        hasManagedStock &&
+        productSnap?.exists
+      ) {
+
+        const product =
+          productSnap.data() || {};
+
+        styles =
+          JSON.parse(
+            JSON.stringify(product.styles || {})
+          );
+
+
+        for (const style of ['flat', 'twisted']) {
+
+          for (
+            const [color, qty]
+            of Object.entries(deductions[style])
+          ) {
+
+            styles[style] ||= {
+              colors: {}
+            };
+
+            styles[style].colors ||= {};
+
+
+            const current =
+              styles[style].colors[color] ||
+              product.colors?.[color] ||
+              {};
+
+
+            const currentStock =
+              number(current.stock);
+
+
+            if (currentStock < qty) {
+
+              shortages.push(
+                `${color} ${style}: ordered ${qty}, recorded ${currentStock}`
+              );
+            }
+
+
+            styles[style].colors[color] = {
+              ...current,
+              stock:
+                Math.max(
+                  0,
+                  currentStock - qty
+                )
+            };
+          }
+        }
+
+
+        stockSyncStatus = 'updated';
+
+      } else if (hasManagedStock) {
+
+        stockSyncStatus = 'needs-review';
+      }
+
 
       const serverTime =
         admin.firestore.FieldValue.serverTimestamp();
 
 
-      // Update the pending order
+      // Update order
       transaction.set(
         orderRef,
         {
           payment: 'Paid',
           status: 'Preparing',
 
-          paystackReference: reference,
+          paystackReference:
+            reference,
 
-          serverVerified: true,
+          serverVerified:
+            true,
+
+          stockSyncStatus,
 
           verification: {
             reference,
             amount: paidAmount,
             currency,
-            paidAt: payment.paid_at || null,
-            channel: payment.channel || ''
+            paidAt:
+              payment.paid_at || null,
+            channel:
+              payment.channel || ''
           },
 
-          verifiedAt: serverTime,
-          updatedAt: serverTime
+          verifiedAt:
+            serverTime,
+
+          updatedAt:
+            serverTime
         },
         {
           merge: true
@@ -279,8 +502,23 @@ exports.handler = async function(event) {
       );
 
 
-      // Remember this Paystack reference so it
-      // cannot be processed twice
+      // Save updated inventory
+      if (styles) {
+
+        transaction.set(
+          productRef,
+          {
+            styles,
+            updatedAt: serverTime
+          },
+          {
+            merge: true
+          }
+        );
+      }
+
+
+      // Mark reference as processed
       transaction.set(
         paymentRef,
         {
@@ -295,89 +533,114 @@ exports.handler = async function(event) {
       );
 
 
-      // Create customer record
+      // Customer
       const customerRef =
         db.collection('customers').doc();
 
-      transaction.set(customerRef, {
-        name: latestOrder.name || '',
-        email: latestOrder.email || '',
-        phone: latestOrder.phone || '',
+      transaction.set(
+        customerRef,
+        {
+          name:
+            latestOrder.name || '',
 
-        normalizedPhone:
-          normalizePhone(latestOrder.phone),
+          email:
+            latestOrder.email || '',
 
-        orderId,
+          phone:
+            latestOrder.phone || '',
 
-        total: number(latestOrder.total),
+          normalizedPhone:
+            normalizePhone(latestOrder.phone),
 
-        type:
-          latestOrder.type || 'Retail',
+          orderId,
 
-        city:
-          latestOrder.city || '',
+          total:
+            number(latestOrder.total),
 
-        region:
-          latestOrder.region || '',
+          type:
+            latestOrder.type || 'Retail',
 
-        country:
-          latestOrder.country || '',
+          city:
+            latestOrder.city || '',
 
-        countryCode:
-          latestOrder.countryCode || '',
+          region:
+            latestOrder.region || '',
 
-        source:
-          latestOrder.source || 'Direct / Unknown',
+          country:
+            latestOrder.country || '',
 
-        lastOrderAt: serverTime,
-        createdAt: serverTime
-      });
+          countryCode:
+            latestOrder.countryCode || '',
+
+          source:
+            latestOrder.source ||
+            'Direct / Unknown',
+
+          lastOrderAt:
+            serverTime,
+
+          createdAt:
+            serverTime
+        }
+      );
 
 
-      // Create admin notification
+      // Purchase notification
       const notificationRef =
         db.collection('notifications').doc();
 
-      transaction.set(notificationRef, {
-        type: 'purchase',
-        title: 'New paid order',
+      transaction.set(
+        notificationRef,
+        {
+          type: 'purchase',
 
-        message:
-          `${latestOrder.name || 'Customer'} placed ` +
-          `${orderId} for GHS ` +
-          `${number(latestOrder.total).toFixed(2)}.`,
+          title:
+            'New paid order',
 
-        orderId,
+          message:
+            `${latestOrder.name || 'Customer'} placed ` +
+            `${orderId} for GHS ` +
+            `${number(latestOrder.total).toFixed(2)}.`,
 
-        read: false,
-        createdAt: serverTime
-      });
+          orderId,
+
+          read: false,
+
+          createdAt:
+            serverTime
+        }
+      );
 
 
-      // Activity log
+      // Activity
       const activityRef =
         db.collection('activity').doc();
 
-      transaction.set(activityRef, {
-        action: 'Paid order created',
-        orderId,
+      transaction.set(
+        activityRef,
+        {
+          action:
+            'Paid order created',
 
-        total:
-          number(latestOrder.total),
+          orderId,
 
-        paystackReference:
-          reference,
+          total:
+            number(latestOrder.total),
 
-        source:
-          latestOrder.source ||
-          'Direct / Unknown',
+          paystackReference:
+            reference,
 
-        createdAt:
-          serverTime
-      });
+          source:
+            latestOrder.source ||
+            'Direct / Unknown',
+
+          createdAt:
+            serverTime
+        }
+      );
 
 
-      // Mark abandoned cart as recovered
+      // Recover abandoned cart
       if (latestOrder.abandonedCartId) {
 
         const abandonedRef =
@@ -387,13 +650,118 @@ exports.handler = async function(event) {
         transaction.set(
           abandonedRef,
           {
-            status: 'recovered',
+            status:
+              'recovered',
+
             orderId,
-            recoveredAt: serverTime,
-            updatedAt: serverTime
+
+            recoveredAt:
+              serverTime,
+
+            updatedAt:
+              serverTime
           },
           {
             merge: true
+          }
+        );
+      }
+
+
+      // Wholesale that cannot be automatically
+      // assigned to specific colours
+      if (unallocatedWholesale > 0) {
+
+        const inventoryNotification =
+          db.collection('notifications').doc();
+
+        transaction.set(
+          inventoryNotification,
+          {
+            type:
+              'inventory',
+
+            title:
+              'Wholesale stock needs a quick check',
+
+            message:
+              `${unallocatedWholesale} standard-mix wholesale pieces ` +
+              `from ${orderId} need to be deducted from the ` +
+              `colours actually packed.`,
+
+            orderId,
+
+            read:
+              false,
+
+            createdAt:
+              serverTime
+          }
+        );
+      }
+
+
+      // Inventory database missing
+      if (
+        hasManagedStock &&
+        !productSnap?.exists
+      ) {
+
+        const warningRef =
+          db.collection('notifications').doc();
+
+        transaction.set(
+          warningRef,
+          {
+            type:
+              'inventory',
+
+            title:
+              'Please check this order and stock',
+
+            message:
+              `${orderId} was paid successfully, but the ` +
+              `inventory list could not be found.`,
+
+            orderId,
+
+            read:
+              false,
+
+            createdAt:
+              serverTime
+          }
+        );
+      }
+
+
+      // Oversold inventory warning
+      else if (shortages.length) {
+
+        const warningRef =
+          db.collection('notifications').doc();
+
+        transaction.set(
+          warningRef,
+          {
+            type:
+              'inventory',
+
+            title:
+              'Please check these stock counts',
+
+            message:
+              `${orderId} used more stock than the saved ` +
+              `count showed: ${shortages.join('; ')}. ` +
+              `The affected colours were set to zero.`,
+
+            orderId,
+
+            read:
+              false,
+
+            createdAt:
+              serverTime
           }
         );
       }
@@ -402,11 +770,10 @@ exports.handler = async function(event) {
 
 
     console.log(
-      `[Band Factory Webhook] ${orderId} successfully marked paid.`
+      `[Band Factory Webhook] ${orderId} successfully marked paid and inventory processed.`
     );
 
 
-    // Paystack only needs a successful HTTP response
     return {
       statusCode: 200,
       body: 'Webhook received'
