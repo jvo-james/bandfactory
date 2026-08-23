@@ -107,10 +107,106 @@
         </div>
       </section>
 
-      <section class="admin-section" id="ordersPanel">
-        <div class="page-intro"><div><h2>Orders</h2><p>Open an order to see what the customer bought, their delivery or pickup details, payment confirmation and order status.</p></div><div class="toolbar"><input id="orderSearch" placeholder="Search order or customer"><select id="orderFilter"><option>All</option><option>Preparing</option><option>Ready</option><option>Dispatched</option><option>Delivered</option><option>Cancelled</option></select></div></div>
-        <div class="admin-panel"><div class="admin-table-wrap order-table-wrap"><table class="admin-table responsive-order-table"><thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Net sales</th><th>Type</th><th>Payment</th><th>Status</th></tr></thead><tbody id="allOrders"></tbody></table></div></div>
-      </section>
+     <section class="admin-section" id="ordersPanel">
+
+  <div class="page-intro">
+    <div>
+      <h2>Orders</h2>
+      <p>
+        Open an order to see what the customer bought, their delivery or pickup details,
+        payment confirmation and order status.
+      </p>
+    </div>
+
+    <div class="toolbar">
+      <input
+        id="orderSearch"
+        placeholder="Search order or customer"
+      >
+
+      <select id="orderFilter">
+        <option>All</option>
+        <option>Preparing</option>
+        <option>Ready</option>
+        <option>Dispatched</option>
+        <option>Delivered</option>
+        <option>Cancelled</option>
+      </select>
+    </div>
+  </div>
+
+
+  <!-- PAID ORDERS -->
+  <div class="admin-panel">
+
+    <div class="panel-head">
+      <div>
+        <h3>Paid Orders</h3>
+        <p>Orders with confirmed successful payments.</p>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap order-table-wrap">
+
+      <table class="admin-table responsive-order-table">
+
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th>Net sales</th>
+            <th>Type</th>
+            <th>Payment</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody id="allOrders"></tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <!-- PENDING PAYMENTS -->
+  <div class="admin-panel" style="margin-top:24px;">
+
+    <div class="panel-head">
+      <div>
+        <h3>Pending Payments</h3>
+        <p>
+          Customers who reached the payment stage but have not yet been confirmed as paid.
+        </p>
+      </div>
+    </div>
+
+    <div class="admin-table-wrap order-table-wrap">
+
+      <table class="admin-table responsive-order-table">
+
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th>Total</th>
+            <th>Fulfilment</th>
+            <th>Payment</th>
+          </tr>
+        </thead>
+
+        <tbody id="pendingPayments"></tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
 
 
       <section class="admin-section" id="transactionsPanel">
