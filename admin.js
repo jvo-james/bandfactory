@@ -65,7 +65,7 @@ async function loadAll(){
 }
 
 function renderAll(){
-  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderTransactions();renderInternationalPayments();renderProducts();renderInventorySummary();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderTopAlerts();renderActivity();renderSettings();
+  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderPendingPayments();renderTransactions();renderInternationalPayments();renderProducts();renderInventorySummary();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderTopAlerts();renderActivity();renderSettings();
 }
 function setNavCount(id,count){
   const el=document.getElementById(id);if(!el)return;
@@ -225,6 +225,56 @@ function renderOrders(){
   (`${o.id} ${o.name} ${o.email}`.toLowerCase().includes(q))
 );
   document.getElementById('allOrders').innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="7">No matching orders.</td></tr>';
+}
+
+function renderPendingPayments(){
+  const table = document.getElementById('pendingPayments');
+
+  if(!table) return;
+
+  const rows = DATA.orders
+    .filter(o => o.payment !== 'Paid')
+    .sort((a,b) => orderDate(b) - orderDate(a));
+
+  table.innerHTML = rows.map(o => `
+    <tr onclick="openOrder('${o.id}')" style="cursor:pointer">
+
+      <td data-label="Order">
+        <strong>${o.id}</strong>
+      </td>
+
+      <td data-label="Customer">
+        ${o.name || '—'}
+        <br>
+        <small>${o.phone || o.email || 'No contact saved'}</small>
+      </td>
+
+      <td data-label="Date">
+        ${fmtDate(o.createdAt || o.submittedAt)}
+      </td>
+
+      <td data-label="Total">
+        <strong>${BF.money(orderCustomerPaid(o))}</strong>
+      </td>
+
+      <td data-label="Fulfilment">
+        ${o.fulfilment === 'pickup' ? 'Pickup' : 'Delivery'}
+      </td>
+
+      <td data-label="Payment">
+        <span class="badge preparing">
+          ${o.payment || 'Pending'}
+        </span>
+      </td>
+
+    </tr>
+  `).join('') || `
+    <tr>
+      <td colspan="6">
+        No pending payments.
+      </td>
+    </tr>
+  `;
 }
 function openOrder(id){
   const o=DATA.orders.find(x=>x.id===id);if(!o)return;
