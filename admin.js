@@ -324,12 +324,26 @@ function normalizePhone(value=''){
   if(digits.startsWith('0')&&digits.length>=10)digits='233'+digits.slice(1);
   return digits;
 }
-function orderDate(o){const v=o.createdAt||o.submittedAt||o.lastOrderAt;if(!v)return new Date(0);const d=v.toDate?v.toDate():new Date(v);return isNaN(d)?new Date(0):d}
+function orderDate(o){
+  const v=o.createdAt||o.submittedAt||o.lastOrderAt;
+  if(!v)return new Date(0);
 
+  const d=v.toDate?v.toDate():new Date(v);
+  return isNaN(d)?new Date(0):d;
+}
+
+function numberedOrders(paymentState='paid'){
+  return DATA.orders
+    .filter(o=>paymentState==='paid'
+      ? o.payment==='Paid'
+      : o.payment!=='Paid'
+    )
+    .sort((a,b)=>orderDate(b)-orderDate(a));
+}
 
 function orderAdminNumber(o={}){
-  const label = String(o.displayId || o.id || '');
-  const match = label.match(/^BF-(\d+)$/i);
+  const label=String(o.displayId||o.id||'');
+  const match=label.match(/^BF-(\d+)$/i);
 
   if(match){
     return Number(match[1]);
@@ -343,6 +357,7 @@ function customerAdminNumber(c={}){
   const index=rows.findIndex(x=>x.key===c.key);
   return index>=0?index+1:null;
 }
+
 function rowNumberBadge(value){
   return `<span class="admin-row-number">#${value||'—'}</span>`;
 }
