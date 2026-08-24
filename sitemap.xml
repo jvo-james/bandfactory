@@ -44,4 +44,5 @@
   <url><loc>https://bandfactory.store/product.html?color=Peach&amp;style=twisted</loc></url>
   <url><loc>https://bandfactory.store/product.html?color=Burgundy&amp;style=twisted</loc></url>
   <url><loc>https://bandfactory.store/product.html?color=Teal%20Blue&amp;style=twisted</loc></url>
+  <url><loc>https://bandfactory.store/tube-top.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
 </urlset>

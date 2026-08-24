@@ -53,19 +53,21 @@ window.showSection=showSection;
 
 async function loadAll(){
   return withAdminLoading(async()=>{
-    const [orders,reviews,customers,subs,notifs,msgs,activity,abandonedCarts,settings,colors,sequence]=await Promise.all([
+    const [orders,reviews,customers,subs,notifs,msgs,activity,abandonedCarts,settings,colors,sequence,tubeTopRaw]=await Promise.all([
       BFStore.list('orders'),BFStore.list('reviews'),BFStore.list('customers'),BFStore.list('subscribers'),
       BFStore.list('notifications'),BFStore.list('messages'),BFStore.list('activity'),BFStore.list('abandonedCarts','updatedAt','desc'),
-      BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}}),BFStore.getDoc('settings/orderSequence',{})
+      BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}}),BFStore.getDoc('settings/orderSequence',{}),BFStore.getDoc('products/spandexTubeTop',null)
     ]);
-    DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},sequence:sequence||{}};
+    const tubeTop=tubeTopRaw||{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}};
+    if(!tubeTopRaw)await BFStore.setDoc('products/spandexTubeTop',tubeTop,false);
+    DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},tubeTop,sequence:sequence||{}};
     await ensureChronologicalOrderIds();
     renderAll();
   },'Loading admin…');
 }
 
 function renderAll(){
-  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderPendingPayments();renderTransactions();renderInternationalPayments();renderProducts();renderInventorySummary();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderNotificationPopover();renderActivity();renderSettings();
+  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderPendingPayments();renderTransactions();renderInternationalPayments();renderProducts();renderTubeTopInventory();renderInventorySummary();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderNotificationPopover();renderActivity();renderSettings();
 }
 function setNavCount(id,count){
   const el=document.getElementById(id);if(!el)return;
@@ -112,6 +114,7 @@ function allocationRows(map,expected,label,mult=1){
 }
 function renderOrderItem(item,index){
   const qty=Math.max(1,Number(item.qty||1)),itemTotal=Number(item.price||0)*qty;
+  if(item.type==='apparel'){return `<article class="order-product-card"><div class="order-product-head"><span class="order-product-number">${index+1}</span><div><strong>${item.name||'Spandex Tube Top'}</strong><small>Black · Size ${item.size||'—'}</small></div><b>${BF.money(itemTotal)}</b></div><div class="order-product-meta"><span><small>Quantity</small><strong>${qty}</strong></span><span><small>Size</small><strong>${item.size||'—'}</strong></span><span><small>Colour</small><strong>Black</strong></span><span><small>Unit price</small><strong>${BF.money(item.price||0)}</strong></span></div></article>`;}
   if(item.type!=='wholesale'){
     const style=titleCase(item.style||'flat');
     return `<article class="order-product-card"><div class="order-product-head"><span class="order-product-number">${index+1}</span><div><strong>${item.name||'Product'}</strong><small>${item.type==='simple'?'Collection item':`${item.color||'No colour'} · ${style}`}</small></div><b>${BF.money(itemTotal)}</b></div><div class="order-product-meta"><span><small>Quantity</small><strong>${qty}</strong></span>${item.type!=='simple'?`<span><small>Style</small><strong>${style}</strong></span><span><small>Colour</small><strong>${item.color||'—'}</strong></span>`:''}<span><small>Unit price</small><strong>${BF.money(item.price||0)}</strong></span></div></article>`;
@@ -363,7 +366,7 @@ function packingItems(o={}){
      * RETAIL / NORMAL PRODUCTS
      */
     if(item.type!=='wholesale'){
-      const details=[
+      const details=item.type==='apparel'?[`Black`,`Size ${item.size||'—'}`].join(' · '):[
         item.color?receiptEscape(item.color):'',
         item.style?receiptEscape(titleCase(item.style)):''
       ].filter(Boolean).join(' · ');
@@ -1506,6 +1509,14 @@ async function saveOrderStatus(id){
 }
 window.saveOrderStatus=saveOrderStatus;
 
+function renderTubeTopInventory(){
+  const el=document.getElementById('tubeTopAdminStock');if(!el)return;const order=['XS','S','M','L','XL','2XL'],sizes=DATA.tubeTop?.sizes||{};
+  el.innerHTML=order.map(size=>{const d=sizes[size]||{};return `<div class="tube-size-admin-row"><div><strong>${size}</strong><small>${Number(d.stock??0)>0?'Available':'Sold out'}</small></div><label>Pieces <input type="number" min="0" step="1" data-tube-stock="${size}" value="${Math.max(0,Number(d.stock??0))}"></label><label class="availability-check"><input type="checkbox" data-tube-available="${size}" ${d.available===false?'':'checked'}><span>Sell this size</span></label></div>`}).join('');
+  updateTubeTopAdminTotal();el.querySelectorAll('[data-tube-stock]').forEach(input=>input.addEventListener('input',updateTubeTopAdminTotal));
+}
+function updateTubeTopAdminTotal(){const total=[...document.querySelectorAll('[data-tube-stock]')].reduce((sum,input)=>sum+Math.max(0,Number(input.value||0)),0),el=document.getElementById('tubeTopAdminTotal');if(el)el.textContent=`${total} piece${total===1?'':'s'} total across all sizes`;}
+async function saveTubeTopInventory(){return withAdminLoading(async()=>{const sizes={};document.querySelectorAll('[data-tube-stock]').forEach(input=>{const size=input.dataset.tubeStock,available=document.querySelector(`[data-tube-available="${size}"]`);sizes[size]={stock:Math.max(0,Number(input.value||0)),available:!!available?.checked}});const product={name:'Spandex Tube Top',price:64,color:'Black',description:'Double lined and stretchy',sizes,updatedAt:new Date().toISOString()};await BFStore.setDoc('products/spandexTubeTop',product,false);DATA.tubeTop=product;renderTubeTopInventory();renderInventorySummary();BF.toast('Spandex Tube Top stock saved.');},'Saving tube top stock…')}
+
 function renderProducts(){
   document.getElementById('retailPrice').value=DATA.settings.retailPrice||10;document.getElementById('twistedRetailPrice').value=DATA.settings.twistedRetailPrice??DATA.settings.retailPrice??10;document.getElementById('lowStockThreshold').value=DATA.settings.lowStockThreshold||10;document.getElementById('smoothAvailable').value=String(DATA.settings.smoothAvailable!==false);document.getElementById('smoothFlatAvailable').value=String(DATA.settings.smoothFlatAvailable!==false);document.getElementById('smoothTwistedAvailable').value=String(DATA.settings.smoothTwistedAvailable!==false);document.getElementById('ribbedAvailable').value=String(DATA.settings.ribbedAvailable===true);document.getElementById('matchingSetsAvailable').value=String(DATA.settings.matchingSetsAvailable===true);document.getElementById('ribbedPrice').value=Number(DATA.settings.ribbedPrice||0)||'';document.getElementById('smoothSetPrice').value=Number(DATA.settings.smoothSetPrice||0)||'';document.getElementById('ribbedSetPrice').value=Number(DATA.settings.ribbedSetPrice||0)||'';
   document.getElementById('colorAdminGrid').innerHTML=BF.colors.map(([n,c])=>{const legacy=DATA.colors[n]||{},flat=DATA.products.styles?.flat?.colors?.[n]||legacy,twisted=DATA.products.styles?.twisted?.colors?.[n]||legacy;return `<article class="color-admin-card"><img src="${BF.imageForColor(n)}" alt="${n}"><div class="body"><div class="color-line"><i class="color-dot" style="background:${c}"></i><strong>${n}</strong></div><div class="admin-field" style="margin-top:10px"><label>Flat stock</label><input class="stock-input" data-stock-style="flat" data-stock-color="${n}" type="number" min="0" value="${flat.stock??100}"></div><label class="availability-check"><input type="checkbox" data-available-style="flat" data-available-color="${n}" ${flat.available===false?'':'checked'}><span>Sell ${n} Flat</span></label><div class="admin-field" style="margin-top:12px"><label>Twisted stock</label><input class="stock-input" data-stock-style="twisted" data-stock-color="${n}" type="number" min="0" value="${twisted.stock??100}"></div><label class="availability-check"><input type="checkbox" data-available-style="twisted" data-available-color="${n}" ${twisted.available===false?'':'checked'}><span>Sell ${n} Twisted</span></label></div></article>`}).join('');
@@ -1624,6 +1635,7 @@ function retailUnits(item){return item.type==='wholesale'?Number(item.bundlePiec
 function forEachSoldSku(order,cb){
   (order.items||[]).forEach(i=>{
     if(i.type==='retail')cb({style:i.style||'flat',color:i.color,qty:Number(i.qty||0),label:`Smooth ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`});
+    else if(i.type==='apparel')cb({style:'apparel',color:'',qty:Number(i.qty||0),label:`${i.name||'Spandex Tube Top'} · Size ${i.size||'—'}`});
     else if(i.type==='simple')cb({style:'simple',color:'',qty:Number(i.qty||0),label:i.name||'Product'});
     else if(i.type==='wholesale'){
       const mult=Number(i.qty||1);
@@ -1654,8 +1666,9 @@ function renderRevenueBars(days){const el=document.getElementById('revenueBars')
 function renderInventorySummary(){
   const el=document.getElementById('inventorySummary');if(!el)return;let total=0,low=0,out=0;const threshold=Number(DATA.settings.lowStockThreshold||10);
   for(const style of ['flat','twisted'])for(const [name] of BF.colors){const stock=Number(DATA.products.styles?.[style]?.colors?.[name]?.stock??DATA.colors[name]?.stock??0);total+=stock;if(stock<=0)out++;else if(stock<=threshold)low++}
+  const tubeSizes=Object.values(DATA.tubeTop?.sizes||{}),tubeTotal=tubeSizes.reduce((sum,d)=>sum+Math.max(0,Number(d?.stock??0)),0),tubeLow=tubeSizes.filter(d=>Number(d?.stock??0)>0&&Number(d?.stock??0)<=threshold).length,tubeOut=tubeSizes.filter(d=>Number(d?.stock??0)<=0).length;total+=tubeTotal;low+=tubeLow;out+=tubeOut;
   const sold30=DATA.orders.filter(o=>o.payment==='Paid'&&orderDate(o)>=rangeStart('30')).reduce((sum,o)=>sum+(o.items||[]).reduce((n,i)=>n+retailUnits(i),0),0);
-  el.innerHTML=`<article class="stat-card"><i class="fa-solid fa-boxes-stacked"></i><span>Total stock</span><strong>${total}</strong><small>Flat + Twisted pieces recorded</small></article><article class="stat-card"><i class="fa-solid fa-triangle-exclamation"></i><span>Low-stock variants</span><strong>${low}</strong><small>At or below your warning level</small></article><article class="stat-card"><i class="fa-solid fa-ban"></i><span>Out of stock</span><strong>${out}</strong><small>Variants with zero pieces</small></article><article class="stat-card"><i class="fa-solid fa-arrow-trend-up"></i><span>Units sold · 30 days</span><strong>${sold30}</strong><small>Use this to plan restocks</small></article>`;
+  el.innerHTML=`<article class="stat-card"><i class="fa-solid fa-boxes-stacked"></i><span>Total stock</span><strong>${total}</strong><small>Hairbands + Spandex Tube Tops</small></article><article class="stat-card"><i class="fa-solid fa-triangle-exclamation"></i><span>Low-stock variants</span><strong>${low}</strong><small>At or below your warning level</small></article><article class="stat-card"><i class="fa-solid fa-ban"></i><span>Out of stock</span><strong>${out}</strong><small>Variants with zero pieces</small></article><article class="stat-card"><i class="fa-solid fa-arrow-trend-up"></i><span>Units sold · 30 days</span><strong>${sold30}</strong><small>Use this to plan restocks</small></article>`;
 }
 function cartAgeText(c){const d=orderDate({createdAt:c.updatedAt||c.createdAt});if(!d.getTime())return 'Recently';const mins=Math.max(0,Math.round((Date.now()-d)/60000));if(mins<60)return `${mins} min ago`;if(mins<1440)return `${Math.floor(mins/60)}h ago`;return `${Math.floor(mins/1440)}d ago`}
 function recoveryUrl(c){return `${location.origin}/checkout.html?recover=${encodeURIComponent(c.id)}`}
@@ -1829,5 +1842,5 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.clickable-stat').forEach(card=>card.onclick=()=>showSection(card.dataset.go));
   document.getElementById('signOutBtn').onclick=async()=>withAdminLoading(async()=>{await BFStore.signOut();location.href='admin-login.html'},'Signing out…');
   document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
-  document.getElementById('saveProductSettings').onclick=saveProducts;document.getElementById('saveWholesale').onclick=saveWholesale;document.getElementById('sendBroadcast').onclick=sendBroadcast;document.getElementById('saveDelivery').onclick=saveDelivery;document.getElementById('markAllRead').onclick=markAll;document.getElementById('saveSettings').onclick=saveSettings;document.getElementById('changeEmailForm')?.addEventListener('submit',submitAdminEmailChange);document.getElementById('changePasswordForm')?.addEventListener('submit',submitAdminPasswordChange);
+  document.getElementById('saveProductSettings').onclick=saveProducts;document.getElementById('saveTubeTopStock').onclick=saveTubeTopInventory;document.getElementById('saveWholesale').onclick=saveWholesale;document.getElementById('sendBroadcast').onclick=sendBroadcast;document.getElementById('saveDelivery').onclick=saveDelivery;document.getElementById('markAllRead').onclick=markAll;document.getElementById('saveSettings').onclick=saveSettings;document.getElementById('changeEmailForm')?.addEventListener('submit',submitAdminEmailChange);document.getElementById('changePasswordForm')?.addEventListener('submit',submitAdminPasswordChange);
 });

@@ -617,6 +617,9 @@ Pending approval`,
         if (color) {
           lines.push(`Colour: ${color}`);
         }
+        if (item.type === 'apparel' && item.size) {
+          lines.push(`Size: ${clean(item.size)}`);
+        }
 
         lines.push(`Quantity: ${qty}`);
 

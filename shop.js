@@ -1,10 +1,18 @@
-let productData={colors:{}},settings={retailPrice:10,twistedRetailPrice:10,smoothAvailable:true,smoothFlatAvailable:true,smoothTwistedAvailable:true,ribbedAvailable:false,matchingSetsAvailable:false,ribbedPrice:0,smoothSetPrice:0,ribbedSetPrice:0};
+let productData={colors:{}},tubeTopData={sizes:{}},settings={retailPrice:10,twistedRetailPrice:10,smoothAvailable:true,smoothFlatAvailable:true,smoothTwistedAvailable:true,ribbedAvailable:false,matchingSetsAvailable:false,ribbedPrice:0,smoothSetPrice:0,ribbedSetPrice:0};
 let activeStyle='flat';
 const families={All:BF.colors.map(c=>c[0]),Neutrals:['Black','White','Gray','Ash','Nude'],Pinks:['Pink','Peach','Burgundy'],Blues:['Blue Black','Ocean Blue','Baby Blue','Royal Blue'],Browns:['Light Brown','Dark Brown','Chocolate Brown'],Greens:['Mint','Army Green']};
 const moodMap = {
     neutral: ['Black', 'White', 'Ash', 'Nude'],
     bold: ['Burgundy', 'Royal Blue', 'Mustard', 'Army Green']
 };
+
+
+function renderTubeTopDrop(){
+  const total=Object.values(tubeTopData?.sizes||{}).reduce((sum,size)=>sum+Math.max(0,Number(size?.stock??size??0)),0),stock=document.getElementById('tubeTopShopStock'),urgency=document.getElementById('tubeTopUrgency'),card=document.getElementById('tubeTopShopCard');
+  if(!card)return;
+  if(total>0){stock.textContent=total<=6?'ALMOST GONE':`${total} PIECES LEFT`;urgency.textContent=total<=6?`Only ${total} ${total===1?'piece':'pieces'} left across all sizes — don’t wait.`:`Limited run — ${total} pieces remain across all sizes.`;card.classList.remove('sold-out-drop');}
+  else{stock.textContent='SOLD OUT';urgency.textContent='This limited drop has sold out. Check back for a restock.';card.classList.add('sold-out-drop');}
+}
 
 const colorHex=name=>(BF.colors.find(c=>c[0]===name)||['','#ddd'])[1];
 function styleAvailable(){return settings.smoothAvailable!==false && (activeStyle==='flat'?settings.smoothFlatAvailable!==false:settings.smoothTwistedAvailable!==false)}
@@ -25,9 +33,10 @@ async function initShop(){
         activeStyle = 'twisted';
     }
 
-    [settings,productData] = await Promise.all([
+    [settings,productData,tubeTopData] = await Promise.all([
         BFStore.getDoc('settings/store', settings),
-        BFStore.getDoc('products/smooth', {colors:{}})
+        BFStore.getDoc('products/smooth', {colors:{}}),
+        BFStore.getDoc('products/spandexTubeTop', {name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}})
     ]);
 
     BF.settings = {
@@ -38,6 +47,7 @@ async function initShop(){
     BF.products.smooth.price = Number(settings.retailPrice || 10);
 
     renderCategoryStatus();
+    renderTubeTopDrop();
 
     /* -----------------------------
        DEFAULT STYLE
