@@ -762,9 +762,9 @@ function renderHomepageFeature(){
     if(stock>0){
         card.href='tube-top.html';card.classList.add('editorial-drop-card');
         image.src='images/new.jpeg';image.alt='Black Spandex Tube Top by Band Factory';
-        badge.hidden=false;badge.textContent=stock<=6?'ALMOST GONE':'NEW · LIMITED';
+        badge.hidden=false;badge.textContent='NEW · LIMITED';
         eyebrow.textContent='NEW DROP';title.textContent='Spandex Tube Top.';
-        copy.textContent=`Double lined · Stretchy · Black only · GHS 64${stock<=6?` · Only ${stock} left`:''}`;cta.textContent='Shop the top →';
+        copy.textContent='Double lined · Stretchy · Black only · GHS 64';cta.textContent='Shop the top →';
     }else{
         card.href='shop.html?mood=neutral';card.classList.remove('editorial-drop-card');
         image.src='images/edit1.jpg';image.alt='Neutral Band Factory hairbands';badge.hidden=true;

@@ -8,10 +8,10 @@ const moodMap = {
 
 
 function renderTubeTopDrop(){
-  const total=Object.values(tubeTopData?.sizes||{}).reduce((sum,size)=>sum+Math.max(0,Number(size?.stock??size??0)),0),stock=document.getElementById('tubeTopShopStock'),urgency=document.getElementById('tubeTopUrgency'),card=document.getElementById('tubeTopShopCard');
+  const total=Object.values(tubeTopData?.sizes||{}).reduce((sum,size)=>sum+Math.max(0,Number(size?.stock??size??0)),0),stock=document.getElementById('tubeTopShopStock'),card=document.getElementById('tubeTopShopCard');
   if(!card)return;
-  if(total>0){stock.textContent=total<=6?'ALMOST GONE':`${total} PIECES LEFT`;urgency.textContent=total<=6?`Only ${total} ${total===1?'piece':'pieces'} left across all sizes — don’t wait.`:`Limited run — ${total} pieces remain across all sizes.`;card.classList.remove('sold-out-drop');}
-  else{stock.textContent='SOLD OUT';urgency.textContent='This limited drop has sold out. Check back for a restock.';card.classList.add('sold-out-drop');}
+  if(total>0){stock.textContent='LIMITED';card.classList.remove('sold-out-drop');card.setAttribute('aria-label','View Spandex Tube Top and choose your size');}
+  else{stock.textContent='SOLD OUT';card.classList.add('sold-out-drop');card.setAttribute('aria-label','Spandex Tube Top is sold out');}
 }
 
 const colorHex=name=>(BF.colors.find(c=>c[0]===name)||['','#ddd'])[1];
