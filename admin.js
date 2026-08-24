@@ -233,28 +233,1186 @@ function syncBatchSelection(){
   if(count)count.textContent=`${ids.length} selected`;if(button)button.disabled=!ids.length;
   const boxes=[...document.querySelectorAll('.order-select')];if(all){all.checked=boxes.length>0&&boxes.every(x=>x.checked);all.indeterminate=boxes.some(x=>x.checked)&&!all.checked;}
 }
-function packingAddress(o={}){
-  if(o.fulfilment==='pickup')return `<strong>Pickup</strong><br>${o.pickupAddress||'Band Factory pickup point'}${o.pickupDate?`<br>Pickup date: ${fmtDate(o.pickupDate)}`:''}`;
-  return [o.address,o.address2,o.city,o.region,o.postalCode,o.country,o.landmark?`Landmark: ${o.landmark}`:''].filter(Boolean).join('<br>')||'Delivery address not provided';
+
+function receiptEscape(value=''){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
 }
+
+function packingAddress(o={}){
+  if(o.fulfilment==='pickup'){
+    return {
+      title:'Pickup',
+      lines:[
+        o.pickupAddress||'Band Factory pickup point',
+        o.pickupDate?`Pickup date: ${fmtDate(o.pickupDate)}`:''
+      ].filter(Boolean)
+    };
+  }
+
+  return {
+    title:'Delivery',
+    lines:[
+      o.address,
+      o.address2,
+      [o.city,o.region].filter(Boolean).join(', '),
+      o.postalCode,
+      o.country,
+      o.landmark?`Landmark: ${o.landmark}`:''
+    ].filter(Boolean)
+  };
+}
+
+
+/*
+ * Older wholesale orders did not always save bundlePieces.
+ * This tries several saved fields and finally reads the number
+ * from product names such as "10 Piece Smooth Twisted...".
+ */
+function wholesalePiecesPerBundle(item={}){
+  const direct=[
+    item.bundlePieces,
+    item.pieces,
+    item.pieceCount,
+    item.quantityPerBundle
+  ]
+    .map(Number)
+    .find(n=>Number.isFinite(n)&&n>0);
+
+  if(direct)return direct;
+
+  const text=`${item.name||''} ${item.summary||''}`;
+
+  const match=text.match(/(\d+)\s*(?:piece|pieces|pcs)\b/i);
+
+  if(match){
+    return Number(match[1]);
+  }
+
+  // Last fallback: calculate the saved custom allocations.
+  if(item.allocations){
+    if(item.style==='mixed'){
+      return ['flat','twisted'].reduce((total,style)=>{
+        return total+Object.values(item.allocations?.[style]||{})
+          .reduce((sum,n)=>sum+Number(n||0),0);
+      },0);
+    }
+
+    return Object.values(item.allocations||{})
+      .reduce((sum,n)=>sum+Number(n||0),0);
+  }
+
+  return 0;
+}
+
+
+function packingColourBreakdown(item={},qty=1){
+  if(item.wholesaleMode!=='custom'||!item.allocations){
+    return '';
+  }
+
+  if(item.style==='mixed'){
+    return ['flat','twisted']
+      .map(style=>{
+        const colours=Object.entries(item.allocations?.[style]||{})
+          .filter(([,amount])=>Number(amount)>0)
+          .map(([colour,amount])=>
+            `${receiptEscape(colour)} × ${Number(amount)*qty}`
+          )
+          .join(', ');
+
+        return colours
+          ? `<div class="receipt-allocation-row">
+               <strong>${receiptEscape(titleCase(style))}:</strong>
+               <span>${colours}</span>
+             </div>`
+          : '';
+      })
+      .filter(Boolean)
+      .join('');
+  }
+
+  const colours=Object.entries(item.allocations||{})
+    .filter(([,amount])=>Number(amount)>0)
+    .map(([colour,amount])=>
+      `${receiptEscape(colour)} × ${Number(amount)*qty}`
+    )
+    .join(', ');
+
+  return colours
+    ? `<div class="receipt-allocation-row">
+         <strong>Colours:</strong>
+         <span>${colours}</span>
+       </div>`
+    : '';
+}
+
+
 function packingItems(o={}){
   return (o.items||[]).map((item,index)=>{
-    if(item.type!=='wholesale')return `<div class="print-item"><b>${index+1}. ${item.name||'Hairband'}</b><span>${item.color?`${item.color} · `:''}${item.style?titleCase(item.style)+' · ':''}Qty ${Number(item.qty||1)}</span></div>`;
-    const qty=Number(item.qty||1),pieces=Number(item.bundlePieces||0)*qty;
-    let details=item.summary||'';
-    if(item.wholesaleMode==='custom'&&item.allocations){
-      if(item.style==='mixed')details=['flat','twisted'].map(style=>`${titleCase(style)}: `+Object.entries(item.allocations?.[style]||{}).filter(([,n])=>Number(n)>0).map(([c,n])=>`${c} × ${Number(n)*qty}`).join(', ')).join('<br>');
-      else details=Object.entries(item.allocations||{}).filter(([,n])=>Number(n)>0).map(([c,n])=>`${c} × ${Number(n)*qty}`).join(', ');
+
+    const qty=Math.max(1,Number(item.qty||1));
+    const unitPrice=Number(item.price||0);
+    const lineTotal=unitPrice*qty;
+
+    /*
+     * RETAIL / NORMAL PRODUCTS
+     */
+    if(item.type!=='wholesale'){
+      const details=[
+        item.color?receiptEscape(item.color):'',
+        item.style?receiptEscape(titleCase(item.style)):''
+      ].filter(Boolean).join(' · ');
+
+      return `
+        <div class="receipt-item">
+          <div class="receipt-item-main">
+            <span class="receipt-item-number">${index+1}</span>
+
+            <div class="receipt-item-name">
+              <strong>${receiptEscape(item.name||'Hairband')}</strong>
+              ${details?`<small>${details}</small>`:''}
+            </div>
+          </div>
+
+          <div class="receipt-item-qty">
+            <small>QTY</small>
+            <strong>${qty}</strong>
+          </div>
+
+          <div class="receipt-item-price">
+            <small>AMOUNT</small>
+            <strong>${BF.money(lineTotal)}</strong>
+          </div>
+        </div>
+      `;
     }
-    return `<div class="print-item"><b>${index+1}. ${item.name||'Wholesale bundle'} × ${qty}</b><span>${pieces} total pieces<br>${details}</span></div>`;
+
+
+    /*
+     * WHOLESALE
+     */
+    const piecesPerBundle=wholesalePiecesPerBundle(item);
+    const totalPieces=piecesPerBundle*qty;
+
+    const style=item.style==='mixed'
+      ? 'Mixed Flat + Twisted'
+      : titleCase(item.style||'flat');
+
+    const wholesaleType=item.wholesaleMode==='custom'
+      ? 'Custom colours'
+      : 'Standard mix';
+
+    let split='';
+
+    if(item.style==='mixed'&&item.styleAllocations){
+      const flat=Number(item.styleAllocations.flat||0)*qty;
+      const twisted=Number(item.styleAllocations.twisted||0)*qty;
+
+      if(flat||twisted){
+        split=`${flat} Flat + ${twisted} Twisted`;
+      }
+    }
+
+    const colourBreakdown=packingColourBreakdown(item,qty);
+
+    return `
+      <div class="receipt-item wholesale-receipt-item">
+
+        <div class="receipt-item-main">
+          <span class="receipt-item-number">${index+1}</span>
+
+          <div class="receipt-item-name">
+            <strong>${receiptEscape(item.name||'Wholesale bundle')}</strong>
+
+            <small>
+              ${receiptEscape(style)}
+              ·
+              ${receiptEscape(wholesaleType)}
+            </small>
+          </div>
+        </div>
+
+        <div class="receipt-item-qty">
+          <small>BUNDLES</small>
+          <strong>${qty}</strong>
+        </div>
+
+        <div class="receipt-item-price">
+          <small>AMOUNT</small>
+          <strong>${BF.money(lineTotal)}</strong>
+        </div>
+
+        <div class="receipt-wholesale-details">
+
+          <div>
+            <small>PIECES PER BUNDLE</small>
+            <strong>${piecesPerBundle||'—'}</strong>
+          </div>
+
+          <div>
+            <small>TOTAL PIECES</small>
+            <strong>${totalPieces||'—'}</strong>
+          </div>
+
+          <div>
+            <small>STYLE</small>
+            <strong>${receiptEscape(style)}</strong>
+          </div>
+
+          <div>
+            <small>TYPE</small>
+            <strong>${receiptEscape(wholesaleType)}</strong>
+          </div>
+
+        </div>
+
+        ${
+          split
+            ? `<div class="receipt-detail-note">
+                 <strong>Style split:</strong> ${receiptEscape(split)}
+               </div>`
+            : ''
+        }
+
+        ${
+          colourBreakdown
+            ? `<div class="receipt-colour-box">
+                 <small>COLOUR BREAKDOWN</small>
+                 ${colourBreakdown}
+               </div>`
+            : item.wholesaleMode==='standard'
+              ? `<div class="receipt-detail-note standard">
+                   <strong>Colour selection:</strong>
+                   Standard Band Factory colour mix.
+                 </div>`
+              : ''
+        }
+
+      </div>
+    `;
   }).join('');
 }
+
 function printOrders(ids=[]){
-  const orders=ids.map(id=>DATA.orders.find(o=>o.id===id)).filter(o=>o&&o.payment==='Paid');if(!orders.length)return BF.toast('Select at least one paid order to print.');
-  const pages=orders.map(o=>`<section class="packing-slip"><header><div><div class="brand">BΛND FΛCTORY</div><small>PACKING SLIP · ${orderLabel(o)}</small></div><div class="thanks">Thank you for shopping with us ♡</div></header><div class="intro"><h1>Your Band Factory order</h1><p>Made with care, packed for you. We appreciate your support and hope you love every piece.</p></div><div class="print-grid"><div><small>CUSTOMER</small><strong>${o.name||'Customer'}</strong><span>${o.phone||''}<br>${o.email||''}</span></div><div><small>ORDER</small><strong>${orderLabel(o)}</strong><span>${fmtDate(o.createdAt||o.submittedAt)}<br>${o.type||'Retail'} · ${o.status||'Preparing'}</span></div></div><div class="delivery-box"><small>${o.fulfilment==='pickup'?'PICKUP DETAILS':'DELIVERY DETAILS'}</small><div>${packingAddress(o)}</div></div><div class="items"><h2>What’s in your order</h2>${packingItems(o)}</div>${o.notes?`<div class="note"><small>ORDER NOTE</small><p>${o.notes}</p></div>`:''}<footer><span>Band Factory</span><span>Wear it. Sell it. Build something.</span></footer></section>`).join('');
-  const win=window.open('','_blank');if(!win)return BF.toast('Please allow pop-ups so the packing slips can open for printing.');
-  win.document.write(`<!doctype html><html><head><title>Band Factory packing slips</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#241b1e;background:#f5f0f2}.packing-slip{background:#fff;min-height:267mm;padding:18mm;position:relative;page-break-after:always}.packing-slip:last-child{page-break-after:auto}header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px solid #241b1e;padding-bottom:18px}.brand{font-size:24px;font-weight:900;letter-spacing:.12em}header small,.print-grid small,.delivery-box small,.note small{font-size:10px;letter-spacing:.15em;color:#8e727c}.thanks{font-family:Georgia,serif;font-style:italic;color:#b15f7b}.intro{padding:28px 0 20px}.intro h1{font-family:Georgia,serif;font-size:34px;margin:0 0 8px}.intro p{max-width:600px;color:#695a5f}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.print-grid>div,.delivery-box,.note{border:1px solid #e4d8dc;border-radius:12px;padding:14px}.print-grid strong,.print-grid span{display:block;margin-top:6px}.delivery-box{margin-top:14px}.delivery-box div{margin-top:7px;line-height:1.5}.items{margin-top:24px}.items h2{font-family:Georgia,serif}.print-item{display:flex;justify-content:space-between;gap:24px;padding:12px 0;border-bottom:1px solid #eee}.print-item span{text-align:right;line-height:1.5;color:#5f5257}.note{margin-top:18px}footer{position:absolute;bottom:18mm;left:18mm;right:18mm;display:flex;justify-content:space-between;border-top:1px solid #e4d8dc;padding-top:10px;font-size:11px;color:#806d74}@media print{body{background:#fff}.packing-slip{min-height:auto}}</style></head><body>${pages}<script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script></body></html>`);win.document.close();
+
+  const orders=ids
+    .map(id=>DATA.orders.find(o=>o.id===id))
+    .filter(o=>o&&o.payment==='Paid');
+
+  if(!orders.length){
+    return BF.toast('Select at least one paid order to print.');
+  }
+
+
+  const pages=orders.map(o=>{
+
+    const delivery=packingAddress(o);
+
+    const deliveryHtml=delivery.lines.length
+      ? delivery.lines.map(line=>`<div>${receiptEscape(line)}</div>`).join('')
+      : '<div>No delivery address provided</div>';
+
+    const subtotal=orderSubtotal(o);
+    const processingFee=orderProcessingFee(o);
+    const totalPaid=orderCustomerPaid(o);
+
+    const paymentReference=
+      o.paystackReference||
+      o.reference||
+      o.paymentReference||
+      'Not recorded';
+
+    return `
+      <section class="packing-slip">
+
+        <!-- HEADER -->
+        <header class="receipt-header">
+
+          <div class="receipt-brand">
+            <div class="brand">BΛND FΛCTORY</div>
+            <span>ORDER RECEIPT &amp; PACKING SLIP</span>
+          </div>
+
+          <div class="receipt-order-number">
+            <small>ORDER NUMBER</small>
+            <strong>${receiptEscape(orderLabel(o))}</strong>
+          </div>
+
+        </header>
+
+
+        <!-- THANK YOU -->
+        <div class="receipt-intro">
+          <div>
+            <span class="receipt-kicker">THANK YOU FOR YOUR ORDER ♡</span>
+            <h1>We've got your order.</h1>
+            <p>
+              Thank you for shopping with Band Factory.
+              Your support means a lot to us.
+            </p>
+          </div>
+
+          <div class="receipt-status">
+            <small>PAYMENT</small>
+            <strong>PAID</strong>
+            <span>${receiptEscape(o.status||'Preparing')}</span>
+          </div>
+        </div>
+
+
+        <!-- BASIC DETAILS -->
+        <div class="receipt-info-grid">
+
+          <div class="receipt-info-card">
+            <small>CUSTOMER</small>
+
+            <strong>${receiptEscape(o.name||'Customer')}</strong>
+
+            ${
+              o.phone
+                ? `<span>${receiptEscape(o.phone)}</span>`
+                : '<span>No phone provided</span>'
+            }
+
+            ${
+              o.email
+                ? `<span>${receiptEscape(o.email)}</span>`
+                : '<span>No email provided</span>'
+            }
+          </div>
+
+
+          <div class="receipt-info-card">
+            <small>ORDER DETAILS</small>
+
+            <strong>${receiptEscape(orderLabel(o))}</strong>
+
+            <span>
+              ${fmtDate(o.createdAt||o.submittedAt)}
+            </span>
+
+            <span>
+              ${receiptEscape(o.type||'Retail')}
+              ·
+              ${receiptEscape(o.status||'Preparing')}
+            </span>
+          </div>
+
+        </div>
+
+
+        <!-- DELIVERY -->
+        <div class="receipt-delivery-card">
+
+          <div class="receipt-section-heading">
+            <small>${delivery.title.toUpperCase()} DETAILS</small>
+          </div>
+
+          <div class="receipt-delivery-content">
+
+            <strong>${receiptEscape(delivery.title)}</strong>
+
+            ${deliveryHtml}
+
+          </div>
+
+        </div>
+
+
+        <!-- ITEMS -->
+        <section class="receipt-products">
+
+          <div class="receipt-section-title">
+            <div>
+              <small>ORDER CONTENTS</small>
+              <h2>Items in this order</h2>
+            </div>
+
+            <span>
+              ${(o.items||[]).length}
+              item${(o.items||[]).length===1?'':'s'}
+            </span>
+          </div>
+
+
+          <div class="receipt-item-head">
+            <span>ITEM</span>
+            <span>QTY</span>
+            <span>AMOUNT</span>
+          </div>
+
+
+          <div class="receipt-items">
+            ${
+              packingItems(o)||
+              '<p class="receipt-empty">No product information was saved for this order.</p>'
+            }
+          </div>
+
+        </section>
+
+
+        <!-- TOTALS -->
+        <section class="receipt-payment">
+
+          <div class="receipt-payment-reference">
+
+            <small>PAYMENT REFERENCE</small>
+
+            <strong>
+              ${receiptEscape(paymentReference)}
+            </strong>
+
+            <span>
+              Payment confirmed
+            </span>
+
+          </div>
+
+
+          <div class="receipt-totals">
+
+            <div>
+              <span>Subtotal</span>
+              <strong>${BF.money(subtotal)}</strong>
+            </div>
+
+            <div>
+              <span>Processing fee</span>
+              <strong>${BF.money(processingFee)}</strong>
+            </div>
+
+            <div class="receipt-total-paid">
+              <span>TOTAL PAID</span>
+              <strong>${BF.money(totalPaid)}</strong>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        ${
+          o.notes
+            ? `
+              <section class="receipt-note">
+
+                <small>ORDER NOTE</small>
+
+                <p>
+                  ${receiptEscape(o.notes)}
+                </p>
+
+              </section>
+            `
+            : ''
+        }
+
+
+        <!-- FOOTER -->
+        <footer class="receipt-footer">
+
+          <div>
+            <strong>Thank you for choosing Band Factory ♡</strong>
+            <span>
+              We appreciate your support and hope you love every piece.
+            </span>
+          </div>
+
+          <div class="receipt-footer-brand">
+            BΛND FΛCTORY
+          </div>
+
+        </footer>
+
+      </section>
+    `;
+  }).join('');
+
+
+  const win=window.open('','_blank');
+
+  if(!win){
+    return BF.toast(
+      'Please allow pop-ups so the packing slips can open for printing.'
+    );
+  }
+
+
+  win.document.write(`
+<!doctype html>
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<title>Band Factory Orders</title>
+
+<style>
+
+@page{
+  size:A4;
+  margin:12mm;
 }
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  padding:0;
+}
+
+body{
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  color:#21191c;
+  background:#eee8ea;
+  font-size:13px;
+}
+
+
+/* -------------------------
+   PAGE
+------------------------- */
+
+.packing-slip{
+  width:100%;
+  max-width:190mm;
+  min-height:273mm;
+
+  margin:0 auto 20px;
+  padding:16mm 15mm 12mm;
+
+  background:#fff;
+
+  page-break-after:always;
+  break-after:page;
+}
+
+.packing-slip:last-child{
+  page-break-after:auto;
+  break-after:auto;
+}
+
+
+/* -------------------------
+   HEADER
+------------------------- */
+
+.receipt-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:25px;
+
+  padding-bottom:18px;
+
+  border-bottom:2px solid #261c20;
+}
+
+.brand{
+  font-size:25px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.receipt-brand span{
+  display:block;
+  margin-top:6px;
+
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.17em;
+
+  color:#8a747c;
+}
+
+.receipt-order-number{
+  text-align:right;
+}
+
+.receipt-order-number small,
+.receipt-info-card>small,
+.receipt-section-heading small,
+.receipt-section-title small,
+.receipt-payment-reference small,
+.receipt-note small{
+  display:block;
+
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.16em;
+
+  color:#987681;
+}
+
+.receipt-order-number strong{
+  display:block;
+  margin-top:5px;
+
+  font-size:20px;
+}
+
+
+/* -------------------------
+   INTRO
+------------------------- */
+
+.receipt-intro{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:30px;
+
+  padding:25px 0 22px;
+}
+
+.receipt-intro h1{
+  margin:5px 0 7px;
+
+  font-family:Georgia,serif;
+  font-size:30px;
+  line-height:1.1;
+}
+
+.receipt-intro p{
+  margin:0;
+
+  max-width:460px;
+
+  color:#68575e;
+  line-height:1.55;
+}
+
+.receipt-kicker{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.15em;
+
+  color:#ad667d;
+}
+
+.receipt-status{
+  min-width:115px;
+
+  padding:12px 15px;
+
+  border:1px solid #e9dde1;
+  border-radius:11px;
+
+  text-align:center;
+}
+
+.receipt-status small{
+  display:block;
+
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.14em;
+
+  color:#927a82;
+}
+
+.receipt-status strong{
+  display:block;
+
+  margin:5px 0 3px;
+
+  font-size:16px;
+}
+
+.receipt-status span{
+  color:#76646a;
+  font-size:11px;
+}
+
+
+/* -------------------------
+   CUSTOMER
+------------------------- */
+
+.receipt-info-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+
+  gap:12px;
+
+  margin-bottom:12px;
+}
+
+.receipt-info-card{
+  padding:14px 15px;
+
+  border:1px solid #e6dade;
+  border-radius:11px;
+}
+
+.receipt-info-card strong{
+  display:block;
+
+  margin:7px 0 4px;
+
+  font-size:15px;
+}
+
+.receipt-info-card span{
+  display:block;
+
+  margin-top:3px;
+
+  color:#514348;
+
+  line-height:1.35;
+
+  overflow-wrap:anywhere;
+}
+
+
+/* -------------------------
+   DELIVERY
+------------------------- */
+
+.receipt-delivery-card{
+  display:grid;
+  grid-template-columns:145px 1fr;
+
+  margin-bottom:26px;
+
+  border:1px solid #e6dade;
+  border-radius:11px;
+
+  overflow:hidden;
+}
+
+.receipt-section-heading{
+  padding:15px;
+
+  background:#f8f3f5;
+}
+
+.receipt-delivery-content{
+  padding:14px 16px;
+
+  line-height:1.45;
+}
+
+.receipt-delivery-content strong{
+  display:block;
+
+  margin-bottom:4px;
+}
+
+
+/* -------------------------
+   ITEMS
+------------------------- */
+
+.receipt-products{
+  margin-top:5px;
+}
+
+.receipt-section-title{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+
+  gap:15px;
+
+  margin-bottom:13px;
+}
+
+.receipt-section-title h2{
+  margin:4px 0 0;
+
+  font-family:Georgia,serif;
+  font-size:23px;
+}
+
+.receipt-section-title>span{
+  font-size:11px;
+
+  color:#806b72;
+}
+
+.receipt-item-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 75px 110px;
+
+  padding:8px 11px;
+
+  border-radius:7px;
+
+  background:#f7f2f4;
+
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.14em;
+
+  color:#8a737b;
+}
+
+.receipt-item-head span:nth-child(2),
+.receipt-item-head span:nth-child(3){
+  text-align:right;
+}
+
+.receipt-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 75px 110px;
+
+  column-gap:10px;
+
+  padding:14px 10px;
+
+  border-bottom:1px solid #eee4e7;
+
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+
+.receipt-item-main{
+  display:flex;
+  gap:10px;
+
+  min-width:0;
+}
+
+.receipt-item-number{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  flex:0 0 25px;
+
+  width:25px;
+  height:25px;
+
+  border-radius:50%;
+
+  background:#f5ecef;
+
+  font-size:10px;
+  font-weight:800;
+}
+
+.receipt-item-name{
+  min-width:0;
+}
+
+.receipt-item-name strong{
+  display:block;
+
+  font-size:13px;
+  line-height:1.35;
+}
+
+.receipt-item-name small{
+  display:block;
+
+  margin-top:4px;
+
+  color:#7b676e;
+}
+
+.receipt-item-qty,
+.receipt-item-price{
+  text-align:right;
+}
+
+.receipt-item-qty small,
+.receipt-item-price small{
+  display:none;
+}
+
+.receipt-item-qty strong,
+.receipt-item-price strong{
+  font-size:13px;
+}
+
+
+/* WHOLESALE DETAILS */
+
+.receipt-wholesale-details{
+  grid-column:1 / -1;
+
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+
+  gap:8px;
+
+  margin:13px 0 0 35px;
+}
+
+.receipt-wholesale-details>div{
+  padding:9px 10px;
+
+  border-radius:7px;
+
+  background:#faf7f8;
+}
+
+.receipt-wholesale-details small{
+  display:block;
+
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.1em;
+
+  color:#937b84;
+}
+
+.receipt-wholesale-details strong{
+  display:block;
+
+  margin-top:4px;
+
+  font-size:11px;
+}
+
+.receipt-colour-box,
+.receipt-detail-note{
+  grid-column:1 / -1;
+
+  margin:8px 0 0 35px;
+
+  padding:10px 12px;
+
+  border-left:3px solid #c68198;
+
+  background:#fbf7f8;
+
+  font-size:11px;
+
+  line-height:1.5;
+}
+
+.receipt-colour-box>small{
+  display:block;
+
+  margin-bottom:6px;
+
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.13em;
+
+  color:#987581;
+}
+
+.receipt-allocation-row{
+  display:flex;
+
+  gap:8px;
+
+  margin-top:3px;
+}
+
+.receipt-detail-note.standard{
+  color:#67545b;
+}
+
+.receipt-empty{
+  padding:15px;
+
+  color:#775f68;
+}
+
+
+/* -------------------------
+   PAYMENT
+------------------------- */
+
+.receipt-payment{
+  display:grid;
+  grid-template-columns:1fr 260px;
+
+  gap:25px;
+
+  margin-top:24px;
+  padding-top:20px;
+
+  border-top:2px solid #2c2024;
+
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+
+.receipt-payment-reference strong{
+  display:block;
+
+  margin-top:6px;
+
+  font-size:12px;
+
+  overflow-wrap:anywhere;
+}
+
+.receipt-payment-reference span{
+  display:block;
+
+  margin-top:5px;
+
+  font-size:10px;
+
+  color:#79656c;
+}
+
+.receipt-totals>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:18px;
+
+  padding:6px 0;
+}
+
+.receipt-totals span{
+  color:#67555c;
+}
+
+.receipt-total-paid{
+  margin-top:5px;
+  padding-top:10px !important;
+
+  border-top:1px solid #dacbd0;
+}
+
+.receipt-total-paid span{
+  font-size:11px;
+  font-weight:800;
+
+  color:#21191c;
+}
+
+.receipt-total-paid strong{
+  font-size:20px;
+}
+
+
+/* -------------------------
+   NOTES
+------------------------- */
+
+.receipt-note{
+  margin-top:18px;
+
+  padding:12px 14px;
+
+  border-radius:8px;
+
+  background:#f8f3f5;
+
+  break-inside:avoid;
+}
+
+.receipt-note p{
+  margin:7px 0 0;
+
+  line-height:1.5;
+}
+
+
+/* -------------------------
+   FOOTER
+------------------------- */
+
+.receipt-footer{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+
+  gap:20px;
+
+  margin-top:30px;
+  padding-top:13px;
+
+  border-top:1px solid #e2d5da;
+
+  color:#765f67;
+}
+
+.receipt-footer strong{
+  display:block;
+
+  margin-bottom:4px;
+
+  color:#38292e;
+}
+
+.receipt-footer span{
+  font-size:10px;
+}
+
+.receipt-footer-brand{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.13em;
+
+  white-space:nowrap;
+}
+
+
+/* -------------------------
+   PRINT
+------------------------- */
+
+@media print{
+
+  html,
+  body{
+    background:#fff !important;
+  }
+
+  .packing-slip{
+    width:auto;
+    max-width:none;
+    min-height:0;
+
+    margin:0;
+
+    box-shadow:none;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+${pages}
+
+<script>
+window.onload=()=>{
+  setTimeout(()=>{
+    window.print();
+  },250);
+};
+<\/script>
+
+</body>
+
+</html>
+  `);
+
+  win.document.close();
+}
+
 window.printOrders=printOrders;
 
 function renderOrders(){
