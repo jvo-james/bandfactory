@@ -547,3 +547,4 @@
   .colour-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
   .colour-pick span{font-size:8.5px}
 }
+.colour-pick span small{display:block;margin-top:3px;font-size:10px;opacity:.7}.colour-pick.sold-out{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}.colour-pick.sold-out .sold-out-tag{font-size:9px;letter-spacing:.08em}.style-choice.sold-out{opacity:.45;cursor:not-allowed}.style-choice.sold-out::after{content:'SOLD OUT';font-size:10px;font-weight:800;letter-spacing:.08em;margin-left:auto}
