@@ -53,12 +53,13 @@ window.showSection=showSection;
 
 async function loadAll(){
   return withAdminLoading(async()=>{
-    const [orders,reviews,customers,subs,notifs,msgs,activity,abandonedCarts,settings,colors]=await Promise.all([
+    const [orders,reviews,customers,subs,notifs,msgs,activity,abandonedCarts,settings,colors,sequence]=await Promise.all([
       BFStore.list('orders'),BFStore.list('reviews'),BFStore.list('customers'),BFStore.list('subscribers'),
       BFStore.list('notifications'),BFStore.list('messages'),BFStore.list('activity'),BFStore.list('abandonedCarts','updatedAt','desc'),
-      BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}})
+      BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}}),BFStore.getDoc('settings/orderSequence',{})
     ]);
-    DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}}};
+    DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},sequence:sequence||{}};
+    await ensureChronologicalOrderIds();
     renderAll();
   },'Loading admin…');
 }
@@ -140,7 +141,7 @@ function renderOverview(){
   document.getElementById('statSubscribers').textContent=DATA.subscribers.filter(s=>s.status!=='inactive').length;
   document.getElementById('todayLabel').textContent=new Intl.DateTimeFormat('en-GH',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
   const headerCount=document.getElementById('headerNotifCount');if(headerCount){headerCount.textContent=unread>99?'99+':unread;headerCount.hidden=unread===0}
-  document.getElementById('recentOrders').innerHTML=paid.slice(0,7).map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'—'}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="6">No paid orders yet.</td></tr>';
+  document.getElementById('recentOrders').innerHTML=paid.slice(0,7).map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'—'}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="6">No paid orders yet.</td></tr>';
   const a=[];
   if(pending)a.push({text:`${pending} paid order${pending>1?'s':''} still need to be completed`,count:pending,section:'ordersPanel'});
   if(reviewPending)a.push({text:`${reviewPending} review${reviewPending>1?'s are':' is'} waiting for your decision`,count:reviewPending,section:'reviewsPanel'});
@@ -153,7 +154,7 @@ function renderOverview(){
 function renderTransactions(){
   const el=document.getElementById('transactionsTable'); if(!el)return;
   const rows=numberedOrders('paid');
-  el.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'Customer'}</td><td data-label="Subtotal"><strong>${BF.money(orderSubtotal(o))}</strong></td><td data-label="Processing fee">${BF.money(orderProcessingFee(o))}<small class="fee-split">1.95% Paystack + 1% MTN MoMo</small></td><td data-label="Total paid"><strong>${BF.money(orderCustomerPaid(o))}</strong></td></tr>`).join('')||'<tr><td colspan="7">No paid transactions yet.</td></tr>';
+  el.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'Customer'}</td><td data-label="Subtotal"><strong>${BF.money(orderSubtotal(o))}</strong></td><td data-label="Processing fee">${BF.money(orderProcessingFee(o))}<small class="fee-split">1.95% Paystack + 1% MTN MoMo</small></td><td data-label="Total paid"><strong>${BF.money(orderCustomerPaid(o))}</strong></td></tr>`).join('')||'<tr><td colspan="7">No paid transactions yet.</td></tr>';
 }
 
 function isInternationalOrder(o={}){
@@ -206,7 +207,7 @@ function renderInternationalPayments(){
     countryList.innerHTML=Object.entries(stats).sort((a,b)=>b[1].orders-a[1].orders).map(([name,stat])=>`<button type="button" class="international-country-card" onclick="filterInternationalCountry('${name.replace(/'/g,"\'")}')"><span class="international-flag">${countryFlag(stat.code)}</span><span><strong>${name}</strong><small>${stat.orders} paid order${stat.orders===1?'':'s'}</small></span><b>${BF.money(stat.total)}</b></button>`).join('')||'<div class="empty-help">No international payments yet. When a customer outside Ghana pays successfully, the order will appear here automatically.</div>';
   }
 
-  table.innerHTML=rows.map(o=>{const state=internationalPaymentState(o),country=internationalCountryName(o),flag=countryFlag(o.countryCode);return `<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Order"><strong>${o.id}</strong><small class="international-reference">${o.paystackReference||'No reference saved'}</small></td><td data-label="Customer">${o.name||'Customer'}<small>${o.email||o.phone||''}</small></td><td data-label="Country"><span class="country-cell"><i>${flag}</i><strong>${country}</strong></span></td><td data-label="Subtotal"><strong>${BF.money(orderSubtotal(o))}</strong></td><td data-label="Fee recorded">${BF.money(orderProcessingFee(o))}</td><td data-label="Total charged"><strong>${BF.money(orderCustomerPaid(o))}</strong><small>Charged in GHS</small></td><td data-label="Payment check"><span class="badge ${state.className}">${state.label}</span><small>${state.help}</small></td></tr>`}).join('')||`<tr><td colspan="9">${selected==='all'?'No international paid orders yet.':'No paid orders from this country yet.'}</td></tr>`;
+  table.innerHTML=rows.map(o=>{const state=internationalPaymentState(o),country=internationalCountryName(o),flag=countryFlag(o.countryCode);return `<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Order"><strong>${orderLabel(o)}</strong><small class="international-reference">${o.paystackReference||'No reference saved'}</small></td><td data-label="Customer">${o.name||'Customer'}<small>${o.email||o.phone||''}</small></td><td data-label="Country"><span class="country-cell"><i>${flag}</i><strong>${country}</strong></span></td><td data-label="Subtotal"><strong>${BF.money(orderSubtotal(o))}</strong></td><td data-label="Fee recorded">${BF.money(orderProcessingFee(o))}</td><td data-label="Total charged"><strong>${BF.money(orderCustomerPaid(o))}</strong><small>Charged in GHS</small></td><td data-label="Payment check"><span class="badge ${state.className}">${state.label}</span><small>${state.help}</small></td></tr>`}).join('')||`<tr><td colspan="9">${selected==='all'?'No international paid orders yet.':'No paid orders from this country yet.'}</td></tr>`;
 }
 function filterInternationalCountry(country){
   const filter=document.getElementById('internationalCountryFilter');if(!filter)return;
@@ -215,18 +216,57 @@ function filterInternationalCountry(country){
 }
 window.filterInternationalCountry=filterInternationalCountry;
 
+
+function orderLabel(o={}){return o.displayId||o.id||'—'}
+async function ensureChronologicalOrderIds(){
+  if(DATA.sequence?.migrated===true)return;
+  const rows=[...DATA.orders].sort((a,b)=>orderDate(a)-orderDate(b)||String(a.id).localeCompare(String(b.id)));
+  const changes=[];
+  rows.forEach((o,index)=>{const displayId=`BF-${String(index+1).padStart(5,'0')}`;o.displayId=displayId;changes.push(BFStore.update('orders',o.id,{displayId}));});
+  const existing=Math.max(0,Number(DATA.sequence?.lastNumber||0));
+  changes.push(BFStore.setDoc('settings/orderSequence',{lastNumber:Math.max(existing,rows.length),migrated:true},true));
+  await Promise.allSettled(changes);DATA.sequence={lastNumber:Math.max(existing,rows.length),migrated:true};
+}
+function selectedPaidOrderIds(){return [...document.querySelectorAll('.order-select:checked')].map(x=>x.dataset.orderId)}
+function syncBatchSelection(){
+  const ids=selectedPaidOrderIds(),count=document.getElementById('selectedOrderCount'),button=document.getElementById('printSelectedOrders'),all=document.getElementById('selectAllOrders');
+  if(count)count.textContent=`${ids.length} selected`;if(button)button.disabled=!ids.length;
+  const boxes=[...document.querySelectorAll('.order-select')];if(all){all.checked=boxes.length>0&&boxes.every(x=>x.checked);all.indeterminate=boxes.some(x=>x.checked)&&!all.checked;}
+}
+function packingAddress(o={}){
+  if(o.fulfilment==='pickup')return `<strong>Pickup</strong><br>${o.pickupAddress||'Band Factory pickup point'}${o.pickupDate?`<br>Pickup date: ${fmtDate(o.pickupDate)}`:''}`;
+  return [o.address,o.address2,o.city,o.region,o.postalCode,o.country,o.landmark?`Landmark: ${o.landmark}`:''].filter(Boolean).join('<br>')||'Delivery address not provided';
+}
+function packingItems(o={}){
+  return (o.items||[]).map((item,index)=>{
+    if(item.type!=='wholesale')return `<div class="print-item"><b>${index+1}. ${item.name||'Hairband'}</b><span>${item.color?`${item.color} · `:''}${item.style?titleCase(item.style)+' · ':''}Qty ${Number(item.qty||1)}</span></div>`;
+    const qty=Number(item.qty||1),pieces=Number(item.bundlePieces||0)*qty;
+    let details=item.summary||'';
+    if(item.wholesaleMode==='custom'&&item.allocations){
+      if(item.style==='mixed')details=['flat','twisted'].map(style=>`${titleCase(style)}: `+Object.entries(item.allocations?.[style]||{}).filter(([,n])=>Number(n)>0).map(([c,n])=>`${c} × ${Number(n)*qty}`).join(', ')).join('<br>');
+      else details=Object.entries(item.allocations||{}).filter(([,n])=>Number(n)>0).map(([c,n])=>`${c} × ${Number(n)*qty}`).join(', ');
+    }
+    return `<div class="print-item"><b>${index+1}. ${item.name||'Wholesale bundle'} × ${qty}</b><span>${pieces} total pieces<br>${details}</span></div>`;
+  }).join('');
+}
+function printOrders(ids=[]){
+  const orders=ids.map(id=>DATA.orders.find(o=>o.id===id)).filter(o=>o&&o.payment==='Paid');if(!orders.length)return BF.toast('Select at least one paid order to print.');
+  const pages=orders.map(o=>`<section class="packing-slip"><header><div><div class="brand">BΛND FΛCTORY</div><small>PACKING SLIP · ${orderLabel(o)}</small></div><div class="thanks">Thank you for shopping with us ♡</div></header><div class="intro"><h1>Your Band Factory order</h1><p>Made with care, packed for you. We appreciate your support and hope you love every piece.</p></div><div class="print-grid"><div><small>CUSTOMER</small><strong>${o.name||'Customer'}</strong><span>${o.phone||''}<br>${o.email||''}</span></div><div><small>ORDER</small><strong>${orderLabel(o)}</strong><span>${fmtDate(o.createdAt||o.submittedAt)}<br>${o.type||'Retail'} · ${o.status||'Preparing'}</span></div></div><div class="delivery-box"><small>${o.fulfilment==='pickup'?'PICKUP DETAILS':'DELIVERY DETAILS'}</small><div>${packingAddress(o)}</div></div><div class="items"><h2>What’s in your order</h2>${packingItems(o)}</div>${o.notes?`<div class="note"><small>ORDER NOTE</small><p>${o.notes}</p></div>`:''}<footer><span>Band Factory</span><span>Wear it. Sell it. Build something.</span></footer></section>`).join('');
+  const win=window.open('','_blank');if(!win)return BF.toast('Please allow pop-ups so the packing slips can open for printing.');
+  win.document.write(`<!doctype html><html><head><title>Band Factory packing slips</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#241b1e;background:#f5f0f2}.packing-slip{background:#fff;min-height:267mm;padding:18mm;position:relative;page-break-after:always}.packing-slip:last-child{page-break-after:auto}header{display:flex;justify-content:space-between;gap:30px;border-bottom:2px solid #241b1e;padding-bottom:18px}.brand{font-size:24px;font-weight:900;letter-spacing:.12em}header small,.print-grid small,.delivery-box small,.note small{font-size:10px;letter-spacing:.15em;color:#8e727c}.thanks{font-family:Georgia,serif;font-style:italic;color:#b15f7b}.intro{padding:28px 0 20px}.intro h1{font-family:Georgia,serif;font-size:34px;margin:0 0 8px}.intro p{max-width:600px;color:#695a5f}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.print-grid>div,.delivery-box,.note{border:1px solid #e4d8dc;border-radius:12px;padding:14px}.print-grid strong,.print-grid span{display:block;margin-top:6px}.delivery-box{margin-top:14px}.delivery-box div{margin-top:7px;line-height:1.5}.items{margin-top:24px}.items h2{font-family:Georgia,serif}.print-item{display:flex;justify-content:space-between;gap:24px;padding:12px 0;border-bottom:1px solid #eee}.print-item span{text-align:right;line-height:1.5;color:#5f5257}.note{margin-top:18px}footer{position:absolute;bottom:18mm;left:18mm;right:18mm;display:flex;justify-content:space-between;border-top:1px solid #e4d8dc;padding-top:10px;font-size:11px;color:#806d74}@media print{body{background:#fff}.packing-slip{min-height:auto}}</style></head><body>${pages}<script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script></body></html>`);win.document.close();
+}
+window.printOrders=printOrders;
+
 function renderOrders(){
   const q=(document.getElementById('orderSearch')?.value||'').toLowerCase(),f=document.getElementById('orderFilter')?.value||'All';
-  const rows=DATA.orders
-    .filter(o=>o.payment==='Paid'&&(f==='All'||o.status===f)&&(`${o.id} ${o.name} ${o.email}`.toLowerCase().includes(q)))
-    .sort((a,b)=>orderDate(b)-orderDate(a));
-  document.getElementById('allOrders').innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="8">No matching paid orders.</td></tr>';
+  const rows=DATA.orders.filter(o=>o.payment==='Paid'&&(f==='All'||o.status===f)&&(`${o.id} ${orderLabel(o)} ${o.name} ${o.email}`.toLowerCase().includes(q))).sort((a,b)=>orderDate(b)-orderDate(a));
+  document.getElementById('allOrders').innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="Select" onclick="event.stopPropagation()"><input class="order-select" type="checkbox" data-order-id="${o.id}" aria-label="Select ${orderLabel(o)}"></td><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="9">No matching paid orders.</td></tr>';
+  document.querySelectorAll('.order-select').forEach(x=>x.onchange=syncBatchSelection);syncBatchSelection();
 }
-
 function renderPendingPayments(){
   const table=document.getElementById('pendingPayments');if(!table)return;
   const rows=DATA.orders.filter(o=>o.payment!=='Paid').sort((a,b)=>orderDate(b)-orderDate(a));
-  table.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${o.id}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.phone||o.email||'No contact saved'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Total"><strong>${BF.money(orderCustomerPaid(o))}</strong></td><td data-label="Fulfilment">${o.fulfilment==='pickup'?'Pickup':'Delivery'}</td><td data-label="Payment"><span class="badge preparing">${o.payment||'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="7">No pending payments.</td></tr>';
+  table.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'—'}<br><small>${o.phone||o.email||'No contact saved'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Total"><strong>${BF.money(orderCustomerPaid(o))}</strong></td><td data-label="Fulfilment">${o.fulfilment==='pickup'?'Pickup':'Delivery'}</td><td data-label="Payment"><span class="badge preparing">${o.payment||'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="7">No pending payments.</td></tr>';
 }
 
 function openOrder(id){
@@ -235,7 +275,7 @@ function openOrder(id){
   document.getElementById('orderDrawer').innerHTML=`
     <div class="order-drawer-head"><span>Order details</span><button class="drawer-close" type="button" onclick="closeOrder()" aria-label="Close order details"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="order-drawer-content">
-      <div class="order-title-row"><div><div class="drawer-record-kicker">${o.payment==='Paid'?'Order':'Pending'} ${rowNumberBadge(orderAdminNumber(o))}</div><h2>${o.id}</h2><p><strong>${o.name||'Customer'}</strong><br>${o.email||'No email provided'}<br>${o.phone||''}</p></div><div class="order-title-badges"><span class="badge ${o.payment==='Paid'?'paid':'preparing'}">${o.payment||'Pending'}</span><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Awaiting Payment'}</span></div></div>
+      <div class="order-title-row"><div><div class="drawer-record-kicker">${o.payment==='Paid'?'Order':'Pending'} ${rowNumberBadge(orderAdminNumber(o))}</div><h2>${orderLabel(o)}</h2><p><strong>${o.name||'Customer'}</strong><br>${o.email||'No email provided'}<br>${o.phone||''}</p></div><div class="order-title-badges"><span class="badge ${o.payment==='Paid'?'paid':'preparing'}">${o.payment||'Pending'}</span><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Awaiting Payment'}</span></div></div>
       <div class="order-quick-summary"><div><small>Products</small><strong>${items.length}</strong></div><div><small>Total pieces</small><strong>${pieceCount}</strong></div><div class="primary"><small>Net sales</small><strong>${BF.money(orderSubtotal(o))}</strong></div></div>
       <div class="drawer-section-label order-products-label">Products ordered</div>
       <div class="order-products-list">${itemsHtml||'<p class="empty-help">No product details were saved for this order.</p>'}</div>
@@ -243,7 +283,7 @@ function openOrder(id){
       <div class="order-info-card"><strong>${o.fulfilment==='pickup'?'Pickup':'Delivery'}</strong><p>${o.fulfilmentDate?fmtDate(o.fulfilmentDate):''}${o.address?`<br>${o.address}`:''}${o.address2?`<br>${o.address2}`:''}${o.city?`<br>${o.city}`:''}${o.region?`, ${o.region}`:''}${o.postalCode?` ${o.postalCode}`:''}${o.country?`<br><strong>${o.country}</strong>`:''}${o.landmark?`<br>${o.landmark}`:''}</p></div>
       <div class="customer-contact-card"><strong>Customer source</strong><p>${sourceLabel(o)}</p><small>${o.reportedSource?'Customer selected this at checkout.':'Detected from campaign/referrer where available.'}</small></div>
       <div class="drawer-section-label">Payment confirmation reference</div><div class="payment-reference">${o.paystackReference||'No reference saved'}</div>${o.serverVerified===false?'<p class="field-help"><strong>Please check this order:</strong> the automatic stock update could not be confirmed. Compare the quantities here with your stock count and adjust Inventory if needed.</p>':''}
-      ${o.payment==='Paid'?`<div class="admin-field order-status-field"><label>Order status</label><select id="drawerStatus"><option>Preparing</option><option>Ready</option><option>Dispatched</option><option>Delivered</option><option>Cancelled</option></select><p class="field-help">Choose the stage this order has reached, then save.</p></div><div class="drawer-save-row"><button class="small-btn primary" onclick="saveOrderStatus('${o.id}')">Save order status</button></div>`:`<div class="settings-explainer"><i class="fa-solid fa-clock"></i><div><strong>Payment is still pending</strong><p>This checkout has been saved for recovery, but it is not a confirmed sale. Fulfilment controls will appear after Paystack confirms payment.</p></div></div>`}
+      ${o.payment==='Paid'?`<div class="admin-field order-status-field"><label>Order status</label><select id="drawerStatus"><option>Preparing</option><option>Ready</option><option>Dispatched</option><option>Delivered</option><option>Cancelled</option></select><p class="field-help">Choose the stage this order has reached, then save.</p></div><div class="drawer-save-row"><button class="small-btn primary" onclick="saveOrderStatus('${o.id}')">Save order status</button><button class="small-btn packing-print-btn" onclick="printOrders(['${o.id}'])"><i class="fa-solid fa-print"></i> Print packing slip</button></div>`:`<div class="settings-explainer"><i class="fa-solid fa-clock"></i><div><strong>Payment is still pending</strong><p>This checkout has been saved for recovery, but it is not a confirmed sale. Fulfilment controls will appear after Paystack confirms payment.</p></div></div>`}
     </div>`;
   if(o.payment==='Paid'&&document.getElementById('drawerStatus'))document.getElementById('drawerStatus').value=o.status||'Preparing';
   document.getElementById('drawerScreen').classList.add('show');document.getElementById('orderDrawer').classList.add('open');
@@ -326,7 +366,7 @@ function renderCustomers(){
 }
 function openCustomer(encodedKey){
   const key=decodeURIComponent(encodedKey),c=customerGroups().find(x=>x.key===key);if(!c)return;
-  const history=[...c.orders].sort((a,b)=>orderDate(b)-orderDate(a)).map(o=>`<button class="customer-order-card" type="button" onclick="openOrder('${o.id}')"><span><strong>${rowNumberBadge(orderAdminNumber(o))} ${o.id}</strong><small>${fmtDate(o.createdAt)} · ${o.status||'Preparing'}</small></span><span class="history-money"><strong>${BF.money(orderSubtotal(o))}</strong><small>Net sales</small></span></button>`).join('');
+  const history=[...c.orders].sort((a,b)=>orderDate(b)-orderDate(a)).map(o=>`<button class="customer-order-card" type="button" onclick="openOrder('${o.id}')"><span><strong>${rowNumberBadge(orderAdminNumber(o))} ${orderLabel(o)}</strong><small>${fmtDate(o.createdAt)} · ${o.status||'Preparing'}</small></span><span class="history-money"><strong>${BF.money(orderSubtotal(o))}</strong><small>Net sales</small></span></button>`).join('');
   document.getElementById('orderDrawer').innerHTML=`<div class="order-drawer-head"><span>Customer profile</span><button class="drawer-close" type="button" onclick="closeOrder()" aria-label="Close customer profile"><i class="fa-solid fa-xmark"></i></button></div><div class="order-drawer-content"><div class="drawer-record-kicker">Customer ${rowNumberBadge(customerAdminNumber(c))}</div><h2>${c.name}</h2><div class="customer-profile-grid"><div><span>Customer status</span><strong>${c.orders.length>1?'Returning customer':'New customer'}</strong></div><div><span>Total orders</span><strong>${c.orders.length}</strong></div><div><span>Lifetime net sales</span><strong>${BF.money(c.spend)}</strong></div><div><span>Average net order</span><strong>${BF.money(c.spend/c.orders.length)}</strong></div></div><div class="customer-contact-card"><strong>Contact</strong><p>${c.phone||'No phone'}<br>${c.email||'No email provided'}</p></div><div class="customer-contact-card"><strong>First known source</strong><p>${c.source}</p><small>This comes from campaign/referrer tracking or the shopper’s checkout answer.</small></div><div class="drawer-section-label">Order history</div><div class="customer-order-history">${history}</div></div>`;
   document.getElementById('drawerScreen').classList.add('show');document.getElementById('orderDrawer').classList.add('open');
 }
@@ -561,6 +601,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.admin-nav button').forEach(b=>b.onclick=()=>showSection(b.dataset.section));
   document.querySelectorAll('.clickable-stat').forEach(card=>card.onclick=()=>showSection(card.dataset.go));
   document.getElementById('signOutBtn').onclick=async()=>withAdminLoading(async()=>{await BFStore.signOut();location.href='admin-login.html'},'Signing out…');
-  document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
+  document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
   document.getElementById('saveProductSettings').onclick=saveProducts;document.getElementById('saveWholesale').onclick=saveWholesale;document.getElementById('sendBroadcast').onclick=sendBroadcast;document.getElementById('saveDelivery').onclick=saveDelivery;document.getElementById('markAllRead').onclick=markAll;document.getElementById('saveSettings').onclick=saveSettings;document.getElementById('changeEmailForm')?.addEventListener('submit',submitAdminEmailChange);document.getElementById('changePasswordForm')?.addEventListener('submit',submitAdminPasswordChange);
 });

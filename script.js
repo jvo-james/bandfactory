@@ -192,7 +192,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     });
     this.saveCart(cart); this.toast('Wholesale bundle added to your Bag'); this.openDrawer('bagDrawer');
   },
-  cartCount(){return this.getCart().reduce((n,i)=>n+(i.type==='wholesale'?1:i.qty),0)},
+  cartCount(){return this.getCart().reduce((n,i)=>n+Number(i.qty||1),0)},
   cartSubtotal(){return this.getCart().reduce((s,i)=>s+i.price*i.qty,0)},
   money(v){return `GHS ${Number(v).toFixed(2).replace('.00','')}`},
   updateBagUI(){document.querySelectorAll('[data-bag-count]').forEach(el=>el.textContent=this.cartCount());this.renderBag()},
@@ -201,7 +201,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
     if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a colour you love or build a wholesale bundle.</p><a class="btn" href="shop.html">Shop hairbands</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`)}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong>${i.type!=='wholesale'?`<div class="qty-control"><button data-cart-minus="${idx}">−</button><span>${i.qty}</span><button data-cart-plus="${idx}">+</button></div>`:''}</div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
+    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`)}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   changeQty(index,delta){const c=this.getCart();if(!c[index])return;c[index].qty=Math.max(1,c[index].qty+delta);this.saveCart(c)},

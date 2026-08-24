@@ -54,6 +54,7 @@ const WHOLESALE_EXTRA_COLOURS = [
 let standardBundles = [...DEFAULT_STANDARD];
 let customBundles = [...DEFAULT_CUSTOM];
 let productData = { colors: {} };
+let storeSettings = {};
 let wholesaleStyle = 'flat';
 let orderType = 'standard';
 let bundleIndex = 0;
@@ -85,13 +86,17 @@ function allWholesaleColours() {
   return [...map.entries()];
 }
 
-function availableColors(style = editStyle()) {
-  return allWholesaleColours().filter(([name]) => {
-    const styleData = productData.styles?.[style]?.colors?.[name];
-    const fallbackData = productData.colors?.[name];
-    const data = styleData || fallbackData || {};
-    return data.available !== false && Number(data.stock ?? 1) > 0;
-  });
+function colourStock(style,name){
+  const data=productData.styles?.[style]?.colors?.[name] || productData.colors?.[name] || {};
+  const styleOn=style==='twisted'?storeSettings.smoothTwistedAvailable!==false:storeSettings.smoothFlatAvailable!==false;
+  return storeSettings.smoothAvailable!==false && styleOn && data.available!==false ? Math.max(0,Number(data.stock??0)) : 0;
+}
+function styleStock(style){ return allWholesaleColours().reduce((sum,[name])=>sum+colourStock(style,name),0); }
+function availableColors(style = editStyle()) { return allWholesaleColours().filter(([name])=>colourStock(style,name)>0); }
+function bundleStockReady(){
+  const b=currentBundle();
+  if(wholesaleStyle==='mixed') return styleStock('flat')>=Number(styleSplit.flat||0) && styleStock('twisted')>=Number(styleSplit.twisted||0);
+  return styleStock(wholesaleStyle)>=b.pieces;
 }
 
 function resetColourState() {
@@ -227,21 +232,20 @@ function renderColourTabs() {
 function renderCustom() {
   if (orderType !== 'custom') return;
   const style = editStyle();
-  const colours = availableColors(style);
-  const allowedNames = new Set(colours.map(([name]) => name));
+  const colours = allWholesaleColours();
+  const allowedNames = new Set(availableColors(style).map(([name]) => name));
   selectedColors[style] = selectedColors[style].filter(name => allowedNames.has(name));
-  Object.keys(allocations[style]).forEach(name => {
-    if (!selectedColors[style].includes(name)) delete allocations[style][name];
-  });
+  Object.keys(allocations[style]).forEach(name => { if (!selectedColors[style].includes(name)) delete allocations[style][name]; });
 
   const selected = colours.filter(([name]) => selectedColors[style].includes(name));
   const unselected = colours.filter(([name]) => !selectedColors[style].includes(name));
-
-  $('#colorPicker').innerHTML = [...selected, ...unselected].map(([name, color]) => `
-    <button class="colour-pick ${selectedColors[style].includes(name) ? 'active' : ''}" type="button" data-colour="${name}" aria-pressed="${selectedColors[style].includes(name)}">
-      <i style="background:${color}"></i><span>${name}</span>${selectedColors[style].includes(name) ? '<b>✓</b>' : ''}
-    </button>`).join('');
-  $$('[data-colour]').forEach(btn => btn.onclick = () => toggleColour(style, btn.dataset.colour));
+  $('#colorPicker').innerHTML = [...selected, ...unselected].map(([name, color]) => {
+    const stock=colourStock(style,name),soldOut=stock<=0,active=selectedColors[style].includes(name);
+    return `<button class="colour-pick ${active?'active':''} ${soldOut?'sold-out':''}" type="button" data-colour="${name}" aria-pressed="${active}" ${soldOut?'disabled aria-disabled="true"':''}>
+      <i style="background:${color}"></i><span>${name}<small>${soldOut?'Sold out':`${stock} available`}</small></span>${active?'<b>✓</b>':soldOut?'<b class="sold-out-tag">OUT</b>':''}
+    </button>`;
+  }).join('');
+  $$('[data-colour]:not([disabled])').forEach(btn => btn.onclick = () => toggleColour(style, btn.dataset.colour));
 
   const rule = currentRule();
   $('#mixRows').innerHTML = selectedColors[style].map(name => {
@@ -295,7 +299,7 @@ function setAllocation(style, name, value) {
   const remainingCapacity = Math.max(0, target - otherTotal);
   const digits = String(value ?? '').replace(/\D/g, '');
   const requested = digits === '' ? 0 : Number(digits);
-  const next = Math.min(rule.maxPerColour, remainingCapacity, Math.max(0, requested));
+  const next = Math.min(rule.maxPerColour, colourStock(style,name), remainingCapacity, Math.max(0, requested));
   allocations[style][name] = next;
 
   const input = document.querySelector(`[data-qty="${CSS.escape(name)}"]`);
@@ -459,7 +463,7 @@ function colourSummaryHtml() {
 function updateSummary() {
   const b = currentBundle();
   const custom = orderType === 'custom';
-  const ready = customReady();
+  const ready = customReady() && bundleStockReady();
   $('#summaryImage').src = styleImage(wholesaleStyle);
   $('#summaryImage').alt = `Selected ${styleLabel(wholesaleStyle)} wholesale hairbands`;
   $('#summaryStyleBadge').textContent = styleLabel(wholesaleStyle);
@@ -490,7 +494,9 @@ function updateSummary() {
     $('#summaryColourList').innerHTML = '';
   }
 
-  if (custom && !ready) {
+  if (!bundleStockReady()) {
+    $('#summaryNote').textContent = `This ${styleLabel(wholesaleStyle)} bundle is temporarily unavailable because there is not enough live stock. Choose a smaller bundle or another style.`;
+  } else if (custom && !ready) {
     const incomplete = activeStyles().filter(style => !validationForStyle(style).ready).map(styleLabel).join(' & ');
     $('#summaryNote').textContent = `Complete the ${incomplete} colour allocation before adding this bundle to your Bag.`;
   } else if (wholesaleStyle === 'mixed') {
@@ -524,6 +530,7 @@ function updateAll() {
 
 function addWholesaleToBag() {
   const b = currentBundle();
+  if (!bundleStockReady()) return BF.toast('That wholesale bundle is sold out at the moment. Try a smaller bundle or another style.');
   if (orderType === 'custom' && !customReady()) return BF.toast('Complete your custom colour mix before adding this bundle');
 
   const styleAllocations = wholesaleStyle === 'mixed'
@@ -546,6 +553,7 @@ async function initWholesale() {
     BFStore.getDoc('products/smooth', { colors: {} })
   ]);
   productData = products || { colors: {} };
+  storeSettings = settings || {};
 
   standardBundles = DEFAULT_STANDARD.map(b => ({
     ...b,
@@ -595,6 +603,19 @@ async function initWholesale() {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-checked', String(active));
   });
+
+
+  $$('[data-wholesale-style]').forEach(btn => {
+    const style=btn.dataset.wholesaleStyle;
+    const unavailable=style==='mixed' ? (styleStock('flat')===0 || styleStock('twisted')===0) : styleStock(style)===0;
+    btn.disabled=unavailable;
+    btn.classList.toggle('sold-out',unavailable);
+    if(unavailable){ btn.setAttribute('aria-disabled','true'); btn.title=`${styleLabel(style)} is sold out right now`; }
+  });
+  if((wholesaleStyle==='mixed'&&(styleStock('flat')===0||styleStock('twisted')===0)) || (wholesaleStyle!=='mixed'&&styleStock(wholesaleStyle)===0)){
+    wholesaleStyle=styleStock('flat')>0?'flat':styleStock('twisted')>0?'twisted':'flat';
+    activeColourStyle=wholesaleStyle;
+  }
 
   $('#colour-stage').hidden = orderType !== 'custom';
   renderBundles();
