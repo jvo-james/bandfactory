@@ -528,7 +528,8 @@ function printOrders(ids=[]){
       'Not recorded';
 
     return `
-      <section class="packing-slip">
+      <section class="print-page">
+        <div class="packing-slip">
 
         <!-- HEADER -->
         <header class="receipt-header">
@@ -730,6 +731,7 @@ function printOrders(ids=[]){
 
         </footer>
 
+        </div>
       </section>
     `;
   }).join('');
@@ -758,7 +760,7 @@ function printOrders(ids=[]){
 
 @page{
   size:A4;
-  margin:12mm;
+  margin:0;
 }
 
 *{
@@ -787,25 +789,33 @@ body{
 
 /* -------------------------
    PAGE
+   One order is always exactly one A4 sheet.
+   Long receipts are measured and scaled before printing.
 ------------------------- */
 
-.packing-slip{
-  width:100%;
-  max-width:190mm;
-  min-height:273mm;
-
+.print-page{
+  width:210mm;
+  height:297mm;
   margin:0 auto 20px;
-  padding:16mm 15mm 12mm;
-
+  padding:10mm 11mm;
+  position:relative;
+  overflow:hidden;
   background:#fff;
-
   page-break-after:always;
   break-after:page;
 }
 
-.packing-slip:last-child{
+.print-page:last-child{
   page-break-after:auto;
   break-after:auto;
+}
+
+.packing-slip{
+  width:100%;
+  margin:0;
+  padding:0;
+  background:#fff;
+  transform-origin:top left;
 }
 
 
@@ -878,7 +888,7 @@ body{
   align-items:flex-start;
   gap:30px;
 
-  padding:25px 0 22px;
+  padding:18px 0 16px;
 }
 
 .receipt-intro h1{
@@ -990,7 +1000,7 @@ body{
   display:grid;
   grid-template-columns:145px 1fr;
 
-  margin-bottom:26px;
+  margin-bottom:18px;
 
   border:1px solid #e6dade;
   border-radius:11px;
@@ -1076,7 +1086,7 @@ body{
 
   column-gap:10px;
 
-  padding:14px 10px;
+  padding:10px 8px;
 
   border-bottom:1px solid #eee4e7;
 
@@ -1154,7 +1164,7 @@ body{
 
   gap:8px;
 
-  margin:13px 0 0 35px;
+  margin:9px 0 0 35px;
 }
 
 .receipt-wholesale-details>div{
@@ -1241,8 +1251,8 @@ body{
 
   gap:25px;
 
-  margin-top:24px;
-  padding-top:20px;
+  margin-top:16px;
+  padding-top:14px;
 
   border-top:2px solid #2c2024;
 
@@ -1337,8 +1347,8 @@ body{
 
   gap:20px;
 
-  margin-top:30px;
-  padding-top:13px;
+  margin-top:18px;
+  padding-top:10px;
 
   border-top:1px solid #e2d5da;
 
@@ -1374,16 +1384,29 @@ body{
 
   html,
   body{
+    width:210mm;
+    margin:0 !important;
+    padding:0 !important;
     background:#fff !important;
   }
 
+  .print-page{
+    width:210mm;
+    height:297mm;
+    margin:0 !important;
+    padding:10mm 11mm;
+    overflow:hidden;
+    page-break-after:always;
+    break-after:page;
+  }
+
+  .print-page:last-child{
+    page-break-after:auto;
+    break-after:auto;
+  }
+
   .packing-slip{
-    width:auto;
-    max-width:none;
-    min-height:0;
-
     margin:0;
-
     box-shadow:none;
   }
 
@@ -1398,9 +1421,38 @@ body{
 ${pages}
 
 <script>
+function fitPackingSlipsToOnePage(){
+  document.querySelectorAll('.print-page').forEach(page=>{
+    const slip=page.querySelector('.packing-slip');
+    if(!slip)return;
+
+    // Always measure the receipt at its natural size first.
+    slip.style.transform='none';
+
+    const availableWidth=page.clientWidth
+      - parseFloat(getComputedStyle(page).paddingLeft||0)
+      - parseFloat(getComputedStyle(page).paddingRight||0);
+    const availableHeight=page.clientHeight
+      - parseFloat(getComputedStyle(page).paddingTop||0)
+      - parseFloat(getComputedStyle(page).paddingBottom||0);
+
+    const naturalWidth=Math.max(slip.scrollWidth,1);
+    const naturalHeight=Math.max(slip.scrollHeight,1);
+    const scale=Math.min(1,availableWidth/naturalWidth,availableHeight/naturalHeight);
+
+    if(scale<1){
+      // Transform affects print visually without changing document flow.
+      // This guarantees the complete order remains inside this A4 sheet.
+      slip.style.transform='scale('+scale+')';
+    }
+  });
+}
+
 window.onload=()=>{
+  // Give fonts/layout a moment to settle, then fit every order separately.
   setTimeout(()=>{
-    window.print();
+    fitPackingSlipsToOnePage();
+    setTimeout(()=>window.print(),180);
   },250);
 };
 <\/script>
