@@ -326,16 +326,18 @@ function normalizePhone(value=''){
 }
 function orderDate(o){const v=o.createdAt||o.submittedAt||o.lastOrderAt;if(!v)return new Date(0);const d=v.toDate?v.toDate():new Date(v);return isNaN(d)?new Date(0):d}
 
-function numberedOrders(paymentState='paid'){
-  return DATA.orders
-    .filter(o=>paymentState==='paid'?o.payment==='Paid':o.payment!=='Paid')
-    .sort((a,b)=>orderDate(b)-orderDate(a));
-}
+
 function orderAdminNumber(o={}){
-  const rows=numberedOrders(o.payment==='Paid'?'paid':'pending');
-  const index=rows.findIndex(x=>x.id===o.id);
-  return index>=0?index+1:null;
+  const label = String(o.displayId || o.id || '');
+  const match = label.match(/^BF-(\d+)$/i);
+
+  if(match){
+    return Number(match[1]);
+  }
+
+  return null;
 }
+
 function customerAdminNumber(c={}){
   const rows=customerGroups();
   const index=rows.findIndex(x=>x.key===c.key);
