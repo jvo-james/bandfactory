@@ -204,7 +204,61 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`)}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
-  changeQty(index,delta){const c=this.getCart();if(!c[index])return;c[index].qty=Math.max(1,c[index].qty+delta);this.saveCart(c)},
+  async managedCartStockError(cart){
+    if(typeof BFStore==='undefined')return '';
+    try{
+      const [settings,productData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}})]);
+      const remaining={flat:{},twisted:{}};
+      const colors=new Set([...(this.colors||[]).map(x=>x[0]),...Object.keys(productData.colors||{}),...Object.keys(productData.styles?.flat?.colors||{}),...Object.keys(productData.styles?.twisted?.colors||{})]);
+      for(const style of ['flat','twisted']) for(const color of colors){
+        const d=this.variantData(productData,style,color);
+        remaining[style][color]=this.variantAvailable(productData,settings,style,color)?Math.max(0,Number(d.stock??0)):0;
+      }
+      const take=(style,color,qty,label)=>{
+        qty=Math.max(0,Number(qty||0));const have=Math.max(0,Number(remaining[style]?.[color]||0));
+        if(qty>have)throw new Error(have>0?`Only ${have} ${label} ${have===1?'is':'are'} available right now.`:`${label} is sold out right now.`);
+        remaining[style][color]=have-qty;
+      };
+      const takeStandard=(style,qty,label)=>{
+        let need=Math.max(0,Number(qty||0));const choices=Object.entries(remaining[style]||{}).filter(([,stock])=>stock>0).sort((a,b)=>b[1]-a[1]);
+        const total=choices.reduce((sum,[,stock])=>sum+stock,0);
+        if(total<need)throw new Error(`Only ${total} ${style} wholesale piece${total===1?' is':'s are'} available for ${label} right now.`);
+        for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
+      };
+      for(const item of cart){
+        if((item.material||'smooth')!=='smooth')continue;
+        if(item.type==='retail'){
+          const style=item.style==='twisted'?'twisted':'flat';take(style,item.color,Number(item.qty||0),`${item.color} ${style} hairband${Number(item.qty||0)===1?'':'s'}`);
+        }else if(item.type==='wholesale'){
+          const mult=Math.max(1,Number(item.qty||1));
+          if(item.wholesaleMode==='custom'&&item.allocations){
+            if(item.style==='mixed'){
+              for(const style of ['flat','twisted'])for(const [color,qty] of Object.entries(item.allocations?.[style]||{}))take(style,color,Number(qty)*mult,`${color} ${style} hairbands`);
+            }else{
+              const style=item.style==='twisted'?'twisted':'flat';for(const [color,qty] of Object.entries(item.allocations||{}))take(style,color,Number(qty)*mult,`${color} ${style} hairbands`);
+            }
+          }else if(item.style==='mixed'){
+            takeStandard('flat',Number(item.styleAllocations?.flat||0)*mult,'this Standard Mixed bundle');
+            takeStandard('twisted',Number(item.styleAllocations?.twisted||0)*mult,'this Standard Mixed bundle');
+          }else{
+            const style=item.style==='twisted'?'twisted':'flat';takeStandard(style,Number(item.bundlePieces||0)*mult,`this Standard ${style} bundle`);
+          }
+        }
+      }
+      return '';
+    }catch(error){return error?.message||'That quantity is no longer available.';}
+  },
+  async changeQty(index,delta){
+    const c=this.getCart();if(!c[index])return;
+    const previous=Number(c[index].qty||1),next=Math.max(1,previous+delta);
+    if(next===previous)return;
+    c[index].qty=next;
+    if(delta>0&&(c[index].material||'smooth')==='smooth'&&(c[index].type==='retail'||c[index].type==='wholesale')){
+      const error=await this.managedCartStockError(c);
+      if(error){this.toast(`That's all we've got ✨ ${error}`);return;}
+    }
+    this.saveCart(c);
+  },
   remove(index){const c=this.getCart();c.splice(index,1);this.saveCart(c)},
   openDrawer(id){document.getElementById(id)?.classList.add('open');document.querySelector('.drawer-backdrop')?.classList.add('show');document.body.classList.add('drawer-open')},
   closeDrawers(){document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));document.querySelector('.drawer-backdrop')?.classList.remove('show');document.body.classList.remove('drawer-open')},

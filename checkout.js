@@ -701,8 +701,20 @@ async function validateCartStock(){
 async function reserveOrderId(){
   const response=await fetch('/.netlify/functions/reserve-order-id',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   const result=await response.json().catch(()=>({}));
-  if(!response.ok||!/^BF-\d{5,}$/.test(String(result.orderId||''))) throw new Error(result.error||'Could not create your order number. Please try again.');
-  return result.orderId;
+  if(!response.ok||!/^BF-\d{5,}$/.test(String(result.orderId||''))||!result.token) throw new Error(result.error||'Could not create your order number. Please try again.');
+  return {orderId:result.orderId,token:result.token};
+}
+
+async function reserveStock(orderId,token){
+  const response=await fetch('/.netlify/functions/reserve-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,token})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.ok!==true) throw new Error(result.error||'That quantity is no longer available. Please review your Bag and try again.');
+  return true;
+}
+
+async function releaseStock(orderId,token){
+  if(!orderId||!token)return;
+  try{await fetch('/.netlify/functions/release-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,token}),keepalive:true});}catch(error){console.warn('[Band Factory] Could not release checkout stock immediately:',error);}
 }
 
 async function pay(){
@@ -717,6 +729,8 @@ async function pay(){
 const fd = new FormData(form);
 
 let orderId = '';
+let checkoutToken = '';
+let stockReserved = false;
 
 const key = BF_CONFIG.paystackPublicKey;
   if(!key || key.startsWith('REPLACE_')){
@@ -730,7 +744,9 @@ const key = BF_CONFIG.paystackPublicKey;
   try{
   await validateCartStock();
   setPaymentState('Creating your order number…');
-  orderId = await reserveOrderId();
+  const checkoutReservation = await reserveOrderId();
+  orderId = checkoutReservation.orderId;
+  checkoutToken = checkoutReservation.token;
 
   setPaymentState('Saving your order…');
 
@@ -860,6 +876,10 @@ const key = BF_CONFIG.paystackPublicKey;
     false
   );
 
+  setPaymentState('Reserving your items…');
+  await reserveStock(orderId,checkoutToken);
+  stockReserved = true;
+
   setPaymentState('Opening Paystack securely…');
 
   const popup = new PaystackPop();
@@ -905,12 +925,14 @@ const key = BF_CONFIG.paystackPublicKey;
           location.replace('confirmation.html');
         });
       },
-      onCancel:()=>{
+      onCancel:async()=>{
+        if(stockReserved){await releaseStock(orderId,checkoutToken);stockReserved=false;}
         setPaymentLoading(false);
-        setPaymentState('Payment wasn’t completed. Your order and details are still here.','warning');
-        BF.toast('Payment wasn’t completed. Your order is still here.');
+        setPaymentState('Payment wasn’t completed. Your items have been released and your order details are still here.','warning');
+        BF.toast('Payment wasn’t completed. Your reserved items were released.');
       },
-      onError:error=>{
+      onError:async error=>{
+        if(stockReserved){await releaseStock(orderId,checkoutToken);stockReserved=false;}
         setPaymentLoading(false);
         setPaymentState(error.message || 'Payment could not start. Your order is still here.','warning');
         BF.toast(error.message || 'Payment could not start.');
@@ -918,6 +940,7 @@ const key = BF_CONFIG.paystackPublicKey;
     });
   }catch(error){
     console.error(error);
+    if(stockReserved){await releaseStock(orderId,checkoutToken);stockReserved=false;}
     setPaymentLoading(false);
     const message=error?.message||'Payment could not start. Your order is still here.';
     setPaymentState(message,'warning');
