@@ -1,4 +1,5 @@
 const admin=require('firebase-admin');
+const crypto=require('crypto');
 if(!admin.apps.length){admin.initializeApp({credential:admin.credential.cert({projectId:process.env.FIREBASE_PROJECT_ID,clientEmail:process.env.FIREBASE_CLIENT_EMAIL,privateKey:String(process.env.FIREBASE_PRIVATE_KEY||'').replace(/\\n/g,'\n')})});}
 const db=admin.firestore();
 exports.handler=async event=>{
@@ -15,6 +16,8 @@ exports.handler=async event=>{
       }
       const value=current+1;tx.set(ref,{lastNumber:value,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});return value;
     });
-    return {statusCode:200,headers,body:JSON.stringify({ok:true,orderId:`BF-${String(next).padStart(5,'0')}`})};
+    const orderId=`BF-${String(next).padStart(5,'0')}`,token=crypto.randomBytes(24).toString('hex'),tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+    await db.collection('checkoutTokens').doc(orderId).set({tokenHash,createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:false});
+    return {statusCode:200,headers,body:JSON.stringify({ok:true,orderId,token})};
   }catch(error){console.error(error);return {statusCode:500,headers,body:JSON.stringify({ok:false,error:'Could not reserve an order number.'})};}
 };

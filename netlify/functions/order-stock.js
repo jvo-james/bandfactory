@@ -69,8 +69,20 @@ function applyOrderToStock(order={},product={}){
   return {styles,shortages,deducted};
 }
 
+function restoreDeductions(product={},deducted={}){
+  const styles=cloneStyles(product);
+  for(const style of ['flat','twisted']){
+    for(const [color,qty] of Object.entries(deducted?.[style]||{})){
+      styles[style] ||= {colors:{}}; styles[style].colors ||= {};
+      const current=styles[style].colors[color]||{};
+      styles[style].colors[color]={...current,stock:Math.max(0,number(current.stock))+Math.max(0,number(qty))};
+    }
+  }
+  return styles;
+}
+
 function orderUsesManagedStock(order={}){
   return (order.items||[]).some(item=>(item.material||'smooth')==='smooth'&&(item.type==='retail'||item.type==='wholesale'));
 }
 
-module.exports={number,applyOrderToStock,orderUsesManagedStock};
+module.exports={number,applyOrderToStock,restoreDeductions,orderUsesManagedStock};
