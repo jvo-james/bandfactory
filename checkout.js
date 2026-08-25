@@ -323,7 +323,10 @@ function refreshPaymentButtons(valid = null){
       $('[name="detailsConfirmed"]').checked;
   }
 
-  const text = valid ? `Pay ${BF.money(grandTotal())} securely with Paystack` : 'Complete your details to pay';
+  const confirmationChecked = $('[name="detailsConfirmed"]')?.checked;
+  const text = valid
+    ? `Pay ${BF.money(grandTotal())} securely with Paystack`
+    : (!confirmationChecked ? 'Tick the confirmation box to pay' : 'Complete your details to pay');
   ['#payButton','#mobilePayButton'].forEach(selector=>{
     const button = $(selector);
     if(!button) return;
