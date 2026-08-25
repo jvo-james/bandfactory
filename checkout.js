@@ -349,6 +349,69 @@ function setPaymentLoading(isLoading){
   refreshPaymentButtons();
 }
 
+function setPaymentHelp(show = false, reason = ''){
+  [['#paymentHelp','#paymentHelpReason'],['#mobilePaymentHelp','#mobilePaymentHelpReason']].forEach(([boxSelector,reasonSelector])=>{
+    const box = $(boxSelector);
+    const reasonEl = $(reasonSelector);
+    if(!box) return;
+    box.classList.toggle('show',Boolean(show));
+    if(reasonEl && reason) reasonEl.textContent = reason;
+  });
+}
+
+function paymentTroubleMessage(stage, error){
+  if(!navigator.onLine) return 'You appear to be offline. Reconnect to the internet, then try payment again.';
+  if(stage === 'paystack') return 'Secure payment could not load in this browser. Try Chrome or Safari, leave any in-app browser, and disable ad/content blockers for this site.';
+  if(stage === 'order') return 'We could not prepare your order. Check your connection and try again. Your cart and details are still saved.';
+  if(stage === 'stock') return error?.message || 'We could not reserve your items. Please check your connection or review your cart, then try again.';
+  if(stage === 'save') return 'We could not save the pending order. Check your connection and try again; you have not been charged.';
+  return error?.message || 'Payment could not start. Check your connection and try again; you have not been charged.';
+}
+
+function loadPaystackScript(timeoutMs = 9000){
+  if(typeof window.PaystackPop === 'function') return Promise.resolve(true);
+  return new Promise(resolve=>{
+    let settled = false;
+    const finish = ok=>{ if(settled) return; settled=true; clearTimeout(timer); resolve(ok); };
+    const timer = setTimeout(()=>finish(typeof window.PaystackPop === 'function'), timeoutMs);
+    const script=document.createElement('script');
+    script.src=`https://js.paystack.co/v2/inline.js?retry=${Date.now()}`;
+    script.async=true;
+    script.onload=()=>finish(typeof window.PaystackPop === 'function');
+    script.onerror=()=>finish(false);
+    document.head.appendChild(script);
+  });
+}
+
+function withTimeout(promise, timeoutMs, message){
+  let timer;
+  const timeout = new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error(message)),timeoutMs);
+  });
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    return await fetch(url,{...options,signal:controller.signal});
+  }catch(error){
+    if(error?.name === 'AbortError') throw new Error('The connection took too long. Please check your internet and try again.');
+    throw error;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function ensurePaystackReady(){
+  if(typeof window.PaystackPop === 'function') return true;
+  setPaymentState('Connecting to secure payment…');
+  const ready = await loadPaystackScript();
+  if(!ready) throw Object.assign(new Error('Paystack could not load.'),{paymentStage:'paystack'});
+  return true;
+}
+
 function showPaymentSuccessLoader(){
   const overlay = $('#paymentSuccessOverlay');
   document.body.classList.add('payment-success-loading');
@@ -704,14 +767,14 @@ async function validateCartStock(){
 }
 
 async function reserveOrderId(){
-  const response=await fetch('/.netlify/functions/reserve-order-id',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  const response=await fetchWithTimeout('/.netlify/functions/reserve-order-id',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||!/^BF-\d{5,}$/.test(String(result.orderId||''))||!result.token) throw new Error(result.error||'Could not create your order number. Please try again.');
   return {orderId:result.orderId,token:result.token};
 }
 
 async function reserveStock(orderId,token){
-  const response=await fetch('/.netlify/functions/reserve-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,token})});
+  const response=await fetchWithTimeout('/.netlify/functions/reserve-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,token})});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true) throw new Error(result.error||'That quantity is no longer available. Please review your Bag and try again.');
   return true;
@@ -736,6 +799,8 @@ const fd = new FormData(form);
 let orderId = '';
 let checkoutToken = '';
 let stockReserved = false;
+let paymentStage = 'start';
+setPaymentHelp(false);
 
 const key = BF_CONFIG.paystackPublicKey;
   if(!key || key.startsWith('REPLACE_')){
@@ -747,12 +812,15 @@ const key = BF_CONFIG.paystackPublicKey;
   setPaymentState('Checking current stock…');
 
   try{
-  await validateCartStock();
+  paymentStage = 'stock';
+  await withTimeout(validateCartStock(),15000,'Stock check took too long. Please check your internet and try again.');
+  paymentStage = 'order';
   setPaymentState('Creating your order number…');
   const checkoutReservation = await reserveOrderId();
   orderId = checkoutReservation.orderId;
   checkoutToken = checkoutReservation.token;
 
+  paymentStage = 'save';
   setPaymentState('Saving your order…');
 
   const fulfilment = fd.get('fulfilment');
@@ -875,19 +943,23 @@ const key = BF_CONFIG.paystackPublicKey;
     createdAt: new Date().toISOString()
   };
 
-  await BFStore.setDoc(
-    `orders/${orderId}`,
-    pendingOrder,
-    false
+  await withTimeout(
+    BFStore.setDoc(`orders/${orderId}`,pendingOrder,false),
+    15000,
+    'Saving your order took too long. Please check your internet and try again.'
   );
 
+  paymentStage = 'stock';
   setPaymentState('Reserving your items…');
   await reserveStock(orderId,checkoutToken);
   stockReserved = true;
 
+  paymentStage = 'paystack';
+  setPaymentState('Connecting to Paystack securely…');
+  await ensurePaystackReady();
   setPaymentState('Opening Paystack securely…');
 
-  const popup = new PaystackPop();
+  const popup = new window.PaystackPop();
     popup.newTransaction({
       key,
       email: paymentEmailFor(fd),
@@ -939,17 +1011,21 @@ const key = BF_CONFIG.paystackPublicKey;
       onError:async error=>{
         if(stockReserved){await releaseStock(orderId,checkoutToken);stockReserved=false;}
         setPaymentLoading(false);
-        setPaymentState(error.message || 'Payment could not start. Your order is still here.','warning');
-        BF.toast(error.message || 'Payment could not start.');
+        const message=paymentTroubleMessage('paystack',error);
+        setPaymentState(message,'warning');
+        setPaymentHelp(true,message);
+        BF.toast('Payment could not open. Troubleshooting steps are shown below.');
       }
     });
   }catch(error){
     console.error(error);
     if(stockReserved){await releaseStock(orderId,checkoutToken);stockReserved=false;}
     setPaymentLoading(false);
-    const message=error?.message||'Payment could not start. Your order is still here.';
+    const stage=error?.paymentStage || paymentStage;
+    const message=paymentTroubleMessage(stage,error);
     setPaymentState(message,'warning');
-    BF.toast(message);
+    setPaymentHelp(true,message);
+    BF.toast('Checkout could not continue. Troubleshooting steps are shown below.');
   }
 }
 
@@ -1025,6 +1101,21 @@ document.addEventListener('DOMContentLoaded',async()=>{
   $('#copyPickupAddress').addEventListener('click',copyPickupAddress);
   $('#payButton').addEventListener('click',pay);
   $('#mobilePayButton').addEventListener('click',pay);
+  document.querySelectorAll('.payment-retry-btn').forEach(button=>button.addEventListener('click',()=>{
+    setPaymentHelp(false);
+    setPaymentState('Trying secure payment again…');
+    pay();
+  }));
+  window.addEventListener('offline',()=>{
+    const message='You are offline. Reconnect to the internet before trying payment.';
+    setPaymentState(message,'warning');
+    setPaymentHelp(true,message);
+  });
+  window.addEventListener('online',()=>{
+    if(!paymentInProgress){
+      setPaymentState('You are back online. You can try payment again.','success');
+    }
+  });
 
   validateForm(false);
 });
