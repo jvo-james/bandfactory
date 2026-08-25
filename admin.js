@@ -762,105 +762,68 @@ function printOrders(ids=[]){
 <style>
 
 @page{
-  size:A5 portrait;
+  /* Default label: standard 4 x 6 inch shipping label. */
+  size:101.6mm 152.4mm;
   margin:0;
 }
 
-*{
-  box-sizing:border-box;
-}
-
-html,
-body{
-  margin:0;
-  padding:0;
-}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
 
 body{
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Arial,
-    sans-serif;
-
-  color:#171214;
-  background:#eee8ea;
-  font-size:9.5pt;
-  line-height:1.35;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  color:#111;
+  background:#e9e9e9;
+  font-size:7.2pt;
+  line-height:1.2;
   -webkit-print-color-adjust:exact;
   print-color-adjust:exact;
 }
 
-
-/* -------------------------
-   PAGE
-   Native A5 packing slip (148 x 210 mm).
-   Long orders may continue onto another A5 page so text stays readable.
-------------------------- */
-
+/*
+  LABEL SIZE
+  Change these three 101.6 / 152.4 values together if her labels differ.
+  101.6 x 152.4 mm = 4 x 6 inches.
+*/
 .print-page{
-  width:148mm;
-  min-height:210mm;
-  margin:0 auto 14px;
-  padding:7mm 8mm;
+  width:101.6mm;
+  height:152.4mm;
+  margin:0 auto 8px;
+  padding:3.2mm;
   position:relative;
-  overflow:visible;
+  overflow:hidden;
   background:#fff;
   page-break-after:always;
   break-after:page;
 }
-
-.print-page:last-child{
-  page-break-after:auto;
-  break-after:auto;
-}
-
+.print-page:last-child{ page-break-after:auto; break-after:auto; }
 .packing-slip{
   width:100%;
   margin:0;
   padding:0;
   background:#fff;
-
+  transform-origin:top left;
 }
 
-
-/* -------------------------
-   HEADER
-------------------------- */
-
+/* HEADER */
 .receipt-header{
   display:flex;
   align-items:flex-start;
   justify-content:space-between;
-  gap:14px;
-
-  padding-bottom:10px;
-
-  border-bottom:2px solid #261c20;
+  gap:5px;
+  padding-bottom:3px;
+  border-bottom:1.5px solid #111;
 }
-
-.brand{
-  font-size:18pt;
-  font-weight:900;
-  letter-spacing:.14em;
-}
-
+.brand{ font-size:11.5pt; font-weight:900; letter-spacing:.09em; }
 .receipt-brand span{
   display:block;
-  margin-top:4px;
-
-  font-size:7.5pt;
-  font-weight:700;
-  letter-spacing:.17em;
-
-  color:#57484d;
+  margin-top:1px;
+  font-size:5.2pt;
+  font-weight:800;
+  letter-spacing:.1em;
+  color:#222;
 }
-
-.receipt-order-number{
-  text-align:right;
-}
-
+.receipt-order-number{ text-align:right; }
 .receipt-order-number small,
 .receipt-info-card>small,
 .receipt-section-heading small,
@@ -868,558 +831,216 @@ body{
 .receipt-payment-reference small,
 .receipt-note small{
   display:block;
-
-  font-size:7.5pt;
-  font-weight:800;
-  letter-spacing:.16em;
-
-  color:#5f4c52;
+  font-size:5.2pt;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#222;
 }
+.receipt-order-number strong{ display:block; margin-top:1px; font-size:9pt; }
 
-.receipt-order-number strong{
-  display:block;
-  margin-top:5px;
-
-  font-size:14pt;
-}
-
-
-/* -------------------------
-   INTRO
-------------------------- */
-
+/* COMPACT INTRO */
 .receipt-intro{
   display:flex;
   justify-content:space-between;
-  align-items:flex-start;
-  gap:14px;
-
-  padding:10px 0 9px;
+  align-items:center;
+  gap:5px;
+  padding:3px 0;
 }
-
-.receipt-intro h1{
-  margin:5px 0 7px;
-
-  font-family:Georgia,serif;
-  font-size:20pt;
-  line-height:1.1;
-}
-
-.receipt-intro p{
-  margin:0;
-
-  max-width:330px;
-
-  color:#493d41;
-  line-height:1.55;
-}
-
-.receipt-kicker{
-  font-size:7.5pt;
-  font-weight:800;
-  letter-spacing:.15em;
-
-  color:#6f4654;
-}
-
+.receipt-intro h1{ margin:1px 0 0; font-size:8.5pt; line-height:1; font-family:inherit; }
+.receipt-intro p{ display:none; }
+.receipt-kicker{ font-size:5pt; font-weight:900; letter-spacing:.07em; color:#333; }
 .receipt-status{
-  min-width:84px;
-
-  padding:8px 10px;
-
-  border:1px solid #e9dde1;
-  border-radius:11px;
-
+  min-width:48px;
+  padding:2px 4px;
+  border:1px solid #bbb;
+  border-radius:4px;
   text-align:center;
 }
+.receipt-status small{ display:none; }
+.receipt-status strong{ display:inline; margin:0; font-size:6.5pt; }
+.receipt-status span{ margin-left:3px; font-size:5.8pt; color:#222; }
 
-.receipt-status small{
-  display:block;
-
-  font-size:7pt;
-  font-weight:800;
-  letter-spacing:.14em;
-
-  color:#584a4f;
-}
-
-.receipt-status strong{
-  display:block;
-
-  margin:5px 0 3px;
-
-  font-size:11.5pt;
-}
-
-.receipt-status span{
-  color:#493d41;
-  font-size:8.5pt;
-}
-
-
-/* -------------------------
-   CUSTOMER
-------------------------- */
-
+/* CUSTOMER / ORDER DETAILS */
 .receipt-info-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
-
-  gap:8px;
-
-  margin-bottom:8px;
+  grid-template-columns:1.25fr .75fr;
+  gap:3px;
+  margin-bottom:3px;
 }
-
-.receipt-info-card{
-  padding:6px 7px;
-
-  border:1px solid #e6dade;
-  border-radius:11px;
-}
-
-.receipt-info-card strong{
-  display:block;
-
-  margin:5px 0 3px;
-
-  font-size:10.5pt;
-}
-
+.receipt-info-card{ padding:3px 4px; border:1px solid #ccc; border-radius:4px; }
+.receipt-info-card strong{ display:block; margin:1px 0; font-size:7pt; }
 .receipt-info-card span{
   display:block;
-
-  margin-top:3px;
-
-  color:#352d30;
-
-  line-height:1.35;
-
+  margin-top:1px;
+  color:#111;
+  font-size:6pt;
+  line-height:1.15;
   overflow-wrap:anywhere;
 }
 
-
-/* -------------------------
-   DELIVERY
-------------------------- */
-
+/* DELIVERY */
 .receipt-delivery-card{
   display:grid;
-  grid-template-columns:92px 1fr;
-
-  margin-bottom:10px;
-
-  border:1px solid #e6dade;
-  border-radius:11px;
-
+  grid-template-columns:44px 1fr;
+  margin-bottom:3px;
+  border:1px solid #ccc;
+  border-radius:4px;
   overflow:hidden;
 }
+.receipt-section-heading{ padding:3px; background:#f3f3f3; }
+.receipt-delivery-content{ padding:3px 4px; font-size:6.2pt; line-height:1.15; }
+.receipt-delivery-content strong{ display:inline; margin-right:3px; font-size:6.5pt; }
+.receipt-delivery-content div{ display:inline; }
+.receipt-delivery-content div:not(:last-child)::after{ content:" · "; }
 
-.receipt-section-heading{
-  padding:9px;
-
-  background:#f8f3f5;
-}
-
-.receipt-delivery-content{
-  padding:6px 7px;
-
-  line-height:1.45;
-}
-
-.receipt-delivery-content strong{
-  display:block;
-
-  margin-bottom:4px;
-}
-
-
-/* -------------------------
-   ITEMS
-------------------------- */
-
-.receipt-products{
-  margin-top:5px;
-}
-
+/* ITEMS - deliberately denser than the rest of the label */
+.receipt-products{ margin-top:2px; }
 .receipt-section-title{
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
-
-  gap:15px;
-
-  margin-bottom:8px;
+  gap:4px;
+  margin-bottom:2px;
 }
-
-.receipt-section-title h2{
-  margin:4px 0 0;
-
-  font-family:Georgia,serif;
-  font-size:15pt;
-}
-
-.receipt-section-title>span{
-  font-size:8.5pt;
-
-  color:#514348;
-}
-
+.receipt-section-title h2{ margin:0; font-family:inherit; font-size:7.5pt; line-height:1; }
+.receipt-section-title>span{ font-size:5.5pt; color:#222; }
 .receipt-item-head{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 42px 72px;
-
-  padding:6px 8px;
-
-  border-radius:7px;
-
-  background:#f7f2f4;
-
-  font-size:7pt;
-  font-weight:800;
-  letter-spacing:.14em;
-
-  color:#55464b;
+  grid-template-columns:minmax(0,1fr) 25px 43px;
+  padding:2px 3px;
+  border-radius:2px;
+  background:#f0f0f0;
+  font-size:5pt;
+  font-weight:900;
+  letter-spacing:.06em;
+  color:#111;
 }
-
-.receipt-item-head span:nth-child(2),
-.receipt-item-head span:nth-child(3){
-  text-align:right;
-}
-
+.receipt-item-head span:nth-child(2),.receipt-item-head span:nth-child(3){ text-align:right; }
 .receipt-item{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 42px 72px;
-
-  column-gap:7px;
-
-  padding:7px 5px;
-
-  border-bottom:1px solid #eee4e7;
-
+  grid-template-columns:minmax(0,1fr) 25px 43px;
+  column-gap:3px;
+  padding:2px 2px;
+  border-bottom:1px solid #ddd;
   break-inside:avoid;
   page-break-inside:avoid;
 }
-
-.receipt-item-main{
-  display:flex;
-  gap:7px;
-
-  min-width:0;
-}
-
+.receipt-item-main{ display:flex; gap:3px; min-width:0; }
 .receipt-item-number{
   display:flex;
   align-items:center;
   justify-content:center;
-
-  flex:0 0 21px;
-
-  width:21px;
-  height:21px;
-
+  flex:0 0 13px;
+  width:13px;
+  height:13px;
   border-radius:50%;
-
-  background:#f5ecef;
-
-  font-size:8pt;
-  font-weight:800;
+  background:#eee;
+  font-size:5.2pt;
+  font-weight:900;
 }
+.receipt-item-name{ min-width:0; }
+.receipt-item-name strong{ display:block; font-size:6.4pt; line-height:1.08; }
+.receipt-item-name small{ display:block; margin-top:1px; color:#222; font-size:5.4pt; line-height:1.08; }
+.receipt-item-qty,.receipt-item-price{ text-align:right; }
+.receipt-item-qty small,.receipt-item-price small{ display:none; }
+.receipt-item-qty strong,.receipt-item-price strong{ font-size:6.3pt; }
 
-.receipt-item-name{
-  min-width:0;
-}
-
-.receipt-item-name strong{
-  display:block;
-
-  font-size:9.5pt;
-  line-height:1.3;
-}
-
-.receipt-item-name small{
-  display:block;
-
-  margin-top:4px;
-
-  color:#4e4145;
-}
-
-.receipt-item-qty,
-.receipt-item-price{
-  text-align:right;
-}
-
-.receipt-item-qty small,
-.receipt-item-price small{
-  display:none;
-}
-
-.receipt-item-qty strong,
-.receipt-item-price strong{
-  font-size:9.5pt;
-}
-
-
-/* WHOLESALE DETAILS */
-
+/* WHOLESALE / CUSTOM ITEM DETAILS */
 .receipt-wholesale-details{
   grid-column:1 / -1;
-
   display:grid;
   grid-template-columns:repeat(2,1fr);
-
-  gap:5px;
-
-  margin:6px 0 0 28px;
+  gap:2px;
+  margin:2px 0 0 16px;
 }
-
-.receipt-wholesale-details>div{
-  padding:6px 7px;
-
-  border-radius:7px;
-
-  background:#faf7f8;
-}
-
-.receipt-wholesale-details small{
-  display:block;
-
-  font-size:6.8pt;
-  font-weight:800;
-  letter-spacing:.1em;
-
-  color:#58494e;
-}
-
-.receipt-wholesale-details strong{
-  display:block;
-
-  margin-top:4px;
-
-  font-size:8.5pt;
-}
-
-.receipt-colour-box,
-.receipt-detail-note{
+.receipt-wholesale-details>div{ padding:2px 3px; border-radius:2px; background:#f6f6f6; }
+.receipt-wholesale-details small{ display:inline; font-size:4.7pt; font-weight:900; letter-spacing:.03em; color:#222; }
+.receipt-wholesale-details strong{ display:inline; margin:0 0 0 2px; font-size:5.5pt; }
+.receipt-colour-box,.receipt-detail-note{
   grid-column:1 / -1;
-
-  margin:6px 0 0 28px;
-
-  padding:7px 8px;
-
-  border-left:3px solid #c68198;
-
-  background:#fbf7f8;
-
-  font-size:8.5pt;
-
-  line-height:1.5;
+  margin:2px 0 0 16px;
+  padding:2px 3px;
+  border-left:2px solid #555;
+  background:#f7f7f7;
+  font-size:5.3pt;
+  line-height:1.1;
 }
+.receipt-colour-box>small{ display:inline; margin:0 3px 0 0; font-size:4.7pt; font-weight:900; letter-spacing:.04em; color:#222; }
+.receipt-allocation-row{ display:inline-flex; gap:3px; margin:0 4px 0 0; }
+.receipt-detail-note.standard{ color:#111; }
+.receipt-empty{ padding:4px; color:#222; }
 
-.receipt-colour-box>small{
-  display:block;
-
-  margin-bottom:6px;
-
-  font-size:7pt;
-  font-weight:800;
-  letter-spacing:.13em;
-
-  color:#5d4b51;
-}
-
-.receipt-allocation-row{
-  display:flex;
-
-  gap:8px;
-
-  margin-top:3px;
-}
-
-.receipt-detail-note.standard{
-  color:#44383c;
-}
-
-.receipt-empty{
-  padding:15px;
-
-  color:#4d3e43;
-}
-
-
-/* -------------------------
-   PAYMENT
-------------------------- */
-
+/* PAYMENT */
 .receipt-payment{
   display:grid;
-  grid-template-columns:1fr 150px;
-
-  gap:14px;
-
-  margin-top:10px;
-  padding-top:9px;
-
-  border-top:2px solid #2c2024;
-
+  grid-template-columns:minmax(0,1fr) 78px;
+  gap:5px;
+  margin-top:3px;
+  padding-top:3px;
+  border-top:1.5px solid #111;
   break-inside:avoid;
   page-break-inside:avoid;
 }
+.receipt-payment-reference strong{ display:block; margin-top:1px; font-size:5.6pt; line-height:1.05; overflow-wrap:anywhere; }
+.receipt-payment-reference span{ display:none; }
+.receipt-totals>div{ display:flex; align-items:center; justify-content:space-between; gap:3px; padding:1px 0; font-size:5.8pt; }
+.receipt-totals span{ color:#111; }
+.receipt-total-paid{ margin-top:1px; padding-top:2px !important; border-top:1px solid #bbb; }
+.receipt-total-paid span{ font-size:5.7pt; font-weight:900; color:#111; }
+.receipt-total-paid strong{ font-size:8pt; }
 
-.receipt-payment-reference strong{
-  display:block;
-
-  margin-top:6px;
-
-  font-size:9pt;
-
-  overflow-wrap:anywhere;
-}
-
-.receipt-payment-reference span{
-  display:block;
-
-  margin-top:5px;
-
-  font-size:8pt;
-
-  color:#4d4044;
-}
-
-.receipt-totals>div{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-
-  gap:10px;
-
-  padding:4px 0;
-}
-
-.receipt-totals span{
-  color:#44383c;
-}
-
-.receipt-total-paid{
-  margin-top:5px;
-  padding-top:10px !important;
-
-  border-top:1px solid #dacbd0;
-}
-
-.receipt-total-paid span{
-  font-size:8.5pt;
-  font-weight:800;
-
-  color:#21191c;
-}
-
-.receipt-total-paid strong{
-  font-size:14pt;
-}
-
-
-/* -------------------------
-   NOTES
-------------------------- */
-
-.receipt-note{
-  margin-top:10px;
-
-  padding:8px 9px;
-
-  border-radius:8px;
-
-  background:#f8f3f5;
-
-  break-inside:avoid;
-}
-
-.receipt-note p{
-  margin:7px 0 0;
-
-  line-height:1.5;
-}
-
-
-/* -------------------------
-   FOOTER
-------------------------- */
-
+/* NOTE + FOOTER */
+.receipt-note{ margin-top:3px; padding:3px 4px; border-radius:3px; background:#f4f4f4; break-inside:avoid; }
+.receipt-note p{ margin:1px 0 0; font-size:5.5pt; line-height:1.1; }
 .receipt-footer{
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
-
-  gap:12px;
-
-  margin-top:10px;
-  padding-top:7px;
-
-  border-top:1px solid #e2d5da;
-
-  color:#4d3e43;
+  gap:4px;
+  margin-top:3px;
+  padding-top:2px;
+  border-top:1px solid #ccc;
+  color:#222;
 }
+.receipt-footer strong{ display:inline; margin:0; font-size:5.3pt; color:#111; }
+.receipt-footer span{ display:none; }
+.receipt-footer-brand{ font-size:5.5pt; font-weight:900; letter-spacing:.07em; white-space:nowrap; }
 
-.receipt-footer strong{
-  display:block;
-
-  margin-bottom:4px;
-
-  color:#38292e;
-}
-
-.receipt-footer span{
-  font-size:8pt;
-}
-
-.receipt-footer-brand{
-  font-size:8.5pt;
-  font-weight:900;
-  letter-spacing:.13em;
-
-  white-space:nowrap;
-}
-
-
-/* -------------------------
-   PRINT
-------------------------- */
+/* Extra compression classes applied only when an order is too tall. */
+.print-page.fit-tight .receipt-intro{ padding:1px 0; }
+.print-page.fit-tight .receipt-info-grid,
+.print-page.fit-tight .receipt-delivery-card{ margin-bottom:2px; }
+.print-page.fit-tight .receipt-info-card,
+.print-page.fit-tight .receipt-delivery-content,
+.print-page.fit-tight .receipt-section-heading{ padding:2px 3px; }
+.print-page.fit-tight .receipt-item{ padding:1px 2px; }
+.print-page.fit-tight .receipt-wholesale-details,
+.print-page.fit-tight .receipt-colour-box,
+.print-page.fit-tight .receipt-detail-note{ margin-top:1px; }
+.print-page.fit-tight .receipt-payment{ margin-top:2px; padding-top:2px; }
+.print-page.fit-tight .receipt-footer{ margin-top:2px; }
 
 @media print{
-
-  html,
-  body{
-    width:148mm;
+  html,body{
+    width:101.6mm;
+    height:auto;
     margin:0 !important;
     padding:0 !important;
     background:#fff !important;
-    color:#171214 !important;
-    -webkit-print-color-adjust:exact;
-    print-color-adjust:exact;
+    color:#111 !important;
   }
-
   .print-page{
-    width:148mm;
-    min-height:210mm;
-    height:auto;
+    width:101.6mm;
+    height:152.4mm;
+    min-height:152.4mm;
+    max-height:152.4mm;
     margin:0 !important;
-    padding:7mm 8mm;
-    overflow:visible;
+    padding:3.2mm;
+    overflow:hidden;
     page-break-after:always;
     break-after:page;
   }
-
-  .print-page:last-child{
-    page-break-after:auto;
-    break-after:auto;
-  }
-
-  .packing-slip{
-    margin:0;
-    box-shadow:none;
-  }
-
+  .print-page:last-child{ page-break-after:auto; break-after:auto; }
 }
 
 </style>
@@ -1431,9 +1052,42 @@ body{
 ${pages}
 
 <script>
+function fitEachOrderToOneLabel(){
+  document.querySelectorAll('.print-page').forEach(page=>{
+    const slip=page.querySelector('.packing-slip');
+    if(!slip) return;
+
+    page.classList.remove('fit-tight');
+    slip.style.transform='none';
+    slip.style.width='100%';
+
+    // First reclaim spacing without shrinking text.
+    if(slip.scrollHeight > page.clientHeight){
+      page.classList.add('fit-tight');
+    }
+
+    // Every order must stay on exactly one label. Only scale when compact
+    // spacing alone is not enough. Width is compensated so nothing clips.
+    const pageStyle=getComputedStyle(page);
+    const availableHeight=page.clientHeight-parseFloat(pageStyle.paddingTop)-parseFloat(pageStyle.paddingBottom);
+    const availableWidth=page.clientWidth-parseFloat(pageStyle.paddingLeft)-parseFloat(pageStyle.paddingRight);
+    const naturalHeight=slip.scrollHeight;
+    const naturalWidth=slip.scrollWidth;
+    const scale=Math.min(1, availableHeight/naturalHeight, availableWidth/naturalWidth);
+
+    if(scale < 0.999){
+      slip.style.transform='scale(' + scale + ')';
+      slip.style.width=(100/scale) + '%';
+    }
+  });
+}
+
 window.onload=()=>{
-  // Print the native A5 layout at full size; do not shrink the receipt.
-  setTimeout(()=>window.print(),250);
+  fitEachOrderToOneLabel();
+  setTimeout(()=>{
+    fitEachOrderToOneLabel();
+    window.print();
+  },250);
 };
 <\/script>
 
