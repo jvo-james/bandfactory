@@ -775,7 +775,7 @@ function renderHomepageFeature(){
     const card=document.getElementById('homepageFeatureCard');if(!card)return;
     const image=document.getElementById('homepageFeatureImage'),badge=document.getElementById('homepageFeatureBadge'),eyebrow=document.getElementById('homepageFeatureEyebrow'),title=document.getElementById('homepageFeatureTitle'),copy=document.getElementById('homepageFeatureCopy'),cta=document.getElementById('homepageFeatureCta');
     const set=homeCatalog.find(x=>x.id==='second-skin-long-sleeve')||{name:'Second Skin Long Sleeve',price:200,subtitle:'White · Blue Black · Nude'};
-    card.href='item.html?id=second-skin-long-sleeve';card.classList.add('editorial-drop-card');image.src=BFCatalog.image(set);image.alt='Second Skin Long Sleeve three-piece set';badge.hidden=false;badge.textContent='THREE PIECE SET';eyebrow.textContent='SECOND SKIN';title.textContent='Second Skin Long Sleeve.';copy.textContent=`White · Blue Black · Nude · ${BF.money(BFCatalog.price(set,homeSettings)||200)}`;cta.textContent='Shop the set →';
+    card.href='item.html?id=second-skin-long-sleeve';card.classList.add('editorial-drop-card');image.src=BFCatalog.image(set);image.alt='Second Skin Long Sleeve three-piece top pack';badge.hidden=false;badge.textContent='THREE LONG SLEEVE TOPS';eyebrow.textContent='SECOND SKIN';title.textContent='Second Skin Long Sleeve.';copy.textContent=`White · Blue Black · Nude · ${BF.money(BFCatalog.price(set,homeSettings)||200)}`;cta.textContent='Shop the tops →';
 }
 
 /* ==========================================================

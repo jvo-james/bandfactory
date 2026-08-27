@@ -40,14 +40,16 @@ function toggleSidebar(){
   if(side?.classList.contains('open'))closeSidebar();else openSidebar();
 }
 
-function showSection(id){
+function showSection(id,options={}){
+  if(!document.getElementById(id))id='overviewPanel';
   document.querySelectorAll('.admin-section').forEach(x=>x.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
   document.querySelectorAll('.admin-nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
   const b=[...document.querySelectorAll('.admin-nav button')].find(btn=>btn.dataset.section===id);
   document.getElementById('pageTitle').textContent=b?(b.querySelector('.nav-label')?.textContent.trim()||b.textContent.trim()):'Admin';
+  try{localStorage.setItem('bfAdminSection',id)}catch(e){}
   closeSidebar();
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(options.scroll!==false)window.scrollTo({top:0,behavior:options.instant?'auto':'smooth'});
 }
 window.showSection=showSection;
 
@@ -60,7 +62,7 @@ async function loadAll(){
     ]);
     const tubeTop=tubeTopRaw||{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}};
     if(!tubeTopRaw)await BFStore.setDoc('products/spandexTubeTop',tubeTop,false);
-    const catalogById=Object.fromEntries((catalogRaw.items||[]).map(x=>[x.id,x]));const catalog=BF_CATALOG_DEFAULTS.map(x=>({...x,...(catalogById[x.id]||{})}));for(const x of (catalogRaw.items||[]))if(!catalog.some(i=>i.id===x.id))catalog.push(x);DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},tubeTop,catalog,sequence:sequence||{}};
+    const catalogById=Object.fromEntries((catalogRaw.items||[]).map(x=>[x.id,x]));const catalog=BF_CATALOG_DEFAULTS.map(x=>({...x,...(catalogById[x.id]||{})}));for(const x of (catalogRaw.items||[]))if(!catalog.some(i=>i.id===x.id))catalog.push(x);for(const item of catalog){if(item.id==='second-skin-long-sleeve')item.category='tops';if(item.id==='second-set'){item.name='Second Skin Set';item.category='sets';item.subtitle='White set + hairband';item.description='A clean white coordinated set with a fitted long sleeve top, matching bottoms and a matching hairband. The set includes everything shown in the product image except the socks.'}}DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},tubeTop,catalog,sequence:sequence||{}};
     await ensureChronologicalOrderIds();
     renderAll();
   },'Loading admin…');
@@ -232,10 +234,19 @@ async function ensureChronologicalOrderIds(){
 }
 function selectedPaidOrderIds(){return [...document.querySelectorAll('.order-select:checked')].map(x=>x.dataset.orderId)}
 function syncBatchSelection(){
-  const ids=selectedPaidOrderIds(),count=document.getElementById('selectedOrderCount'),button=document.getElementById('printSelectedOrders'),all=document.getElementById('selectAllOrders');
-  if(count)count.textContent=`${ids.length} selected`;if(button)button.disabled=!ids.length;
+  const ids=selectedPaidOrderIds(),count=document.getElementById('selectedOrderCount'),button=document.getElementById('printSelectedOrders'),all=document.getElementById('selectAllOrders'),status=document.getElementById('bulkOrderStatus'),update=document.getElementById('updateSelectedOrders');
+  if(count)count.textContent=`${ids.length} selected`;if(button)button.disabled=!ids.length;if(status)status.disabled=!ids.length;if(update)update.disabled=!ids.length;
   const boxes=[...document.querySelectorAll('.order-select')];if(all){all.checked=boxes.length>0&&boxes.every(x=>x.checked);all.indeterminate=boxes.some(x=>x.checked)&&!all.checked;}
 }
+async function updateSelectedOrderStatuses(){
+  const ids=selectedPaidOrderIds(),status=document.getElementById('bulkOrderStatus')?.value;if(!ids.length||!status)return;
+  return withAdminLoading(async()=>{
+    await Promise.all(ids.map(id=>BFStore.update('orders',id,{status})));
+    await BFStore.log('Order status updated',{orderIds:ids,status,bulk:true,count:ids.length});
+    await loadAll();showSection('ordersPanel',{scroll:false});BF.toast(`${ids.length} order${ids.length===1?'':'s'} updated to ${status}`);
+  },`Updating ${ids.length} order${ids.length===1?'':'s'}…`);
+}
+window.updateSelectedOrderStatuses=updateSelectedOrderStatuses;
 
 function receiptEscape(value=''){
   return String(value??'')
@@ -1940,7 +1951,7 @@ document.addEventListener('keydown',e=>{
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
-  BFStore.onAuth(async admin=>{if(!admin){location.href='admin-login.html';return}document.getElementById('profileEmail').textContent=admin.email;document.getElementById('adminName').textContent=admin.name||admin.email;await loadAll();showNotificationPopoverOnLoad()});
+  BFStore.onAuth(async admin=>{if(!admin){location.href='admin-login.html';return}document.getElementById('profileEmail').textContent=admin.email;document.getElementById('adminName').textContent=admin.name||admin.email;await loadAll();let savedSection='overviewPanel';try{savedSection=localStorage.getItem('bfAdminSection')||'overviewPanel'}catch(e){}showSection(savedSection,{scroll:false,instant:true});showNotificationPopoverOnLoad()});
   document.getElementById('adminMenu').onclick=toggleSidebar;
   document.getElementById('adminSideClose').onclick=closeSidebar;
   document.getElementById('adminSideScreen').onclick=closeSidebar;
@@ -1949,7 +1960,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.admin-nav button').forEach(b=>b.onclick=()=>showSection(b.dataset.section));
   document.querySelectorAll('.clickable-stat').forEach(card=>card.onclick=()=>showSection(card.dataset.go));
   document.getElementById('signOutBtn').onclick=async()=>withAdminLoading(async()=>{await BFStore.signOut();location.href='admin-login.html'},'Signing out…');
-  document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
+  document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('updateSelectedOrders').onclick=updateSelectedOrderStatuses;document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
   document.getElementById('saveProductSettings').onclick=saveProducts;document.getElementById('saveTubeTopStock').onclick=saveTubeTopInventory;document.getElementById('saveWholesale').onclick=saveWholesale;document.getElementById('sendBroadcast').onclick=sendBroadcast;document.getElementById('saveDelivery').onclick=saveDelivery;document.getElementById('markAllRead').onclick=markAll;document.getElementById('saveSettings').onclick=saveSettings;document.getElementById('changeEmailForm')?.addEventListener('submit',submitAdminEmailChange);document.getElementById('changePasswordForm')?.addEventListener('submit',submitAdminPasswordChange);
 });
 
@@ -1962,10 +1973,10 @@ function renderCatalogProducts(){
   const apparelGroup=category=>(DATA.catalog||[]).filter(x=>x.category===category&&x.id!=='spandex-tube-top').map(item=>`<article class="admin-catalog-card apparel-admin-card" data-catalog-id="${item.id}"><div class="admin-catalog-card-head"><img src="${BFCatalog.image(item)}" alt="${escapeAdminValue(item.name)}"><div><h4>${escapeAdminValue(item.name)}</h4><small>${category==='tops'?'Top':'Set'}</small></div></div><div class="admin-catalog-grid"><div class="admin-field"><label>Price (GHS)</label><input data-field="price" type="number" min="0" value="${item.price??''}"></div><div class="admin-field"><label>Availability</label><select data-field="available"><option value="true" ${item.available!==false?'selected':''}>Available</option><option value="false" ${item.available===false?'selected':''}>Out of stock</option></select></div><div class="admin-field" style="grid-column:1/-1"><label>Description</label><textarea data-field="description">${escapeAdminValue(item.description||'')}</textarea></div><input data-field="category" type="hidden" value="${category}"></div><div class="admin-size-list"><strong>Sizes and stock</strong><div data-size-rows>${sortAdminSizes(Object.entries(item.sizes||{})).map(([size,d])=>`<div class="admin-size-row compact"><input data-size-name value="${escapeAdminValue(size)}" aria-label="Size"><input data-size-stock type="number" min="0" value="${Number(d.stock||0)}" aria-label="Stock"><label class="availability-check"><input data-size-available type="checkbox" ${d.available===false?'':'checked'}><span>Sell</span></label><button class="size-remove-btn" type="button" onclick="removeCatalogSizeRow(this)" aria-label="Remove size ${escapeAdminValue(size)}">Remove</button></div>`).join('')}</div><button class="small-btn" type="button" onclick="addCatalogSizeRow('${item.id}')">+ Add size</button></div></article>`).join('');
   el.innerHTML=`<div class="catalog-category-group ribbed-admin-grid" data-catalog-group="ribbed">${ribbedGroup||'<p>No Ribbed Hairbands are set up yet.</p>'}</div><div class="catalog-category-group" data-catalog-group="tops">${apparelGroup('tops')||'<p>No Tops are set up yet.</p>'}</div><div class="catalog-category-group" data-catalog-group="sets">${apparelGroup('sets')||'<p>No Sets are set up yet.</p>'}</div>`;
   const price=document.getElementById('ribbedRetailPriceTab');if(price)price.value=Number(DATA.settings.ribbedPrice||0)||'';
-  applyInventoryProductTab(window.activeInventoryProductTab||'smooth');
+  let rememberedTab=window.activeInventoryProductTab;try{rememberedTab=rememberedTab||localStorage.getItem('bfInventoryProductTab')}catch(e){}applyInventoryProductTab(rememberedTab||'smooth');
 }
 function applyInventoryProductTab(tab){
-  window.activeInventoryProductTab=tab;document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.classList.toggle('active',b.dataset.inventoryTab===tab));
+  window.activeInventoryProductTab=tab;try{localStorage.setItem('bfInventoryProductTab',tab)}catch(e){}document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.classList.toggle('active',b.dataset.inventoryTab===tab));
   const tube=document.querySelector('.tube-top-admin-panel'),settings=document.querySelector('.product-settings-panel'),catalog=document.getElementById('catalogAdminList')?.closest('.admin-panel'),ribbedSettings=document.querySelector('.ribbed-settings-panel'),heading=document.querySelector('.colour-section-heading'),colors=document.getElementById('colorAdminGrid');
   if(tube)tube.hidden=tab!=='tops';if(settings)settings.hidden=tab!=='smooth';if(catalog)catalog.hidden=tab==='smooth';if(ribbedSettings)ribbedSettings.hidden=tab!=='ribbed';if(heading)heading.hidden=tab!=='smooth';if(colors)colors.hidden=tab!=='smooth';
   const ch=document.getElementById('catalogAdminHeading'),help=document.getElementById('catalogAdminHelp');if(ch)ch.textContent=tab==='ribbed'?'Ribbed stock':tab==='tops'?'Tops':tab==='sets'?'Sets':'Products';if(help)help.textContent=tab==='ribbed'?'Set the stock quantity and availability for each Ribbed Hairband.':`Edit price, description, availability and size stock for your ${tab}.`;

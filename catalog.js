@@ -6,8 +6,8 @@ const BF_CATALOG_DEFAULTS = [
   {id:'spandex-tube-top',category:'tops',name:'Spandex Tube Top',subtitle:'Black · double lined · stretchy',price:64,color:'Black',description:'Double lined and stretchy. The original Band Factory basic already in the shop.',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}},available:true,imageKey:'spandex-tube-top',featuredOrder:1},
   {id:'second-skin-tee',category:'tops',name:'Second Skin Tee',subtitle:'Dark Brown',price:70,color:'Dark Brown',description:'A fitted dark brown tee with a smooth second-skin feel. Designed to sit close to the body and work effortlessly with everyday looks.',sizes:{S:{stock:2,available:true},M:{stock:2,available:true},L:{stock:2,available:true},XL:{stock:2,available:true},'2XL':{stock:2,available:true}},available:true,imageKey:'second-skin-tee',featuredOrder:2},
   {id:'essential-vest-top',category:'tops',name:'Essential Vest Top',subtitle:'3-piece set · Black, Coral & White',price:150,color:'Black, Coral & White',description:'A three-piece vest top set with one black, one coral and one white piece. Easy staples made for layering, lounging and everyday styling.',packSize:3,sizes:{S:{stock:3,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true}},available:true,imageKey:'essential-vest-top',featuredOrder:3},
-  {id:'second-skin-long-sleeve',category:'sets',name:'Second Skin Long Sleeve',subtitle:'3-piece set · White, Blue Black & Nude',price:200,color:'White, Blue Black & Nude',description:'A three-piece long sleeve set in white, blue black and nude. Soft, fitted essentials made to move easily from relaxed days to styled looks.',packSize:3,sizes:{S:{stock:2,available:true},M:{stock:2,available:true},L:{stock:2,available:true},XL:{stock:2,available:true}},available:true,imageKey:'second-skin-long-sleeve',featuredOrder:1},
-  {id:'second-set',category:'sets',name:'Second Set',subtitle:'White',price:160,color:'White',description:'A clean white coordinated set with a fitted long sleeve top and matching bottoms. An easy monochrome look for relaxed styling.',sizes:{},available:true,imageKey:'second-set',featuredOrder:2}
+  {id:'second-skin-long-sleeve',category:'tops',name:'Second Skin Long Sleeve',subtitle:'3-piece top pack · White, Blue Black & Nude',price:200,color:'White, Blue Black & Nude',description:'A three-piece pack of fitted long sleeve tops in white, blue black and nude. Soft second-skin essentials made to move easily from relaxed days to styled looks.',packSize:3,sizes:{S:{stock:2,available:true},M:{stock:2,available:true},L:{stock:2,available:true},XL:{stock:2,available:true}},available:true,imageKey:'second-skin-long-sleeve',featuredOrder:1},
+  {id:'second-set',category:'sets',name:'Second Skin Set',subtitle:'White set + hairband',price:160,color:'White',description:'A clean white coordinated set with a fitted long sleeve top, matching bottoms and a matching hairband. The set includes everything shown in the product image except the socks.',sizes:{},available:true,imageKey:'second-set',featuredOrder:2}
 ];
 
 window.BF_CATALOG_DEFAULTS = BF_CATALOG_DEFAULTS;
@@ -18,6 +18,11 @@ window.BFCatalog = {
     try{ saved=await BFStore.getDoc('products/catalog',{}); }catch(e){ console.warn(e); }
     const byId=Object.fromEntries((saved.items||[]).map(x=>[x.id,x]));
     const items=BF_CATALOG_DEFAULTS.map(x=>({...x,...(byId[x.id]||{})}));
+    // Keep renamed/moved core products correct even when an older catalogue is already saved in Firestore.
+    for(const item of items){
+      if(item.id==='second-skin-long-sleeve') item.category='tops';
+      if(item.id==='second-set'){ item.name='Second Skin Set'; item.category='sets'; item.subtitle='White set + hairband'; item.description='A clean white coordinated set with a fitted long sleeve top, matching bottoms and a matching hairband. The set includes everything shown in the product image except the socks.'; }
+    }
     for(const x of (saved.items||[])) if(!items.some(i=>i.id===x.id)) items.push(x);
     return items;
   },

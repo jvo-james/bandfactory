@@ -111,3 +111,6 @@
 .size-remove-btn:hover{color:#b43868}
 .tube-size-admin-row.simple{grid-template-columns:minmax(100px,1fr) minmax(130px,.65fr) auto auto!important}
 @media(max-width:780px){.admin-size-row.compact,.tube-size-admin-row.simple{grid-template-columns:1fr 1fr!important}.admin-size-row.compact .availability-check,.tube-size-admin-row.simple .availability-check{grid-column:1/2}.admin-size-row.compact .size-remove-btn,.tube-size-admin-row.simple .size-remove-btn{grid-column:2/3;justify-self:end}}
+
+/* Bulk order status controls */
+.bulk-status-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bulk-status-actions label{font-size:12px;font-weight:800;color:#6f5c63}.bulk-status-actions select{min-width:132px;padding:9px 34px 9px 10px;border:1px solid #dfd2d7;border-radius:10px;background:#fff;font:inherit}.bulk-status-actions select:disabled{opacity:.55}.order-batch-toolbar button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:720px){.order-batch-toolbar{align-items:stretch}.order-batch-toolbar #selectedOrderCount{margin-left:0;width:100%}.bulk-status-actions{width:100%;display:grid;grid-template-columns:1fr auto}.bulk-status-actions label{grid-column:1/-1}.bulk-status-actions select{min-width:0;width:100%}}
