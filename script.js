@@ -248,7 +248,7 @@ function buildSearchIndex(){
     {title:'Second Skin Tee',meta:'Dark Brown · GHS 70',url:'item.html?id=second-skin-tee',image:window.BF_IMAGE?.('second-skin-tee'),terms:'second skin tee dark brown top basics small medium large xl 2xl'},
     {title:'Essential Vest Top',meta:'3-piece set · Black, Coral and White',url:'item.html?id=essential-vest-top',image:window.BF_IMAGE?.('essential-vest-top'),terms:'essential vest top black coral white 3 piece pack basics'},
     {title:'Second Skin Long Sleeve',meta:'3-piece set · White, Blue Black and Nude',url:'item.html?id=second-skin-long-sleeve',image:window.BF_IMAGE?.('second-skin-long-sleeve'),terms:'second skin long sleeve white blue black nude set basics'},
-    {title:'Second Set',meta:'White · GHS 160',url:'item.html?id=second-set',image:window.BF_IMAGE?.('second-set'),terms:'second set white basics'}
+    {title:'Second Skin Set',meta:'White · GHS 160',url:'item.html?id=second-set',image:window.BF_IMAGE?.('second-set'),terms:'second set white basics'}
   ];
   return [...colourItems,...ribbed,...products,
     {title:'Smooth Hairbands',meta:'Flat and Twisted',url:'smooth.html',terms:'smooth hairbands flat twisted shop'},
