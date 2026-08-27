@@ -755,21 +755,10 @@ function tubeTopTotalStock(product=homeTubeTop){
 }
 
 function renderHomepageFeature(){
-    const card=document.getElementById('homepageFeatureCard');
-    if(!card)return;
+    const card=document.getElementById('homepageFeatureCard');if(!card)return;
     const image=document.getElementById('homepageFeatureImage'),badge=document.getElementById('homepageFeatureBadge'),eyebrow=document.getElementById('homepageFeatureEyebrow'),title=document.getElementById('homepageFeatureTitle'),copy=document.getElementById('homepageFeatureCopy'),cta=document.getElementById('homepageFeatureCta');
-    const stock=tubeTopTotalStock();
-    if(stock>0){
-        card.href='tube-top.html';card.classList.add('editorial-drop-card');
-        image.src='images/new.jpeg';image.alt='Black Spandex Tube Top by Band Factory';
-        badge.hidden=false;badge.textContent='NEW · LIMITED';
-        eyebrow.textContent='NEW DROP';title.textContent='Spandex Tube Top.';
-        copy.textContent='Double lined · Stretchy · Black only · GHS 64';cta.textContent='Shop the top →';
-    }else{
-        card.href='shop.html?mood=neutral';card.classList.remove('editorial-drop-card');
-        image.src='images/edit1.jpg';image.alt='Neutral Band Factory hairbands';badge.hidden=true;
-        eyebrow.textContent='THE NEUTRALS';title.textContent='Quiet confidence.';copy.textContent='Black · White · Ash · Nude';cta.textContent='Explore neutrals →';
-    }
+    const catalog=window.homeCatalog||BFCatalog.mergeCatalog({}),product=BFCatalog.findBasic(catalog,'second-skin-tee')||BFCatalog.defaults.basics.tops[0];
+    card.href='shop.html?section=tops#second-skin-tee';card.classList.add('editorial-drop-card');image.src=product.image||'images/dark-brown.jpg';image.alt=`${product.name} by Band Factory`;badge.hidden=false;badge.textContent='BASICS · TOPS';eyebrow.textContent='EVERYDAY BASIC';title.textContent=`${product.name}.`;copy.textContent=`${(product.colours||[]).join(' · ')} · ${BF.money(product.price)}`;cta.textContent='Shop Tops →';
 }
 
 /* ==========================================================
@@ -782,8 +771,8 @@ async function renderHome() {
 
         renderColourMarquee();
         applySocialLinks();
-        const [settings,inventory,tubeTop]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}})]);
-        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}};
+        const [settings,inventory,catalogRaw]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/catalog',{})]);
+        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; window.homeCatalog=BFCatalog.mergeCatalog(catalogRaw||{});
         renderHomepageFeature();
         renderHomeProducts();
         renderColourBoxes();

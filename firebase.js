@@ -44,13 +44,19 @@
       const number=v=>Number(v||0);
       const normalizePhone=value=>{let digits=String(value||'').replace(/\D/g,'');if(digits.startsWith('0')&&digits.length>=10)digits='233'+digits.slice(1);return digits};
       const deductions={flat:{},twisted:{}};
+      const catalogDeductions={};
       let unallocatedWholesale=0;
+      const addCatalog=(key,qty)=>{qty=number(qty);if(!key||qty<=0)return;catalogDeductions[key]=(catalogDeductions[key]||0)+qty};
       const add=(style,color,qty)=>{style=String(style||'flat').toLowerCase();qty=number(qty);if(!['flat','twisted'].includes(style)||!color||qty<=0)return;deductions[style][color]=(deductions[style][color]||0)+qty};
       for(const item of order.items||[]){
         const mult=number(item.qty||1);
-        if(item.type==='retail') add(item.style||'flat',item.color,number(item.qty));
+        if(item.type==='catalog') addCatalog(item.stockKey,number(item.qty));
+        if(item.type==='retail'&&(item.material||'smooth')==='smooth') add(item.style||'flat',item.color,number(item.qty));
         if(item.type==='wholesale'){
-          if(item.wholesaleMode==='custom'&&item.allocations){
+          if(item.material==='ribbed'){
+            if(item.wholesaleMode==='custom'&&item.allocations){for(const [color,qty] of Object.entries(item.allocations||{}))addCatalog(`ribbed.colours.${color}`,number(qty)*mult)}
+            else unallocatedWholesale+=number(item.bundlePieces)*mult;
+          }else if(item.wholesaleMode==='custom'&&item.allocations){
             if(item.style==='mixed'){
               for(const [style,colors] of Object.entries(item.allocations||{})) for(const [color,qty] of Object.entries(colors||{})) add(style,color,number(qty)*mult);
             }else{
@@ -60,9 +66,11 @@
         }
       }
       const hasManagedStock=Object.values(deductions.flat).some(Boolean)||Object.values(deductions.twisted).some(Boolean);
+      const hasCatalogStock=Object.keys(catalogDeductions).length>0;
       const paymentRef=__bfDb.collection('paymentReferences').doc(order.paystackReference);
       const orderRef=__bfDb.collection('orders').doc(order.id);
       const productRef=__bfDb.doc('products/smooth');
+      const catalogRef=__bfDb.doc('products/catalog');
       const customerRef=__bfDb.collection('customers').doc();
       const notifRef=__bfDb.collection('notifications').doc();
       const activityRef=__bfDb.collection('activity').doc();
@@ -73,8 +81,9 @@
       return __bfDb.runTransaction(async tx=>{
         const seen=await tx.get(paymentRef);
         if(seen.exists) return {alreadyFinalized:true,orderId:seen.data().orderId||order.id};
-        let productSnap=null;
+        let productSnap=null,catalogSnap=null;
         if(hasManagedStock) productSnap=await tx.get(productRef);
+        if(hasCatalogStock) catalogSnap=await tx.get(catalogRef);
 
         const shortages=[];
         let stockSyncStatus='not-required';
@@ -93,17 +102,32 @@
         }else if(hasManagedStock){
           stockSyncStatus='needs-review';
         }
+        let catalogData=null;
+        if(hasCatalogStock&&catalogSnap?.exists){
+          catalogData=JSON.parse(JSON.stringify(catalogSnap.data()||{}));
+          const findBasic=(group,id)=>(catalogData.basics?.[group]||[]).find(p=>p.id===id);
+          for(const [key,qty] of Object.entries(catalogDeductions)){
+            const parts=key.split('.');let node=null,label=key;
+            if(parts[0]==='ribbed'&&parts[1]==='colours'){const color=parts.slice(2).join('.');node=catalogData.ribbed?.colours?.[color];label=`${color} ribbed`;}
+            else if(parts[0]==='ribbed'&&parts[1]==='featured'){const id=parts.slice(2).join('.');node=(catalogData.ribbed?.featured||[]).find(x=>x.id===id);label=node?.name||id;}
+            else if(parts[0]==='basics'){const group=parts[1],id=parts[2],p=findBasic(group,id);if(parts[3]==='sizes'){node=p?.sizes?.[parts.slice(4).join('.')];label=`${p?.name||id} ${parts.slice(4).join('.')}`;}else{node=p;label=p?.name||id;}}
+            if(!node){shortages.push(`${label}: inventory record missing`);continue;}
+            const currentStock=number(node.stock??9999);if(currentStock<qty)shortages.push(`${label}: needed ${qty}, recorded ${currentStock}`);if(Number.isFinite(Number(node.stock)))node.stock=Math.max(0,currentStock-qty);
+          }
+          stockSyncStatus='updated';
+        }else if(hasCatalogStock){stockSyncStatus='needs-review';}
 
         const serverTime=firebase.firestore.FieldValue.serverTimestamp();
         tx.set(orderRef,{...order,payment:'Paid',serverVerified:true,verification:{reference:verification.reference||order.paystackReference,amount:number(verification.amount),currency:verification.currency||'GHS',paidAt:verification.paidAt||'',channel:verification.channel||''},verifiedAt:serverTime,stockSyncStatus},{merge:false});
         tx.set(paymentRef,{orderId:order.id,amount:number(verification.amount),currency:verification.currency||'GHS',createdAt:serverTime},{merge:false});
         if(styles) tx.set(productRef,{styles,updatedAt:serverTime},{merge:true});
+        if(catalogData) tx.set(catalogRef,{...catalogData,updatedAt:serverTime},{merge:false});
         tx.set(customerRef,{name:order.name||'',email:order.email||'',phone:order.phone||'',normalizedPhone:normalizePhone(order.phone),orderId:order.id,total:number(order.total),type:order.type||'Retail',city:order.city||'',region:order.region||'',country:order.country||'',countryCode:order.countryCode||'',source:order.source||'Direct / Unknown',lastOrderAt:serverTime,createdAt:serverTime});
         tx.set(notifRef,{type:'purchase',title:'New paid order',message:`${order.name||'Customer'} placed ${order.id} for GHS ${number(order.total).toFixed(2)}.`,orderId:order.id,read:false,createdAt:serverTime});
         tx.set(activityRef,{action:'Paid order created',orderId:order.id,total:number(order.total),paystackReference:order.paystackReference,source:order.source||'Direct / Unknown',createdAt:serverTime});
         if(abandonedRef) tx.set(abandonedRef,{status:'recovered',orderId:order.id,recoveredAt:serverTime,updatedAt:serverTime},{merge:true});
         if(unallocatedWholesale>0) tx.set(inventoryNotifRef,{type:'inventory',title:'Wholesale stock needs allocation',message:`${unallocatedWholesale} standard-mix wholesale pieces from ${order.id} need to be deducted from the colours you pack.`,orderId:order.id,read:false,createdAt:serverTime});
-        if(hasManagedStock&&!productSnap?.exists) tx.set(shortageNotifRef,{type:'inventory',title:'Inventory setup needs attention',message:`Order ${order.id} was verified, but products/smooth was not found. The paid order was saved; please set up inventory and adjust stock manually.`,orderId:order.id,read:false,createdAt:serverTime});
+        if((hasManagedStock&&!productSnap?.exists)||(hasCatalogStock&&!catalogSnap?.exists)) tx.set(shortageNotifRef,{type:'inventory',title:'Inventory setup needs attention',message:`Order ${order.id} was verified, but a managed inventory record was not found. The paid order was saved; please set up inventory and adjust stock manually.`,orderId:order.id,read:false,createdAt:serverTime});
         else if(shortages.length) tx.set(shortageNotifRef,{type:'inventory',title:'Stock count needs checking',message:`Order ${order.id} exceeded recorded stock for: ${shortages.join('; ')}. Those variants were reduced to zero.`,orderId:order.id,read:false,createdAt:serverTime});
         return {alreadyFinalized:false,orderId:order.id,stockSyncStatus};
       });

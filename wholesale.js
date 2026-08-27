@@ -54,7 +54,9 @@ const WHOLESALE_EXTRA_COLOURS = [
 let standardBundles = [...DEFAULT_STANDARD];
 let customBundles = [...DEFAULT_CUSTOM];
 let productData = { colors: {} };
+let ribbedCatalog = BFCatalog.mergeCatalog({});
 let storeSettings = {};
+let wholesaleMaterial = 'smooth';
 let wholesaleStyle = 'flat';
 let orderType = 'standard';
 let bundleIndex = 0;
@@ -68,11 +70,11 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const money = n => `GH₵${Number(n || 0).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`;
 const titleCase = value => String(value || '').replace(/^./, c => c.toUpperCase());
-const styleLabel = style => style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat';
+const styleLabel = style => wholesaleMaterial==='ribbed' ? 'Ribbed' : (style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat');
 const modeLabel = () => orderType === 'custom' ? 'Custom Colour Mix' : 'Standard Mix';
 const currentBundles = () => orderType === 'custom' ? customBundles : standardBundles;
 const currentBundle = () => currentBundles()[bundleIndex] || currentBundles()[0];
-const currentRule = () => CUSTOM_COLOUR_RULES[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: 99 };
+const currentRule = () => wholesaleMaterial==='ribbed' ? {maxPerColour:currentBundle().pieces,minColours:1,maxColours:Math.max(1,allWholesaleColours().length)} : (CUSTOM_COLOUR_RULES[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: 99 });
 const styleImage = style => style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg';
 const editStyle = () => wholesaleStyle === 'mixed' ? activeColourStyle : wholesaleStyle;
 const activeStyles = () => wholesaleStyle === 'mixed' ? ['flat', 'twisted'] : [wholesaleStyle];
@@ -82,11 +84,13 @@ const positiveColourCount = style => Object.values(allocations[style] || {}).fil
 const allProgress = () => activeStyles().some(style => selectedColors[style].length || allocationTotal(style));
 
 function allWholesaleColours() {
+  if(wholesaleMaterial==='ribbed') return Object.keys(ribbedCatalog.ribbed?.colours||{}).map(name=>[name,'#bbb']);
   const map = new Map([...(BF.colors || []), ...WHOLESALE_EXTRA_COLOURS]);
   return [...map.entries()];
 }
 
 function colourStock(style,name){
+  if(wholesaleMaterial==='ribbed'){const data=ribbedCatalog.ribbed?.colours?.[name]||{};return ribbedCatalog.ribbed?.available!==false&&data.available!==false?Math.max(0,Number(data.stock??0)):0;}
   const data=productData.styles?.[style]?.colors?.[name] || productData.colors?.[name] || {};
   const styleOn=style==='twisted'?storeSettings.smoothTwistedAvailable!==false:storeSettings.smoothFlatAvailable!==false;
   return storeSettings.smoothAvailable!==false && styleOn && data.available!==false ? Math.max(0,Number(data.stock??0)) : 0;
@@ -513,6 +517,7 @@ function updateLabels() {
   $('#bundleHint').textContent = `Choose a ${modeLabel()} bundle for your ${styleText} hairbands.`;
   $('#colourStyleName').textContent = styleLabel(editStyle());
   $('#bundleCount').textContent = styleTarget(editStyle());
+  const typePrices=$$('.order-type-price');if(typePrices[0])typePrices[0].textContent=`10 pieces · ${money(standardBundles[0]?.price||0)}`;if(typePrices[1])typePrices[1].textContent=`10 pieces · ${money(customBundles[0]?.price||0)}`;
   $('#colour-title').innerHTML = wholesaleStyle === 'mixed'
     ? `Choose colours for <span id="colourStyleName">${styleLabel(editStyle())}</span>.`
     : `Build your <span id="colourStyleName">${styleLabel(editStyle())}</span> bundle.`;
@@ -541,17 +546,19 @@ function addWholesaleToBag() {
     const payload = wholesaleStyle === 'mixed'
       ? { flat: { ...allocations.flat }, twisted: { ...allocations.twisted } }
       : { ...allocations[wholesaleStyle] };
-    BF.addWholesale({ ...b, wholesaleMode: 'custom' }, payload, 'custom', wholesaleStyle, 'smooth', styleAllocations);
+    BF.addWholesale({ ...b, wholesaleMode: 'custom' }, payload, 'custom', wholesaleStyle, wholesaleMaterial, styleAllocations);
   } else {
-    BF.addWholesale({ ...b, wholesaleMode: 'standard' }, { 'Band Factory colour mix': b.pieces }, 'standard', wholesaleStyle, 'smooth', styleAllocations);
+    BF.addWholesale({ ...b, wholesaleMode: 'standard' }, { 'Band Factory colour mix': b.pieces }, 'standard', wholesaleStyle, wholesaleMaterial, styleAllocations);
   }
 }
 
 async function initWholesale() {
-  const [settings, products] = await Promise.all([
+  const [settings, products, savedCatalog] = await Promise.all([
     BFStore.getDoc('settings/store', {}),
-    BFStore.getDoc('products/smooth', { colors: {} })
+    BFStore.getDoc('products/smooth', { colors: {} }),
+    BFStore.getDoc('products/catalog', {})
   ]);
+  ribbedCatalog=BFCatalog.mergeCatalog(savedCatalog||{});
   productData = products || { colors: {} };
   storeSettings = settings || {};
 
@@ -563,13 +570,17 @@ async function initWholesale() {
     ...b,
     price: Number(settings[`customWholesale${b.pieces}Price`] ?? b.price)
   }));
+  const smoothStandard=[...standardBundles],smoothCustom=[...customBundles];
+  const applyMaterial=material=>{wholesaleMaterial=material==='ribbed'?'ribbed':'smooth';if(wholesaleMaterial==='ribbed'){wholesaleStyle='flat';activeColourStyle='flat';standardBundles=smoothCustom.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));document.getElementById('style-stage').hidden=true;}else{standardBundles=smoothStandard.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));document.getElementById('style-stage').hidden=false;}resetColourState();bundleIndex=0;resetStyleSplit();document.querySelectorAll('[data-wholesale-material]').forEach(b=>{b.classList.toggle('active',b.dataset.wholesaleMaterial===wholesaleMaterial);b.setAttribute('aria-checked',String(b.dataset.wholesaleMaterial===wholesaleMaterial))});renderBundles();renderCustom();updateAll();};
 
   const params = new URLSearchParams(location.search);
+  if(params.get('material')==='ribbed') wholesaleMaterial='ribbed';
   if (['flat', 'twisted', 'mixed'].includes(params.get('style'))) wholesaleStyle = params.get('style');
   if (params.get('type') === 'custom') orderType = 'custom';
   activeColourStyle = wholesaleStyle === 'mixed' ? 'flat' : wholesaleStyle;
   resetStyleSplit();
 
+  $$('[data-wholesale-material]').forEach(btn=>btn.onclick=()=>applyMaterial(btn.dataset.wholesaleMaterial));
   $$('[data-wholesale-style]').forEach(btn => btn.onclick = () => requestStyle(btn.dataset.wholesaleStyle));
   $$('[data-order-type]').forEach(btn => btn.onclick = () => setOrderType(btn.dataset.orderType));
   $$('[data-preset]').forEach(btn => btn.onclick = () => choosePreset(btn.dataset.preset));
@@ -617,6 +628,8 @@ async function initWholesale() {
     activeColourStyle=wholesaleStyle;
   }
 
+  if(wholesaleMaterial==='ribbed'){standardBundles=smoothCustom.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));wholesaleStyle='flat';activeColourStyle='flat';$('#style-stage').hidden=true;}
+  $$('[data-wholesale-material]').forEach(b=>b.classList.toggle('active',b.dataset.wholesaleMaterial===wholesaleMaterial));
   $('#colour-stage').hidden = orderType !== 'custom';
   renderBundles();
   renderCustom();

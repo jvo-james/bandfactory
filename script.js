@@ -152,6 +152,13 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     if(found)found.qty+=qty;else cart.push({key,type:'simple',productId:id,name,qty,price:amount,image});
     this.saveCart(cart);this.toast(`${name} added to your Bag`);this.openDrawer('bagDrawer');
   },
+  addCatalog(item,qty=1){
+    const amount=Number(item?.price||0);if(amount<=0)return this.toast('This item is not ready for checkout yet.');
+    const variant=String(item.variant||''),size=String(item.size||''),key=`catalog-${item.productId}-${size||variant}`;
+    const cart=this.getCart(),found=cart.find(i=>i.key===key);
+    if(found)found.qty+=qty;else cart.push({key,type:'catalog',productId:item.productId,name:item.name,category:item.category||'Band Factory',variant,size,stockKey:item.stockKey||'',qty,price:amount,image:item.image||'images/brand-logo-pink.jpg'});
+    this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
+  },
   addApparel(id,name,size,price,image,qty=1){
     const amount=Number(price||0),cleanSize=String(size||'').toUpperCase();if(amount<=0||!cleanSize)return this.toast('Choose a size before adding this item.');
     const cart=this.getCart(),key=`apparel-${id}-${cleanSize}`,found=cart.find(i=>i.key===key);
@@ -207,13 +214,16 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
     if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a colour you love or build a wholesale bundle.</p><a class="btn" href="shop.html">Shop hairbands</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='apparel'?`Black · Size ${i.size}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`))}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
+    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='catalog'?`${i.category||'Band Factory'}${i.variant?` · ${i.variant}`:''}`:(i.type==='apparel'?`Black · Size ${i.size}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`)))}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   async managedCartStockError(cart){
     if(typeof BFStore==='undefined')return '';
     try{
-      const [settings,productData,apparelData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}})]);
+      const [settings,productData,apparelData,catalogRaw]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFStore.getDoc('products/catalog',{})]);
+      const catalog=window.BFCatalog?BFCatalog.mergeCatalog(catalogRaw||{}):(catalogRaw||{}),catalogStock={};
+      (catalog.ribbed?.featured||[]).forEach(x=>catalogStock[`ribbed.featured.${x.id}`]=x.available===false?0:Number(x.stock||0));Object.entries(catalog.ribbed?.colours||{}).forEach(([name,d])=>catalogStock[`ribbed.colours.${name}`]=d.available===false?0:Number(d.stock||0));for(const group of ['tops','sets'])for(const p of catalog.basics?.[group]||[]){if(Object.keys(p.sizes||{}).length){for(const [size,d] of Object.entries(p.sizes||{}))catalogStock[`basics.${group}.${p.id}.sizes.${size}`]=p.available===false||d.available===false?0:Number(d.stock||0)}else catalogStock[`basics.${group}.${p.id}`]=p.available===false?0:Number(p.stock??9999)}
+      const takeCatalog=(key,qty,label)=>{const have=Math.max(0,Number(catalogStock[key]||0)),need=Math.max(0,Number(qty||0));if(need>have)throw new Error(have>0?`Only ${have} ${label}${have===1?' is':' are'} available right now.`:`${label} is sold out right now.`);catalogStock[key]=have-need};
       const remaining={flat:{},twisted:{}};
       const colors=new Set([...(this.colors||[]).map(x=>x[0]),...Object.keys(productData.colors||{}),...Object.keys(productData.styles?.flat?.colors||{}),...Object.keys(productData.styles?.twisted?.colors||{})]);
       for(const style of ['flat','twisted']) for(const color of colors){
@@ -232,6 +242,8 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
         for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
       };
       for(const item of cart){
+        if(item.type==='catalog'){takeCatalog(item.stockKey,Number(item.qty||0),item.name);continue;}
+        if(item.type==='wholesale'&&item.material==='ribbed'){const mult=Math.max(1,Number(item.qty||1));if(item.wholesaleMode==='custom'&&item.allocations){for(const [color,qty] of Object.entries(item.allocations||{}))takeCatalog(`ribbed.colours.${color}`,Number(qty)*mult,`${color} Ribbed Hairbands`);}continue;}
         if((item.material||'smooth')!=='smooth')continue;
         if(item.type==='retail'){
           const style=item.style==='twisted'?'twisted':'flat';take(style,item.color,Number(item.qty||0),`${item.color} ${style} hairband${Number(item.qty||0)===1?'':'s'}`);
@@ -262,7 +274,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const previous=Number(c[index].qty||1),next=Math.max(1,previous+delta);
     if(next===previous)return;
     c[index].qty=next;
-    if(delta>0&&(((c[index].material||'smooth')==='smooth'&&(c[index].type==='retail'||c[index].type==='wholesale'))||c[index].type==='apparel')){
+    if(delta>0&&(((c[index].material||'smooth')==='smooth'&&(c[index].type==='retail'||c[index].type==='wholesale'))||c[index].type==='apparel'||c[index].type==='catalog')){
       const error=await this.managedCartStockError(c);
       if(error){this.toast(`That's all we've got ✨ ${error}`);return;}
     }
@@ -317,10 +329,23 @@ function buildSearchIndex(){
     {title:'Spandex Tube Top',meta:'NEW · Black · XS–2XL · GHS 64',url:'tube-top.html',image:'images/new.jpeg',terms:'spandex tube top black top clothing apparel xs small medium large xl 2xl new limited'},
     {title:'Standard Wholesale',meta:'Band Factory selects and mixes colours',url:'wholesale.html#how',terms:'standard wholesale 30 50 100 200 bulk reseller'},
     {title:'Custom Colour Wholesale',meta:'Choose colours and quantities',url:'wholesale.html#how',terms:'custom colour color wholesale 30 50 100 200 bulk'},
-    {title:'Ribbed Hairbands',meta:'Check current availability',url:'shop.html',terms:'ribbed hairbands out stock'},
-    {title:'Matching Sets',meta:'Smooth or ribbed hairband + basic top',url:'shop.html',terms:'matching sets basic top coming soon'},
+    {title:'Ribbed Hairbands',meta:'Cherry Milk, Navy Milk, Noir Gold + solid colours',url:'shop.html?section=ribbed#ribbed',terms:'ribbed hairbands cherry milk navy noir gold black white yellow baby pink hot pink olive teal orange burgundy mustard flamingo'},
+    {title:'Second Skin Tee',meta:'Basics · Tops · Dark Brown · GHS 70',url:'shop.html?section=tops#second-skin-tee',terms:'top tee second skin dark brown clothing'},
+    {title:'Essential Vest Top',meta:'Basics · Tops · 3-piece set · GHS 150',url:'shop.html?section=tops#essential-vest-top',terms:'vest top black coral white 3 pieces'},
+    {title:'Second Skin Long Sleeve',meta:'Basics · Sets · 3-piece set · GHS 200',url:'shop.html?section=sets#second-skin-long-sleeve',terms:'long sleeve white blue black nude set'},
+    {title:'Second Set',meta:'Basics · Sets · White · GHS 160',url:'shop.html?section=sets#second-set',terms:'second set white basics'},
     {title:'Delivery & Pickup',meta:'Checkout and fulfilment information',url:'checkout.html',terms:'delivery pickup dispatch location'},
     {title:'Contact Band Factory',meta:'Questions or order help',url:'contact.html',terms:'contact whatsapp email help'}];
+}
+function setupShopNavigation(){
+  const desktop=document.querySelector('.nav-left');
+  const shop=desktop?.querySelector('a[href="shop.html"]');
+  if(shop&&!shop.closest('.shop-nav-group')){
+    const wrap=document.createElement('div');wrap.className='shop-nav-group';shop.parentNode.insertBefore(wrap,shop);wrap.appendChild(shop);shop.setAttribute('aria-haspopup','true');
+    wrap.insertAdjacentHTML('beforeend',`<div class="shop-dropdown"><div><strong>Hairbands</strong><a href="shop.html?section=smooth#smooth">Smooth</a><a href="shop.html?section=ribbed#ribbed">Ribbed</a><a href="wholesale.html">Wholesale hairbands</a></div><div><strong>Basics</strong><a href="shop.html?section=tops#tops">Tops</a><a href="shop.html?section=sets#sets">Sets</a></div></div>`);
+  }
+  const mobile=document.querySelector('.mobile-menu');const mobileShop=mobile?.querySelector('a[href="shop.html"]');
+  if(mobileShop&&!mobile.querySelector('.mobile-shop-tree'))mobileShop.insertAdjacentHTML('afterend',`<div class="mobile-shop-tree"><strong>Hairbands</strong><a href="shop.html?section=smooth#smooth">Smooth</a><a href="shop.html?section=ribbed#ribbed">Ribbed</a><a href="wholesale.html">Wholesale</a><strong>Basics</strong><a href="shop.html?section=tops#tops">Tops</a><a href="shop.html?section=sets#sets">Sets</a></div>`);
 }
 function setupSiteSearch(){
   const overlay=document.getElementById('siteSearch'),input=document.getElementById('siteSearchInput'),results=document.getElementById('siteSearchResults'); if(!overlay||!input)return;
@@ -361,7 +386,7 @@ function sharedShell() {
         </div>
 
         <div class="search-hint">
-          Try “Black”, “wholesale”, “matching sets” or “delivery”.
+          Try “Black”, “ribbed”, “tops”, “sets” or “wholesale”.
         </div>
 
         <div class="search-results" id="siteSearchResults"></div>
@@ -631,7 +656,7 @@ function sharedShell() {
   ========================================================= */
 
   BF.updateBagUI();
-  setupSiteSearch();
+  setupShopNavigation();setupSiteSearch();
 
 
   /* =========================================================
