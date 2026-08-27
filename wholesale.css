@@ -548,3 +548,7 @@
   .colour-pick span{font-size:8.5px}
 }
 .colour-pick span small{display:block;margin-top:3px;font-size:10px;opacity:.7}.colour-pick.sold-out{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}.colour-pick.sold-out .sold-out-tag{font-size:9px;letter-spacing:.08em}.style-choice.sold-out{opacity:.45;cursor:not-allowed}.style-choice.sold-out::after{content:'SOLD OUT';font-size:10px;font-weight:800;letter-spacing:.08em;margin-left:auto}
+
+/* ===== COMPACT FAQ TABS ===== */
+.faq-tabs{display:grid;gap:7px;margin-top:24px}.faq-tabs button{border:1px solid #d8cbd0;background:#fff;min-height:44px;padding:0 14px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.11em;font-weight:800}.faq-tabs button.active{background:#171216;color:#fff;border-color:#171216}.faq-group{display:none}.faq-group.active{display:block}
+@media(max-width:800px){.faq-tabs{grid-template-columns:1fr 1fr}.faq-grid{gap:28px}.faq-list details{padding:17px 0}}

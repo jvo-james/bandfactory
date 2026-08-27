@@ -17,12 +17,12 @@ window.BF_IMAGES = {
     hero: 'images/hero.webp', // Existing hero image.
     hero1: 'images/hero.webp', // HOMEPAGE SLIDE 1: replace with your main campaign image.
     hero2: 'images/IMG_3249.jpeg', // HOMEPAGE SLIDE 2: replace with a Ribbed campaign image if preferred.
-    hero3: 'images/placeholder-fashion.svg', // PLACEHOLDER HOMEPAGE SLIDE 3: replace with a Basics lifestyle image.
+    hero3: 'images/second-set.jpg', // Homepage slide 3: Second Set.
     smooth: 'images/flat.jpg', // Existing smooth hairband category image.
     ribbed: 'images/IMG_3249.jpeg', // Existing ribbed hairband category image; replace if you want a stronger category shot.
     hairbands: 'images/IMG_3249.jpeg', // Existing hairband image.
-    tops: 'images/placeholder-top.svg', // PLACEHOLDER: replace with a strong tops/category image.
-    sets: 'images/placeholder-set.svg' // PLACEHOLDER: replace with a strong sets/category image.
+    tops: 'images/second-skin-tee.jpg', // Tops category: Second Skin Tee.
+    sets: 'images/second-skin-long-sleeve.jpg' // Sets category: Second Skin Long Sleeve.
   },
   smoothFlat: {
     'Pink':'images/fpinkk.jpg','Black':'images/black.jpg','White':'images/white.jpg','Gray':'images/gray.jpg','Ash':'images/ash.jpg','Red':'images/red.jpg',
@@ -37,9 +37,9 @@ window.BF_IMAGES = {
     'Army Green':'images/twisted-armygreen.jpg','Peach':'images/new-peach-twisted.jpg','Burgundy':'images/new-b-t.jpg','Teal Blue':'images/new-tblue-t.jpg'
   },
   catalog: {
-    'ribbed-cherry-milk':'images/placeholder-ribbed-print.svg', // PLACEHOLDER: Cherry Milk (pink & white cheetah-style print).
-    'ribbed-navy-milk':'images/placeholder-ribbed-print.svg', // PLACEHOLDER: Navy Milk (blue & white cheetah-style print).
-    'ribbed-noir-gold':'images/placeholder-ribbed-print.svg', // PLACEHOLDER: Noir Gold (black & gold cheetah-style print).
+    'ribbed-cherry-milk':'images/cherry-milk.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
+    'ribbed-navy-milk':'images/navy-milk.jpg', // Navy Milk: blue and white printed Ribbed Hairband.
+    'ribbed-noir-gold':'images/noir-gold.jpg', // Noir Gold: black and gold printed Ribbed Hairband.
     'ribbed-black':'images/ribbed-placeholder.svg', // PLACEHOLDER: black ribbed hairband.
     'ribbed-white':'images/ribbed-placeholder.svg', // PLACEHOLDER: white ribbed hairband.
     'ribbed-yellow':'images/ribbed-placeholder.svg', // PLACEHOLDER: yellow ribbed hairband.
@@ -52,10 +52,10 @@ window.BF_IMAGES = {
     'ribbed-mustard':'images/ribbed-placeholder.svg', // PLACEHOLDER: mustard ribbed hairband.
     'ribbed-flamingo':'images/ribbed-placeholder.svg', // PLACEHOLDER: flamingo ribbed hairband.
     'spandex-tube-top':'images/new.jpeg', // Existing top already in the repo - maintained.
-    'second-skin-tee':'images/placeholder-top.svg', // PLACEHOLDER: dark brown Second Skin Tee.
-    'essential-vest-top':'images/placeholder-top.svg', // PLACEHOLDER: Essential Vest Top 3-piece pack (black/coral/white).
-    'second-skin-long-sleeve':'images/placeholder-set.svg', // PLACEHOLDER: 3-piece long-sleeve set (white/blue black/nude).
-    'second-set':'images/placeholder-set.svg' // PLACEHOLDER: white Second Set.
+    'second-skin-tee':'images/second-skin-tee.jpg', // Second Skin Tee: dark brown.
+    'essential-vest-top':'images/essential-vest-top.jpg', // Essential Vest Top: black, coral and white 3-piece set.
+    'second-skin-long-sleeve':'images/second-skin-long-sleeve.jpg', // Second Skin Long Sleeve: white, blue black and nude 3-piece set.
+    'second-set':'images/second-set.jpg' // Second Set: white.
   }
 };
 window.BF_IMAGE = function(key, fallback='images/placeholder-product.svg'){

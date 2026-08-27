@@ -201,7 +201,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   openDrawer(id){document.getElementById(id)?.classList.add('open');document.querySelector('.drawer-backdrop')?.classList.add('show');document.body.classList.add('drawer-open')},
   closeDrawers(){document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));document.querySelector('.drawer-backdrop')?.classList.remove('show');document.body.classList.remove('drawer-open')},
   toast(msg){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;t.classList.add('show');clearTimeout(this._toast);this._toast=setTimeout(()=>t.classList.remove('show'),2300)},
-  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look - starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'REPLACE WITH PICKUP ADDRESS' },
+  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look - starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'Pickup details are shared when your order is confirmed.' },
   async loadSettings(){
     try{const data=await BFStore.getDoc('settings/store',{});this.settings={...this.settings,...data};this.products.smooth.price=Number(this.settings.retailPrice||10);document.dispatchEvent(new CustomEvent('bf:settings',{detail:this.settings}));return this.settings}catch(e){console.warn(e);return this.settings}
   },
@@ -242,13 +242,13 @@ async subscribe(email,name=''){
 };
 function buildSearchIndex(){
   const colourItems=BF.colors.map(([name])=>({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth flat twisted hairband retail colour color`}));
-  const ribbed=['Cherry Milk','Navy Milk','Noir Gold','Black','White','Yellow','Baby Pink','Hot Pink','Olive','Teal','Orange','Burgundy','Mustard','Flamingo'].map(name=>{const id=name==='Cherry Milk'?'ribbed-cherry-milk':name==='Navy Milk'?'ribbed-navy-milk':name==='Noir Gold'?'ribbed-noir-gold':'ribbed-'+name.toLowerCase().replace(/ /g,'-');return {title:name.includes('Milk')||name==='Noir Gold'?name:`${name} Ribbed Hairband`,meta:'Ribbed Hairband',url:`item.html?id=${id}`,terms:`${name} ribbed hairband colour color print`}});
+  const ribbed=['Cherry Milk','Navy Milk','Noir Gold','Black','White','Yellow','Baby Pink','Hot Pink','Olive','Teal','Orange','Burgundy','Mustard','Flamingo'].map(name=>{const id=name==='Cherry Milk'?'ribbed-cherry-milk':name==='Navy Milk'?'ribbed-navy-milk':name==='Noir Gold'?'ribbed-noir-gold':'ribbed-'+name.toLowerCase().replace(/ /g,'-');return {title:name.includes('Milk')||name==='Noir Gold'?name:`${name} Ribbed Hairband`,meta:'Ribbed Hairband',url:`item.html?id=${id}`,image:window.BF_IMAGE?.(id),terms:`${name} ribbed hairband colour color print`}});
   const products=[
     {title:'Spandex Tube Top',meta:'Basics · Tops',url:'tube-top.html',image:'images/new.jpeg',terms:'spandex tube top black xs s m l xl 2xl top basics'},
-    {title:'Second Skin Tee',meta:'Dark Brown · GHS 70',url:'item.html?id=second-skin-tee',terms:'second skin tee dark brown top basics small medium large xl 2xl'},
-    {title:'Essential Vest Top',meta:'3-piece set · Black, Coral and White',url:'item.html?id=essential-vest-top',terms:'essential vest top black coral white 3 piece pack basics'},
-    {title:'Second Skin Long Sleeve',meta:'3-piece set · White, Blue Black and Nude',url:'item.html?id=second-skin-long-sleeve',terms:'second skin long sleeve white blue black nude set basics'},
-    {title:'Second Set',meta:'White · GHS 160',url:'item.html?id=second-set',terms:'second set white basics'}
+    {title:'Second Skin Tee',meta:'Dark Brown · GHS 70',url:'item.html?id=second-skin-tee',image:window.BF_IMAGE?.('second-skin-tee'),terms:'second skin tee dark brown top basics small medium large xl 2xl'},
+    {title:'Essential Vest Top',meta:'3-piece set · Black, Coral and White',url:'item.html?id=essential-vest-top',image:window.BF_IMAGE?.('essential-vest-top'),terms:'essential vest top black coral white 3 piece pack basics'},
+    {title:'Second Skin Long Sleeve',meta:'3-piece set · White, Blue Black and Nude',url:'item.html?id=second-skin-long-sleeve',image:window.BF_IMAGE?.('second-skin-long-sleeve'),terms:'second skin long sleeve white blue black nude set basics'},
+    {title:'Second Set',meta:'White · GHS 160',url:'item.html?id=second-set',image:window.BF_IMAGE?.('second-set'),terms:'second set white basics'}
   ];
   return [...colourItems,...ribbed,...products,
     {title:'Smooth Hairbands',meta:'Flat and Twisted',url:'smooth.html',terms:'smooth hairbands flat twisted shop'},
@@ -787,3 +787,40 @@ function applyConfiguredImages(){
 }
 document.addEventListener('DOMContentLoaded',applyConfiguredImages);
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-category-hero]').forEach(hero=>{const path=hero.dataset.categoryHero.split('.').reduce((o,k)=>o?.[k],window.BF_IMAGES);if(path)hero.style.backgroundImage=`url("${path}")`})});
+
+/* ===== FINAL STOREFRONT POLISH ===== */
+function enhanceStorefrontChrome(){
+  document.querySelectorAll('.bag-mark').forEach(mark=>{
+    const count=mark.querySelector('[data-bag-count]');
+    mark.querySelector('.bag-icon')?.remove();
+    if(!mark.querySelector('.bf-normal-bag-icon')){
+      const icon=document.createElement('i');
+      icon.className='fa-solid fa-bag-shopping bf-normal-bag-icon';
+      icon.setAttribute('aria-hidden','true');
+      mark.insertBefore(icon,count||null);
+    }
+  });
+
+  document.querySelectorAll('.footer-brand-col').forEach(col=>{
+    if(col.querySelector('.footer-updates'))return;
+    const social=col.querySelector('.social-row');
+    const box=document.createElement('div');
+    box.className='footer-updates';
+    box.innerHTML=`<span>EMAIL FOR UPDATES</span><p>New drops, restocks and Band Factory news, straight to your inbox.</p><form class="footer-newsletter" data-footer-updates><input type="email" name="email" required autocomplete="email" placeholder="Your email address" aria-label="Email address"><button type="submit" aria-label="Join email updates"><i class="fa-solid fa-arrow-right"></i></button></form><small class="footer-updates-status" aria-live="polite"></small>`;
+    if(social)col.insertBefore(box,social); else col.appendChild(box);
+  });
+  document.querySelectorAll('[data-footer-updates]').forEach(form=>{
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();const input=form.elements.email,status=form.parentElement.querySelector('.footer-updates-status'),btn=form.querySelector('button');
+      if(!input?.value.trim())return;
+      btn.disabled=true; status.textContent='Joining...';
+      try{await BF.subscribe(input.value.trim());input.value='';status.textContent='You are on the list ♡';}
+      catch(err){console.error(err);status.textContent='Please try again in a moment.';}
+      finally{btn.disabled=false;}
+    });
+  });
+
+  const switcher=document.querySelector('.collection-switcher');
+  if(switcher){let lastY=window.scrollY,ticking=false;const update=()=>{const y=window.scrollY,delta=y-lastY;if(y<110)switcher.classList.remove('nav-hidden');else if(delta>7)switcher.classList.add('nav-hidden');else if(delta<-7)switcher.classList.remove('nav-hidden');lastY=y;ticking=false};window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(update);ticking=true}},{passive:true});}
+}
+document.addEventListener('DOMContentLoaded',enhanceStorefrontChrome);

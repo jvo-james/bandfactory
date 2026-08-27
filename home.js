@@ -1,4 +1,4 @@
-let homeInventory={colors:{},styles:{}},homeSettings={lowStockThreshold:10},homeTubeTop={sizes:{}};
+let homeInventory={colors:{},styles:{}},homeSettings={lowStockThreshold:10},homeTubeTop={sizes:{}},homeCatalog=[];
 /* ==========================================================
    BAND FACTORY - HOME PAGE
 ========================================================== */
@@ -485,8 +485,12 @@ function renderColourMarquee() {
 
 function renderHomeProducts() {
     const productGrid=document.getElementById('homeProducts'); if(!productGrid)return;
-    const picks=[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted']];
-    productGrid.innerHTML=picks.map(([colour,style])=>{const styleLabel=style.charAt(0).toUpperCase()+style.slice(1),image=BF.imageForProduct(style,colour),productPrice=BF.retailPrice(style),available=BF.variantAvailable(homeInventory,homeSettings,style,colour),d=BF.variantData(homeInventory,style,colour),low=available&&Number(d.stock??0)<=Number(homeSettings.lowStockThreshold||10),url=available?`product.html?color=${encodeURIComponent(colour)}&style=${style}`:`unavailable.html?color=${encodeURIComponent(colour)}&style=${style}`;return `<article class="home-product ${available?'':'is-unavailable'}"><a href="${url}"><div class="image"><img src="${image}" alt="${escapeHTML(`Smooth ${styleLabel} Hairband - ${colour}`)}" loading="lazy">${!available?'<span class="home-stock-chip">Out of stock</span>':low?'<span class="home-stock-chip">Limited stock</span>':''}</div></a><div class="meta"><h3>Smooth ${styleLabel} - ${escapeHTML(colour)}</h3><p>${BF.money(productPrice)}</p>${available?`<button class="add-mini" type="button" aria-label="Add ${escapeHTML(colour)} ${styleLabel} hairband to bag" onclick="BF.addRetail('${colour}',1,'${style}')">Add to Bag</button>`:`<a class="add-mini stock-link" href="${url}">View restock status</a>`}</div></article>`}).join('');
+    const smoothCandidates=[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']].filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`}));
+    const catalogCandidates=homeCatalog.filter(item=>item.available!==false).map(item=>({kind:'catalog',name:item.name,image:BFCatalog.image(item),price:BFCatalog.price(item,homeSettings),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`}));
+    const pool=[...catalogCandidates,...smoothCandidates];
+    const shuffled=[...pool].sort(()=>Math.random()-.5);
+    const picks=[];for(const item of shuffled){if(picks.length===4)break;if(!picks.some(p=>p.name===item.name))picks.push(item)}
+    productGrid.innerHTML=picks.map(item=>`<article class="home-product"><a href="${item.url}"><div class="image"><img src="${item.image}" alt="${escapeHTML(item.name)}" loading="lazy"></div></a><div class="meta"><h3>${escapeHTML(item.name)}</h3><p>${item.price?BF.money(item.price):'View product'}</p><a class="add-mini stock-link" href="${item.url}">View product</a></div></article>`).join('');
 }
 
 
@@ -494,9 +498,22 @@ function renderHomeProducts() {
    SHOP BY COLOUR
 ========================================================== */
 
+function shadeOptions(name){
+    const options=[];
+    for(const style of ['flat','twisted']) if(BF.variantAvailable(homeInventory,homeSettings,style,name)) options.push({name:`Smooth ${style[0].toUpperCase()+style.slice(1)} Hairband`,meta:name,image:BF.imageForProduct(style,name),url:`product.html?color=${encodeURIComponent(name)}&style=${style}`});
+    homeCatalog.filter(item=>item.category==='ribbed'&&String(item.color||'').toLowerCase()===name.toLowerCase()&&item.available!==false&&Number(item.stock??0)>0).forEach(item=>options.push({name:item.name,meta:'Ribbed Hairband',image:BFCatalog.image(item),url:`item.html?id=${encodeURIComponent(item.id)}`}));
+    return options;
+}
+function openShadePicker(name){
+    const options=shadeOptions(name);let modal=document.getElementById('shadePicker');if(!modal){modal=document.createElement('div');modal.id='shadePicker';modal.className='shade-picker';modal.innerHTML='<button class="shade-picker-backdrop" type="button" data-shade-close aria-label="Close"></button><div class="shade-picker-card"><button class="shade-picker-close" type="button" data-shade-close aria-label="Close">×</button><div class="eyebrow">Shop your shade</div><h2 id="shadePickerTitle"></h2><p id="shadePickerIntro"></p><div class="shade-picker-grid" id="shadePickerGrid"></div></div>';document.body.appendChild(modal);modal.querySelectorAll('[data-shade-close]').forEach(x=>x.onclick=()=>{modal.classList.remove('open');document.body.classList.remove('shade-open')})}
+    modal.querySelector('#shadePickerTitle').textContent=name;modal.querySelector('#shadePickerIntro').textContent=options.length>1?'Choose the finish you want. Every available version of this shade is shown here.':options.length?'This shade is available in the option below.':'This shade is currently unavailable.';
+    modal.querySelector('#shadePickerGrid').innerHTML=options.map(x=>`<a href="${x.url}" class="shade-picker-option"><img src="${x.image}" alt="${escapeHTML(x.name)}"><div><strong>${escapeHTML(x.name)}</strong><span>${escapeHTML(x.meta)}</span></div><i class="fa-solid fa-arrow-right"></i></a>`).join('')||'<p class="shade-picker-empty">This shade is currently out of stock. Please check again soon.</p>';
+    modal.classList.add('open');document.body.classList.add('shade-open');
+}
 function renderColourBoxes() {
     const colourBoxes=document.getElementById('colourBoxes'); if(!colourBoxes)return;
-    colourBoxes.innerHTML=BF.colors.map(([name,colour])=>{const available=BF.variantAvailable(homeInventory,homeSettings,'flat',name),url=available?`product.html?color=${encodeURIComponent(name)}&style=flat`:`unavailable.html?color=${encodeURIComponent(name)}&style=flat`;return `<a class="colour-box ${available?'':'is-unavailable'}" href="${url}" style="--shade:${colour}"><span class="colour-fill"></span><strong>${escapeHTML(name)}</strong><small>${available?'Shop this shade':'Out of stock · Check back soon'} <i class="fa-solid fa-arrow-right"></i></small></a>`}).join('');
+    colourBoxes.innerHTML=BF.colors.map(([name,colour])=>{const count=shadeOptions(name).length;return `<button class="colour-box ${count?'':'is-unavailable'}" type="button" data-shade="${escapeHTML(name)}" style="--shade:${colour}"><span class="colour-fill"></span><strong>${escapeHTML(name)}</strong><small>${count?`${count} ${count===1?'option':'options'} available`:'Out of stock'} <i class="fa-solid fa-arrow-right"></i></small></button>`}).join('');
+    colourBoxes.querySelectorAll('[data-shade]').forEach(btn=>btn.onclick=()=>openShadePicker(btn.dataset.shade));
 }
 
 
@@ -755,21 +772,10 @@ function tubeTopTotalStock(product=homeTubeTop){
 }
 
 function renderHomepageFeature(){
-    const card=document.getElementById('homepageFeatureCard');
-    if(!card)return;
+    const card=document.getElementById('homepageFeatureCard');if(!card)return;
     const image=document.getElementById('homepageFeatureImage'),badge=document.getElementById('homepageFeatureBadge'),eyebrow=document.getElementById('homepageFeatureEyebrow'),title=document.getElementById('homepageFeatureTitle'),copy=document.getElementById('homepageFeatureCopy'),cta=document.getElementById('homepageFeatureCta');
-    const stock=tubeTopTotalStock();
-    if(stock>0){
-        card.href='tube-top.html';card.classList.add('editorial-drop-card');
-        image.src='images/new.jpeg';image.alt='Black Spandex Tube Top by Band Factory';
-        badge.hidden=false;badge.textContent='NEW · LIMITED';
-        eyebrow.textContent='NEW DROP';title.textContent='Spandex Tube Top.';
-        copy.textContent='Double lined · Stretchy · Black only · GHS 64';cta.textContent='Shop the top →';
-    }else{
-        card.href='shop.html?mood=neutral';card.classList.remove('editorial-drop-card');
-        image.src='images/edit1.jpg';image.alt='Neutral Band Factory hairbands';badge.hidden=true;
-        eyebrow.textContent='THE NEUTRALS';title.textContent='Quiet confidence.';copy.textContent='Black · White · Ash · Nude';cta.textContent='Explore neutrals →';
-    }
+    const set=homeCatalog.find(x=>x.id==='second-skin-long-sleeve')||{name:'Second Skin Long Sleeve',price:200,subtitle:'White · Blue Black · Nude'};
+    card.href='item.html?id=second-skin-long-sleeve';card.classList.add('editorial-drop-card');image.src=BFCatalog.image(set);image.alt='Second Skin Long Sleeve three-piece set';badge.hidden=false;badge.textContent='THREE PIECE SET';eyebrow.textContent='SECOND SKIN';title.textContent='Second Skin Long Sleeve.';copy.textContent=`White · Blue Black · Nude · ${BF.money(BFCatalog.price(set,homeSettings)||200)}`;cta.textContent='Shop the set →';
 }
 
 /* ==========================================================
@@ -782,8 +788,8 @@ async function renderHome() {
 
         renderColourMarquee();
         applySocialLinks();
-        const [settings,inventory,tubeTop]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}})]);
-        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}};
+        const [settings,inventory,tubeTop,catalog]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFCatalog.load()]);
+        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}}; homeCatalog=catalog||[];
         renderHomepageFeature();
         renderHomeProducts();
         renderColourBoxes();

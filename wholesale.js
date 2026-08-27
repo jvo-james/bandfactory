@@ -657,3 +657,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderBundles();renderCustom();updateAll();
   }));
 });
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('[data-faq-tab]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('[data-faq-tab]').forEach(x=>x.classList.toggle('active',x===btn));document.querySelectorAll('[data-faq-group]').forEach(group=>group.classList.toggle('active',group.dataset.faqGroup===btn.dataset.faqTab));}));
+  const requested=new URLSearchParams(location.search).get('material');
+  if(requested==='ribbed'){setTimeout(()=>document.querySelector('[data-material="ribbed"]')?.click(),0)}
+  if(requested==='smooth'){setTimeout(()=>document.querySelector('[data-material="smooth"]')?.click(),0)}
+});
