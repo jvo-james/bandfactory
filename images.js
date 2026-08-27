@@ -1,13 +1,4 @@
-/*
- * BAND FACTORY IMAGE DIRECTORY
- * ------------------------------------------------------------------
- * Replace image paths here when the final photography is ready.
- * Product/category pages read from this file so you do not need to
- * hunt through the HTML/JavaScript to swap photos.
- *
- * PLACEHOLDER means a real image was not present in the repo (or the
- * current image was too hairband-specific for the expanded brand).
- */
+
 window.BF_IMAGES = {
   brand: {
     monogram: 'images/brand-monogram.jpg', // Existing brand monogram.
@@ -37,9 +28,9 @@ window.BF_IMAGES = {
     'Army Green':'images/twisted-armygreen.jpg','Peach':'images/new-peach-twisted.jpg','Burgundy':'images/new-b-t.jpg','Teal Blue':'images/new-tblue-t.jpg'
   },
   catalog: {
-    'ribbed-cherry-milk':'images/cherry-milk.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
-    'ribbed-navy-milk':'images/navy-milk.jpg', // Navy Milk: blue and white printed Ribbed Hairband.
-    'ribbed-noir-gold':'images/noir-gold.jpg', // Noir Gold: black and gold printed Ribbed Hairband.
+    'ribbed-cherry-milk':'images/cm.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
+    'ribbed-navy-milk':'images/nm.jpg', // Navy Milk: blue and white printed Ribbed Hairband.
+    'ribbed-noir-gold':'images/ng.jpg', // Noir Gold: black and gold printed Ribbed Hairband.
     'ribbed-black':'images/ribbed-placeholder.svg', // PLACEHOLDER: black ribbed hairband.
     'ribbed-white':'images/ribbed-placeholder.svg', // PLACEHOLDER: white ribbed hairband.
     'ribbed-yellow':'images/ribbed-placeholder.svg', // PLACEHOLDER: yellow ribbed hairband.
