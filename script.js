@@ -31,94 +31,15 @@ const BF = {
     ['Army Green','#68705B'],['Peach','#F97272'],['Burgundy','#48020C'],['Teal Blue','#017F7C']
   ],
 
-  /* =====================================================================
-     PRODUCT IMAGE MAP — THIS IS THE MAIN PLACE TO REPLACE PRODUCT PHOTOS.
-     When you have the real photos, create the files inside /images and replace
-     each path below. The Shop, Product, Recommendations, Bag and Checkout
-     will all update automatically from this one map.
-
-     Example:
-       'Pink': 'images/pink-hairband.webp'
-     ===================================================================== */
-  imageForColor(name){
-    const images = {
-      // IMAGE: PINK SMOOTH HAIRBAND
-      'Pink': 'images/fpinkk.jpg',
-      // IMAGE: BLACK SMOOTH HAIRBAND
-      'Black': 'images/black.jpg',
-      // IMAGE: WHITE SMOOTH HAIRBAND
-      'White': 'images/white.jpg',
-      'Gray': 'images/gray.jpg',
-      // IMAGE: ASH SMOOTH HAIRBAND
-      'Ash': 'images/ash.jpg',
-       'Red': 'images/red.jpg',
-      // IMAGE: BLUE BLACK SMOOTH HAIRBAND
-      'Blue Black': 'images/blue-black.jpg',
-      // IMAGE: SEA BLUE SMOOTH HAIRBAND
-      'Ocean Blue': 'images/ob.png',
-      // IMAGE: BABY BLUE SMOOTH HAIRBAND
-      'Baby Blue': 'images/baby-blue.jpg',
-      // IMAGE: ROYAL BLUE SMOOTH HAIRBAND
-      'Royal Blue': 'images/royal-blue.jpg',
-      // IMAGE: NUDE SMOOTH HAIRBAND
-      'Nude': 'images/nude.jpg',
-      // IMAGE: LIGHT BROWN SMOOTH HAIRBAND
-      'Light Brown': 'images/light-brown.jpg',
-      // IMAGE: MINT SMOOTH HAIRBAND
-      'Mint': 'images/mint.jpg',
-      // IMAGE: MUSTARD SMOOTH HAIRBAND
-      'Mustard': 'images/mustard.jpg',
-      // IMAGE: DARK BROWN SMOOTH HAIRBAND
-      'Dark Brown': 'images/dark-brown.jpg',
-      // IMAGE: CHOCOLATE BROWN SMOOTH HAIRBAND
-      'Chocolate Brown': 'images/chocolate-brown.jpg',
-      // IMAGE: ARMY GREEN SMOOTH HAIRBAND
-      'Army Green': 'images/army-green.jpg',
-      // IMAGE: PEACH SMOOTH HAIRBAND
-      'Peach': 'images/new-peach.jpg',
-      // IMAGE: BURGUNDY SMOOTH HAIRBAND
-      'Burgundy': 'images/new-b.jpg',
-      'Teal Blue': 'images/new-tblue.jpg'
-    };
-    return images[name] || this.products.smooth.image;
-  },
-
+  // Product photography is centralized in images.js.
+  imageForColor(name){ return window.BF_IMAGES?.smoothFlat?.[name] || this.products.smooth.image; },
 
 imageForProduct(style='flat', name='Pink', material='smooth') {
-    if (material === 'ribbed') {
-        return 'images/ribbed-placeholder.svg';
-    }
+    if(material==='ribbed') return window.BF_IMAGES?.catalog?.['ribbed-'+String(name).toLowerCase().replace(/ /g,'-')] || 'images/ribbed-placeholder.svg';
+    const map=style==='twisted'?window.BF_IMAGES?.smoothTwisted:window.BF_IMAGES?.smoothFlat;
+    return map?.[name] || (style==='twisted'?'images/twisted-placeholder.svg':this.products.smooth.image);
+  },
 
-    if (style === 'twisted') {
-        const twistedImages = {
-            'Pink': 'images/pinkk.jpg',
-            'Black': 'images/twisted-black.jpg',
-            'White': 'images/twist-white.jpg',
-            'Gray': 'images/twisted-gray.jpg',
-            'Ash': 'images/twisted-ash.jpg',
-          'Red': 'images/tred.jpg',
-            'Blue Black': 'images/twisted-blueblack.jpg',
-            'Ocean Blue': 'images/tob.png',
-            'Baby Blue': 'images/twisted-babyblue.jpg',
-            'Royal Blue': 'images/twisted-royalblue.jpg',
-            'Nude': 'images/twisted-nude.jpg',
-            'Light Brown': 'images/twisted-lightbrown.jpg',
-            'Mint': 'images/twisted-mint.jpg',
-            'Mustard': 'images/twisted-mustard.jpg',
-            'Dark Brown': 'images/twisted-darkbrown.jpg',
-            'Chocolate Brown': 'images/twisted-chocolatebrown.jpg',
-            'Army Green': 'images/twisted-armygreen.jpg',
-            'Peach': 'images/new-peach-twisted.jpg',
-            'Burgundy': 'images/new-b-t.jpg',
-          'Teal Blue': 'images/new-tblue-t.jpg'
-        };
-
-        return twistedImages[name] || 'images/twisted-pink.jpg';
-    }
-
-    return this.imageForColor(name);
-},
-  
   variantData(productData={},style='flat',color='Pink'){
     return productData.styles?.[style]?.colors?.[color] || productData.colors?.[color] || {};
   },
@@ -152,18 +73,17 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     if(found)found.qty+=qty;else cart.push({key,type:'simple',productId:id,name,qty,price:amount,image});
     this.saveCart(cart);this.toast(`${name} added to your Bag`);this.openDrawer('bagDrawer');
   },
-  addCatalog(item,qty=1){
-    const amount=Number(item?.price||0);if(amount<=0)return this.toast('This item is not ready for checkout yet.');
-    const variant=String(item.variant||''),size=String(item.size||''),key=`catalog-${item.productId}-${size||variant}`;
-    const cart=this.getCart(),found=cart.find(i=>i.key===key);
-    if(found)found.qty+=qty;else cart.push({key,type:'catalog',productId:item.productId,name:item.name,category:item.category||'Band Factory',variant,size,stockKey:item.stockKey||'',qty,price:amount,image:item.image||'images/brand-logo-pink.jpg'});
-    this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
-  },
   addApparel(id,name,size,price,image,qty=1){
     const amount=Number(price||0),cleanSize=String(size||'').toUpperCase();if(amount<=0||!cleanSize)return this.toast('Choose a size before adding this item.');
     const cart=this.getCart(),key=`apparel-${id}-${cleanSize}`,found=cart.find(i=>i.key===key);
     if(found)found.qty+=qty;else cart.push({key,type:'apparel',productId:id,name,size:cleanSize,color:'Black',qty,price:amount,image});
     this.saveCart(cart);this.toast(`${name} · ${cleanSize} added to your Bag`);this.openDrawer('bagDrawer');
+  },
+  addCatalogProduct(item,size,price,image,qty=1){
+    const amount=Number(price||0);if(amount<=0)return this.toast('This product price has not been set yet.');
+    const cleanSize=String(size||'');const cart=this.getCart();const key=`catalog-${item.id}-${cleanSize||'one'}`;const found=cart.find(i=>i.key===key);
+    const line={key,type:'catalog',productId:item.id,name:item.name,size:cleanSize,color:item.color||'',category:item.category,qty,price:amount,image,packSize:Number(item.packSize||1)};
+    if(found)found.qty+=qty;else cart.push(line);this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
   },
   addWholesale(bundle,allocations,mode='custom',style='flat',material='smooth',styleAllocations=null){
     const cart=this.getCart();
@@ -214,16 +134,13 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
     if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a colour you love or build a wholesale bundle.</p><a class="btn" href="shop.html">Shop hairbands</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='catalog'?`${i.category||'Band Factory'}${i.variant?` · ${i.variant}`:''}`:(i.type==='apparel'?`Black · Size ${i.size}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`)))}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
+    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='apparel'?`Black · Size ${i.size}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`))}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   async managedCartStockError(cart){
     if(typeof BFStore==='undefined')return '';
     try{
-      const [settings,productData,apparelData,catalogRaw]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFStore.getDoc('products/catalog',{})]);
-      const catalog=window.BFCatalog?BFCatalog.mergeCatalog(catalogRaw||{}):(catalogRaw||{}),catalogStock={};
-      (catalog.ribbed?.featured||[]).forEach(x=>catalogStock[`ribbed.featured.${x.id}`]=x.available===false?0:Number(x.stock||0));Object.entries(catalog.ribbed?.colours||{}).forEach(([name,d])=>catalogStock[`ribbed.colours.${name}`]=d.available===false?0:Number(d.stock||0));for(const group of ['tops','sets'])for(const p of catalog.basics?.[group]||[]){if(Object.keys(p.sizes||{}).length){for(const [size,d] of Object.entries(p.sizes||{}))catalogStock[`basics.${group}.${p.id}.sizes.${size}`]=p.available===false||d.available===false?0:Number(d.stock||0)}else catalogStock[`basics.${group}.${p.id}`]=p.available===false?0:Number(p.stock??9999)}
-      const takeCatalog=(key,qty,label)=>{const have=Math.max(0,Number(catalogStock[key]||0)),need=Math.max(0,Number(qty||0));if(need>have)throw new Error(have>0?`Only ${have} ${label}${have===1?' is':' are'} available right now.`:`${label} is sold out right now.`);catalogStock[key]=have-need};
+      const [settings,productData,apparelData,catalogData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFStore.getDoc('products/catalog',{items:[]})]);
       const remaining={flat:{},twisted:{}};
       const colors=new Set([...(this.colors||[]).map(x=>x[0]),...Object.keys(productData.colors||{}),...Object.keys(productData.styles?.flat?.colors||{}),...Object.keys(productData.styles?.twisted?.colors||{})]);
       for(const style of ['flat','twisted']) for(const color of colors){
@@ -242,8 +159,6 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
         for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
       };
       for(const item of cart){
-        if(item.type==='catalog'){takeCatalog(item.stockKey,Number(item.qty||0),item.name);continue;}
-        if(item.type==='wholesale'&&item.material==='ribbed'){const mult=Math.max(1,Number(item.qty||1));if(item.wholesaleMode==='custom'&&item.allocations){for(const [color,qty] of Object.entries(item.allocations||{}))takeCatalog(`ribbed.colours.${color}`,Number(qty)*mult,`${color} Ribbed Hairbands`);}continue;}
         if((item.material||'smooth')!=='smooth')continue;
         if(item.type==='retail'){
           const style=item.style==='twisted'?'twisted':'flat';take(style,item.color,Number(item.qty||0),`${item.color} ${style} hairband${Number(item.qty||0)===1?'':'s'}`);
@@ -261,6 +176,8 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
           }else{
             const style=item.style==='twisted'?'twisted':'flat';takeStandard(style,Number(item.bundlePieces||0)*mult,`this Standard ${style} bundle`);
           }
+        }else if(item.type==='catalog'){
+          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(product){const need=Math.max(0,Number(item.qty||0));let have=0;if(product.sizes){const d=product.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=product.available===false?0:Math.max(0,Number(product.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${product.name}${have===1?' is':'s are'} available right now.`:`${product.name} is sold out right now.`);}
         }else if(item.type==='apparel'&&item.productId==='spandex-tube-top'){
           const size=String(item.size||'').toUpperCase(),sizeData=apparelData?.sizes?.[size]||{},have=sizeData.available===false?0:Math.max(0,Number(sizeData.stock??0)),need=Math.max(0,Number(item.qty||0));
           if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} left in size ${size}.`:`Size ${size} is sold out right now.`);
@@ -329,23 +246,11 @@ function buildSearchIndex(){
     {title:'Spandex Tube Top',meta:'NEW · Black · XS–2XL · GHS 64',url:'tube-top.html',image:'images/new.jpeg',terms:'spandex tube top black top clothing apparel xs small medium large xl 2xl new limited'},
     {title:'Standard Wholesale',meta:'Band Factory selects and mixes colours',url:'wholesale.html#how',terms:'standard wholesale 30 50 100 200 bulk reseller'},
     {title:'Custom Colour Wholesale',meta:'Choose colours and quantities',url:'wholesale.html#how',terms:'custom colour color wholesale 30 50 100 200 bulk'},
-    {title:'Ribbed Hairbands',meta:'Cherry Milk, Navy Milk, Noir Gold + solid colours',url:'shop.html?section=ribbed#ribbed',terms:'ribbed hairbands cherry milk navy noir gold black white yellow baby pink hot pink olive teal orange burgundy mustard flamingo'},
-    {title:'Second Skin Tee',meta:'Basics · Tops · Dark Brown · GHS 70',url:'shop.html?section=tops#second-skin-tee',terms:'top tee second skin dark brown clothing'},
-    {title:'Essential Vest Top',meta:'Basics · Tops · 3-piece set · GHS 150',url:'shop.html?section=tops#essential-vest-top',terms:'vest top black coral white 3 pieces'},
-    {title:'Second Skin Long Sleeve',meta:'Basics · Sets · 3-piece set · GHS 200',url:'shop.html?section=sets#second-skin-long-sleeve',terms:'long sleeve white blue black nude set'},
-    {title:'Second Set',meta:'Basics · Sets · White · GHS 160',url:'shop.html?section=sets#second-set',terms:'second set white basics'},
+    {title:'Ribbed Hairbands',meta:'Solid colours and print edits',url:'ribbed.html',terms:'ribbed hairbands cherry milk navy noir gold'},
+    {title:'Tops',meta:'Band Factory basics',url:'tops.html',terms:'tops second skin tee essential vest spandex tube'},
+    {title:'Sets',meta:'Coordinated Band Factory basics',url:'sets.html',terms:'sets second skin long sleeve second set'},
     {title:'Delivery & Pickup',meta:'Checkout and fulfilment information',url:'checkout.html',terms:'delivery pickup dispatch location'},
     {title:'Contact Band Factory',meta:'Questions or order help',url:'contact.html',terms:'contact whatsapp email help'}];
-}
-function setupShopNavigation(){
-  const desktop=document.querySelector('.nav-left');
-  const shop=desktop?.querySelector('a[href="shop.html"]');
-  if(shop&&!shop.closest('.shop-nav-group')){
-    const wrap=document.createElement('div');wrap.className='shop-nav-group';shop.parentNode.insertBefore(wrap,shop);wrap.appendChild(shop);shop.setAttribute('aria-haspopup','true');
-    wrap.insertAdjacentHTML('beforeend',`<div class="shop-dropdown"><div><strong>Hairbands</strong><a href="shop.html?section=smooth#smooth">Smooth</a><a href="shop.html?section=ribbed#ribbed">Ribbed</a><a href="wholesale.html">Wholesale hairbands</a></div><div><strong>Basics</strong><a href="shop.html?section=tops#tops">Tops</a><a href="shop.html?section=sets#sets">Sets</a></div></div>`);
-  }
-  const mobile=document.querySelector('.mobile-menu');const mobileShop=mobile?.querySelector('a[href="shop.html"]');
-  if(mobileShop&&!mobile.querySelector('.mobile-shop-tree'))mobileShop.insertAdjacentHTML('afterend',`<div class="mobile-shop-tree"><strong>Hairbands</strong><a href="shop.html?section=smooth#smooth">Smooth</a><a href="shop.html?section=ribbed#ribbed">Ribbed</a><a href="wholesale.html">Wholesale</a><strong>Basics</strong><a href="shop.html?section=tops#tops">Tops</a><a href="shop.html?section=sets#sets">Sets</a></div>`);
 }
 function setupSiteSearch(){
   const overlay=document.getElementById('siteSearch'),input=document.getElementById('siteSearchInput'),results=document.getElementById('siteSearchResults'); if(!overlay||!input)return;
@@ -386,7 +291,7 @@ function sharedShell() {
         </div>
 
         <div class="search-hint">
-          Try “Black”, “ribbed”, “tops”, “sets” or “wholesale”.
+          Try “Black”, “wholesale”, “tops” or “delivery”.
         </div>
 
         <div class="search-results" id="siteSearchResults"></div>
@@ -656,7 +561,7 @@ function sharedShell() {
   ========================================================= */
 
   BF.updateBagUI();
-  setupShopNavigation();setupSiteSearch();
+  setupSiteSearch();
 
 
   /* =========================================================
@@ -859,3 +764,16 @@ function sharedShell() {
 }
 
 document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
+
+function setupShopNavigation(){
+  document.querySelectorAll('.nav-left a[href="shop.html"]').forEach(link=>{if(link.parentElement?.classList.contains('shop-dropdown-wrap'))return;const wrap=document.createElement('div');wrap.className='shop-dropdown-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);const menu=document.createElement('div');menu.className='shop-dropdown';menu.innerHTML='<strong>Hairbands</strong><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><strong>Basics</strong><a href="tops.html">Tops</a><a href="sets.html">Sets</a>';wrap.appendChild(menu)});
+  document.querySelectorAll('.mobile-menu a[href="shop.html"]').forEach(link=>{if(link.closest('details'))return;const d=document.createElement('details');d.className='mobile-shop-tree';d.innerHTML='<summary>Shop</summary><div class="mobile-shop-sub"><b>Hairbands</b><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><b>Basics</b><a href="tops.html">Tops</a><a href="sets.html">Sets</a></div>';link.replaceWith(d)});
+}
+
+document.addEventListener('DOMContentLoaded',setupShopNavigation);
+
+
+function applyConfiguredImages(){
+  document.querySelectorAll('[data-bf-image]').forEach(img=>{const path=img.dataset.bfImage.split('.').reduce((obj,key)=>obj?.[key],window.BF_IMAGES);if(path)img.src=path;});
+}
+document.addEventListener('DOMContentLoaded',applyConfiguredImages);

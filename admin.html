@@ -7,7 +7,7 @@
    <link rel="icon" href="logo.jpg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="admin.css">
-<link rel="canonical" href="https://bandfactory.store/admin.html"><meta name="robots" content="noindex,follow"></head>
+<link rel="canonical" href="https://bandfactory.store/admin.html"><meta name="robots" content="noindex,follow"><link rel="stylesheet" href="catalog.css"></head>
 <body class="admin-body">
   <div class="admin-shell">
     <aside class="admin-side" id="adminSidebar" aria-label="Admin navigation">
@@ -166,29 +166,22 @@
 
       <section class="admin-section" id="productsPanel">
         <div class="page-intro"><div><h2>Inventory &amp; Products</h2><p>Keep stock accurate here. Successful online orders automatically reduce the relevant colour/style quantities. You can correct quantities manually after a physical stock count or restock.</p></div></div><div class="dashboard-cards inventory-summary" id="inventorySummary"></div>
-        <div class="admin-panel tube-top-admin-panel"><div class="tube-admin-head"><div><span class="admin-product-badge">NEW · LIMITED</span><h3>Spandex Tube Top Inventory</h3><p>Black · GHS 64 · Double lined &amp; stretchy. Stock is managed separately by size and reduces automatically after paid orders.</p></div><img src="images/new.jpeg" alt="Black Spandex Tube Top"></div><div class="tube-admin-stock" id="tubeTopAdminStock"></div><div class="save-row"><span class="field-help" id="tubeTopAdminTotal">19 pieces total</span><button class="small-btn primary" id="saveTubeTopStock">Save tube top stock</button></div></div>
-
-        <div class="admin-panel catalog-admin-panel">
-          <div class="panel-head"><div><span class="admin-product-badge">CATALOG</span><h3>Ribbed Hairbands &amp; Basics</h3><p class="field-help">Edit product names, descriptions, prices, availability, colours, sizes and stock. Size quantities are private on the storefront until a shopper asks for more than is available.</p></div></div>
-          <div id="catalogAdmin"></div>
-          <div class="save-row"><button class="small-btn primary" id="saveCatalog">Save catalog products</button></div>
-        </div>
+        <div class="admin-panel tube-top-admin-panel"><div class="tube-admin-head"><div><span class="admin-product-badge">EXISTING TOP</span><h3>Spandex Tube Top</h3><p>This existing product is maintained. Edit its price, description and size stock here.</p></div><img src="images/new.jpeg" alt="Black Spandex Tube Top"></div><div class="form-grid"><div class="admin-field"><label>Price (GHS)</label><input id="tubeTopPriceAdmin" type="number" min="0"></div><div class="admin-field"><label>Description</label><textarea id="tubeTopDescriptionAdmin"></textarea></div></div><div class="tube-admin-stock" id="tubeTopAdminStock"></div><div class="save-row"><span class="field-help" id="tubeTopAdminTotal">19 pieces total</span><button class="small-btn primary" id="saveTubeTopStock">Save tube top changes</button></div></div>
         <div class="admin-panel product-settings-panel">
           <div class="settings-explainer"><i class="fa-solid fa-circle-info"></i><div><strong>How this section works</strong><p>Prices change what customers pay. Availability controls whether a product can be bought. The low-stock warning tells the Overview page when a colour is running low.</p></div></div>
           <div class="form-grid">
             <div class="admin-field"><label>Smooth Flat price (GHS)</label><input id="retailPrice" type="number" min="0"><p class="field-help">Retail price for one Smooth Flat hairband.</p></div><div class="admin-field"><label>Smooth Twisted price (GHS)</label><input id="twistedRetailPrice" type="number" min="0"><p class="field-help">Retail price for one Smooth Twisted hairband.</p></div>
             <div class="admin-field"><label>Show a low-stock warning when stock reaches</label><input id="lowStockThreshold" type="number" min="0"><p class="field-help">Example: enter 10 and you will be warned when a colour has 10 or fewer pieces left.</p></div>
             <div class="admin-field"><label>Can customers buy Smooth Hairbands now?</label><select id="smoothAvailable"><option value="true">Yes — show as available</option><option value="false">No — show as out of stock</option></select></div><div class="admin-field"><label>Smooth Flat availability</label><select id="smoothFlatAvailable"><option value="true">Available</option><option value="false">Out of stock</option></select></div><div class="admin-field"><label>Smooth Twisted availability</label><select id="smoothTwistedAvailable"><option value="true">Available</option><option value="false">Out of stock</option></select></div>
-            
-            
-            
-            
-            
+            <div class="admin-field"><label>Can customers buy Ribbed Hairbands now?</label><select id="ribbedAvailable"><option value="false">No — show as out of stock</option><option value="true">Yes — show as available</option></select></div>
+            <div class="admin-field"><label>Are Sets available now?</label><select id="matchingSetsAvailable"><option value="false">Not yet — show “Coming soon”</option><option value="true">Yes — show as available</option></select></div>
+            <div class="admin-field"><label>Price of one Ribbed Hairband (GHS)</label><input id="ribbedPrice" type="number" min="0" placeholder="Enter the price before making it available"><p class="field-help">Set the selling price before you make Ribbed Hairbands available.</p></div>
+            <div class="admin-field"><label>Price of Smooth Hairband + Basic Top set (GHS)</label><input id="smoothSetPrice" type="number" min="0" placeholder="Enter the set price"><p class="field-help">This is the total price for the complete set.</p></div>
+            <div class="admin-field"><label>Price of Ribbed Hairband + Basic Top set (GHS)</label><input id="ribbedSetPrice" type="number" min="0" placeholder="Enter the set price"><p class="field-help">This is the total price for the complete set.</p></div>
           </div>
-          <input type="hidden" id="ribbedAvailable" value="true"><input type="hidden" id="matchingSetsAvailable" value="false"><input type="hidden" id="ribbedPrice" value="0"><input type="hidden" id="smoothSetPrice" value="0"><input type="hidden" id="ribbedSetPrice" value="0">
           <div class="save-row"><button class="small-btn primary" id="saveProductSettings">Save product changes</button></div>
         </div>
-        <div class="colour-section-heading"><h3>Stock by colour</h3><p>For each colour, enter how many pieces you have and choose whether customers should be able to buy it.</p></div>
+        <div class="admin-panel"><div class="page-intro"><div><h3>Ribbed, Tops &amp; Sets</h3><p>Edit product names, descriptions, prices, availability, stock and sizes. You can also add a new size to any sized product.</p></div></div><div id="catalogAdminList"></div><div class="save-row"><button class="small-btn primary" id="saveCatalogProducts">Save ribbed, tops &amp; sets</button></div></div><div class="colour-section-heading"><h3>Smooth stock by colour</h3><p>For each colour, enter how many pieces you have and choose whether customers should be able to buy it.</p></div>
         <div class="color-admin-grid" id="colorAdminGrid"></div>
       </section>
 
@@ -298,11 +291,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script src="config.js"></script>
+  <script src="images.js"></script><script src="config.js"></script>
   <script src="firebase.js"></script>
   <script src="email.js"></script>
-  <script src="catalog.js"></script>
   <script src="script.js"></script>
-  <script src="admin.js"></script>
+  <script src="catalog.js"></script><script src="admin.js"></script>
 </body>
 </html>

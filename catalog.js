@@ -1,35 +1,30 @@
-(function(){
-  const ribbedColours=['Black','White','Yellow','Baby Pink','Hot Pink','Olive','Teal','Orange','Burgundy','Mustard','Flamingo'];
-  const sizeStock=(sizes,stock)=>Object.fromEntries(sizes.map(s=>[s,{stock,available:true}]));
-  const defaults={
-    version:2,
-    ribbed:{
-      name:'Ribbed Hairbands',description:'Textured ribbed hairbands in everyday and statement shades.',price:10,available:true,
-      colours:Object.fromEntries(ribbedColours.map(c=>[c,{stock:20,available:true}])),
-      featured:[
-        {id:'cherry-milk',name:'Cherry Milk',colour:'Pink & White',description:'Cheetah-inspired ribbed print in pink and white.',stock:10,available:true,image:'images/ribbed-cherry-milk.svg'},
-        {id:'navy-milk',name:'Navy Milk',colour:'Blue & White',description:'Cheetah-inspired ribbed print in blue and white.',stock:10,available:true,image:'images/ribbed-navy-milk.svg'},
-        {id:'noir-gold',name:'Noir Gold',colour:'Black & Gold',description:'Cheetah-inspired ribbed print in black and gold.',stock:10,available:true,image:'images/ribbed-noir-gold.svg'}
-      ]
-    },
-    basics:{
-      tops:[
-        {id:'second-skin-tee',name:'Second Skin Tee',description:'A fitted everyday tee with a smooth second-skin feel.',price:70,unitLabel:'1 piece',colours:['Dark Brown'],sizes:sizeStock(['S','M','L','XL','2XL'],2),available:true,image:'images/dark-brown.jpg'},
-        {id:'essential-vest-top',name:'Essential Vest Top',description:'A three-piece vest-top set in Black, Coral and White.',price:150,unitLabel:'3-piece set',colours:['Black','Coral','White'],sizes:sizeStock(['S','M','L','XL'],3),available:true,image:'images/new.jpeg'}
-      ],
-      sets:[
-        {id:'second-skin-long-sleeve',name:'Second Skin Long Sleeve',description:'A three-piece long-sleeve set in White, Blue Black and Nude.',price:200,unitLabel:'3-piece set',colours:['White','Blue Black','Nude'],sizes:sizeStock(['S','M','L','XL'],2),available:true,image:'images/sets.jpg'},
-        {id:'second-set',name:'Second Set',description:'An easy matching set in clean white.',price:160,unitLabel:'1 set',colours:['White'],sizes:{},available:true,image:'images/sets.jpg'}
-      ]
-    }
-  };
-  function mergeCatalog(saved={}){
-    const out=JSON.parse(JSON.stringify(defaults));
-    if(saved.ribbed){out.ribbed={...out.ribbed,...saved.ribbed,colours:{...out.ribbed.colours,...(saved.ribbed.colours||{})},featured:(saved.ribbed.featured||out.ribbed.featured)}}
-    if(saved.basics){for(const group of ['tops','sets']){const map=new Map((out.basics[group]||[]).map(p=>[p.id,p]));(saved.basics[group]||[]).forEach(p=>map.set(p.id,{...(map.get(p.id)||{}),...p,sizes:{...(map.get(p.id)?.sizes||{}),...(p.sizes||{})}}));out.basics[group]=[...map.values()]}}
-    return out;
+const BF_CATALOG_DEFAULTS = [
+  {id:'ribbed-cherry-milk',category:'ribbed',name:'Cherry Milk',subtitle:'Pink & white · cheetah-style print',price:null,color:'Pink & White',description:'A ribbed Band Factory hairband in a playful pink-and-white cheetah-style print.',stock:25,available:true,imageKey:'ribbed-cherry-milk',featuredOrder:1},
+  {id:'ribbed-navy-milk',category:'ribbed',name:'Navy Milk',subtitle:'Blue & white · cheetah-style print',price:null,color:'Blue & White',description:'A ribbed Band Factory hairband in a bold blue-and-white cheetah-style print.',stock:25,available:true,imageKey:'ribbed-navy-milk',featuredOrder:2},
+  {id:'ribbed-noir-gold',category:'ribbed',name:'Noir Gold',subtitle:'Black & gold · cheetah-style print',price:null,color:'Black & Gold',description:'A ribbed Band Factory hairband in a black-and-gold cheetah-style print.',stock:25,available:true,imageKey:'ribbed-noir-gold',featuredOrder:3},
+  ...['Black','White','Yellow','Baby Pink','Hot Pink','Olive','Teal','Orange','Burgundy','Mustard','Flamingo'].map((color,i)=>({id:'ribbed-'+color.toLowerCase().replace(/ /g,'-'),category:'ribbed',name:`${color} Ribbed Hairband`,subtitle:color,price:null,color,description:`Classic ribbed hairband in ${color}.`,stock:25,available:true,imageKey:'ribbed-'+color.toLowerCase().replace(/ /g,'-'),featuredOrder:10+i})),
+  {id:'spandex-tube-top',category:'tops',name:'Spandex Tube Top',subtitle:'Black · double lined · stretchy',price:64,color:'Black',description:'Double lined and stretchy. The original Band Factory basic already in the shop.',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}},available:true,imageKey:'spandex-tube-top',featuredOrder:1,sizeDescription:'Choose your usual size. The stretch fabric is designed to sit close to the body.'},
+  {id:'second-skin-tee',category:'tops',name:'Second Skin Tee',subtitle:'Dark Brown',price:70,color:'Dark Brown',description:'A close-fitting everyday tee designed as an easy Band Factory basic.',sizes:{S:{stock:2,available:true},M:{stock:2,available:true},L:{stock:2,available:true},XL:{stock:2,available:true},'2XL':{stock:2,available:true}},available:true,imageKey:'second-skin-tee',featuredOrder:2,sizeDescription:'Available in Small, Medium, Large, XL and 2XL. Choose the size you normally wear for a close, second-skin fit.'},
+  {id:'essential-vest-top',category:'tops',name:'Essential Vest Top',subtitle:'3-piece set · Black, Coral & White',price:150,color:'Black, Coral & White',description:'Sold as one 3-piece purchase: one black, one coral and one white Essential Vest Top.',packSize:3,sizes:{S:{stock:3,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true}},available:true,imageKey:'essential-vest-top',featuredOrder:3,sizeDescription:'Each purchase contains 3 vest tops in the same selected size: black, coral and white. Available in Small, Medium, Large and XL.'},
+  {id:'second-skin-long-sleeve',category:'sets',name:'Second Skin Long Sleeve',subtitle:'3-piece set · White, Blue Black & Nude',price:200,color:'White, Blue Black & Nude',description:'A set of three Second Skin Long Sleeve pieces: white, blue black and nude.',packSize:3,sizes:{S:{stock:2,available:true},M:{stock:2,available:true},L:{stock:2,available:true},XL:{stock:2,available:true}},available:true,imageKey:'second-skin-long-sleeve',featuredOrder:1,sizeDescription:'Each purchase contains three long sleeves in one selected size: white, blue black and nude. Available in Small, Medium, Large and XL.'},
+  {id:'second-set',category:'sets',name:'Second Set',subtitle:'White',price:160,color:'White',description:'A clean white Band Factory set for an easy coordinated look.',sizes:{},available:true,imageKey:'second-set',featuredOrder:2,sizeDescription:'Available sizes have not been supplied yet. Add them in Admin → Inventory & Products before launch.'}
+];
+
+window.BF_CATALOG_DEFAULTS = BF_CATALOG_DEFAULTS;
+
+window.BFCatalog = {
+  async load(){
+    let saved={};
+    try{ saved=await BFStore.getDoc('products/catalog',{}); }catch(e){ console.warn(e); }
+    const byId=Object.fromEntries((saved.items||[]).map(x=>[x.id,x]));
+    const items=BF_CATALOG_DEFAULTS.map(x=>({...x,...(byId[x.id]||{})}));
+    for(const x of (saved.items||[])) if(!items.some(i=>i.id===x.id)) items.push(x);
+    return items;
+  },
+  image(item){return BF_IMAGE(item?.imageKey||item?.id);},
+  price(item,settings={}){const ribbedDefault=Number(settings.ribbedPrice||settings.retailPrice||10);return Number(item?.price ?? (item?.category==='ribbed'?ribbedDefault:0) ?? 0);},
+  stock(item,size=''){
+    if(item?.sizes){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
+    return item?.available===false?0:Math.max(0,Number(item?.stock??0));
   }
-  function allBasics(catalog){return [...(catalog.basics?.tops||[]),...(catalog.basics?.sets||[])];}
-  function findBasic(catalog,id){return allBasics(catalog).find(p=>p.id===id);}
-  window.BFCatalog={defaults,mergeCatalog,allBasics,findBasic,ribbedColours};
-})();
+};

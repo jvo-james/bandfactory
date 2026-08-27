@@ -20,7 +20,7 @@
     @media(max-width:850px){.delivery-heading-row{align-items:center}.world-badge{padding:8px 10px}.checkout-head-inner{grid-template-columns:1fr auto}.checkout-head-inner .secure-label{display:none}.checkout-progress{margin-top:18px}.checkout-progress .line{width:25px}.checkout-wrap{grid-template-columns:1fr;gap:16px;margin-top:20px;margin-bottom:130px}.checkout-main h1{font-size:50px}.order-summary{position:static;order:-1;padding:0;border-radius:16px;overflow:hidden}.summary-mobile-toggle{width:100%;display:flex;background:#111;color:#fff;border:0;padding:17px 18px;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;cursor:pointer}.summary-mobile-toggle span:last-child{display:flex;align-items:center;gap:9px}.summary-panel{display:none;padding:0 20px 20px}.order-summary.open .summary-panel{display:block}.order-summary h2{display:none}.order-summary .pay-btn,.order-summary .payment-state,.order-summary .secure-note{display:none}.form-row{grid-template-columns:1fr}.mobile-paybar{display:block;position:fixed;z-index:50;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--checkout-line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(14px);box-shadow:0 -10px 30px rgba(0,0,0,.07)}.mobile-paybar .pay-btn{background:#111;color:#fff;max-width:600px;margin:auto}.mobile-paybar .payment-state{color:#756b70;margin:6px 0 0}.mobile-paybar .payment-state.warning{color:#a56a25}.mobile-paybar .payment-state.success{color:#248554}}
     @media(max-width:560px){.delivery-heading-row{align-items:flex-start}.world-badge{font-size:9px;padding:7px 9px}.country-select .country-list{width:calc(100vw - 28px);left:0}.international-payment-note{grid-template-columns:36px 1fr;padding:13px}.international-icon{width:36px;height:36px}.checkout-head-inner>a:last-child{font-size:0}.checkout-head-inner>a:last-child:after{content:'Shop';font-size:11px}.checkout-progress{justify-content:flex-start;overflow:hidden}.checkout-main h1{font-size:44px}.step-card{padding:24px 0}.fulfilment-choice{grid-template-columns:1fr}.dispatch-card{grid-template-columns:auto 1fr}.dispatch-fee{grid-column:2;text-align:left;margin-top:-7px}.method-card{padding:17px}.pickup-map{height:165px}}
   </style>
-<link rel="canonical" href="https://bandfactory.store/checkout.html"><meta name="robots" content="noindex,follow"><meta property="og:type" content="website"><meta property="og:site_name" content="Band Factory"><meta property="og:title" content="Secure Checkout | Band Factory"><meta property="og:description" content="Complete your Band Factory order securely with Paystack."><meta property="og:url" content="https://bandfactory.store/checkout.html"><meta property="og:image" content="https://bandfactory.store/images/brand-logo-pink.jpg"><meta name="twitter:card" content="summary_large_image"></head>
+<link rel="canonical" href="https://bandfactory.store/checkout.html"><meta name="robots" content="noindex,follow"><meta property="og:type" content="website"><meta property="og:site_name" content="Band Factory"><meta property="og:title" content="Secure Checkout | Band Factory"><meta property="og:description" content="Complete your Band Factory order securely with Paystack."><meta property="og:url" content="https://bandfactory.store/checkout.html"><meta property="og:image" content="https://bandfactory.store/images/brand-logo-pink.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="catalog.css"></head>
 <body class="checkout-page">
   <header class="checkout-header">
     <div class="checkout-head-inner">
@@ -266,11 +266,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/country-select-js/2.1.1/js/countrySelect.min.js"></script>
   <script src="https://js.paystack.co/v2/inline.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script src="config.js"></script>
+  <script src="images.js"></script><script src="config.js"></script>
   <script src="firebase.js"></script>
-  <script src="catalog.js"></script>
   <script src="email.js"></script>
   <script src="script.js"></script>
-  <script src="checkout.js"></script>
+  <script src="catalog.js"></script><script src="checkout.js"></script>
 </body>
 </html>

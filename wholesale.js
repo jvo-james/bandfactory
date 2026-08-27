@@ -54,10 +54,10 @@ const WHOLESALE_EXTRA_COLOURS = [
 let standardBundles = [...DEFAULT_STANDARD];
 let customBundles = [...DEFAULT_CUSTOM];
 let productData = { colors: {} };
-let ribbedCatalog = BFCatalog.mergeCatalog({});
+let catalogItems = [];
 let storeSettings = {};
-let wholesaleMaterial = 'smooth';
 let wholesaleStyle = 'flat';
+let wholesaleMaterial = 'smooth';
 let orderType = 'standard';
 let bundleIndex = 0;
 let pendingStyle = null;
@@ -70,11 +70,11 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const money = n => `GH₵${Number(n || 0).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`;
 const titleCase = value => String(value || '').replace(/^./, c => c.toUpperCase());
-const styleLabel = style => wholesaleMaterial==='ribbed' ? 'Ribbed' : (style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat');
+const styleLabel = style => style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat';
 const modeLabel = () => orderType === 'custom' ? 'Custom Colour Mix' : 'Standard Mix';
-const currentBundles = () => orderType === 'custom' ? customBundles : standardBundles;
+const currentBundles = () => wholesaleMaterial==='ribbed' ? customBundles : (orderType === 'custom' ? customBundles : standardBundles);
 const currentBundle = () => currentBundles()[bundleIndex] || currentBundles()[0];
-const currentRule = () => wholesaleMaterial==='ribbed' ? {maxPerColour:currentBundle().pieces,minColours:1,maxColours:Math.max(1,allWholesaleColours().length)} : (CUSTOM_COLOUR_RULES[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: 99 });
+const currentRule = () => CUSTOM_COLOUR_RULES[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: 99 };
 const styleImage = style => style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg';
 const editStyle = () => wholesaleStyle === 'mixed' ? activeColourStyle : wholesaleStyle;
 const activeStyles = () => wholesaleStyle === 'mixed' ? ['flat', 'twisted'] : [wholesaleStyle];
@@ -84,13 +84,13 @@ const positiveColourCount = style => Object.values(allocations[style] || {}).fil
 const allProgress = () => activeStyles().some(style => selectedColors[style].length || allocationTotal(style));
 
 function allWholesaleColours() {
-  if(wholesaleMaterial==='ribbed') return Object.keys(ribbedCatalog.ribbed?.colours||{}).map(name=>[name,'#bbb']);
+  if(wholesaleMaterial==='ribbed') return [['Black','#111'],['White','#f7f4ef'],['Yellow','#f4d84a'],['Baby Pink','#f6bfd3'],['Hot Pink','#ef4d94'],['Olive','#7a7b43'],['Teal','#197d7b'],['Orange','#ef8b3a'],['Burgundy','#681c2c'],['Mustard','#c69a2d'],['Flamingo','#f47680']];
   const map = new Map([...(BF.colors || []), ...WHOLESALE_EXTRA_COLOURS]);
   return [...map.entries()];
 }
 
 function colourStock(style,name){
-  if(wholesaleMaterial==='ribbed'){const data=ribbedCatalog.ribbed?.colours?.[name]||{};return ribbedCatalog.ribbed?.available!==false&&data.available!==false?Math.max(0,Number(data.stock??0)):0;}
+  if(wholesaleMaterial==='ribbed'){const item=(catalogItems||[]).find(x=>x.category==='ribbed'&&String(x.color||'').toLowerCase()===String(name).toLowerCase());return item&&item.available!==false?Math.max(0,Number(item.stock??0)):0;}
   const data=productData.styles?.[style]?.colors?.[name] || productData.colors?.[name] || {};
   const styleOn=style==='twisted'?storeSettings.smoothTwistedAvailable!==false:storeSettings.smoothFlatAvailable!==false;
   return storeSettings.smoothAvailable!==false && styleOn && data.available!==false ? Math.max(0,Number(data.stock??0)) : 0;
@@ -517,11 +517,14 @@ function updateLabels() {
   $('#bundleHint').textContent = `Choose a ${modeLabel()} bundle for your ${styleText} hairbands.`;
   $('#colourStyleName').textContent = styleLabel(editStyle());
   $('#bundleCount').textContent = styleTarget(editStyle());
-  const typePrices=$$('.order-type-price');if(typePrices[0])typePrices[0].textContent=`10 pieces · ${money(standardBundles[0]?.price||0)}`;if(typePrices[1])typePrices[1].textContent=`10 pieces · ${money(customBundles[0]?.price||0)}`;
   $('#colour-title').innerHTML = wholesaleStyle === 'mixed'
     ? `Choose colours for <span id="colourStyleName">${styleLabel(editStyle())}</span>.`
     : `Build your <span id="colourStyleName">${styleLabel(editStyle())}</span> bundle.`;
   renderColourTabs();
+  const standardPrice=wholesaleMaterial==='ribbed'?customBundles[0]?.price:standardBundles[0]?.price;
+  const customPrice=customBundles[0]?.price;
+  const standardLabel=document.querySelector('[data-order-type="standard"] .order-type-price');if(standardLabel)standardLabel.textContent=`10 pieces · ${money(standardPrice)}`;
+  const customLabel=document.querySelector('[data-order-type="custom"] .order-type-price');if(customLabel)customLabel.textContent=`10 pieces · ${money(customPrice)}`;
 }
 
 function updateAll() {
@@ -553,13 +556,13 @@ function addWholesaleToBag() {
 }
 
 async function initWholesale() {
-  const [settings, products, savedCatalog] = await Promise.all([
+  const [settings, products, catalog] = await Promise.all([
     BFStore.getDoc('settings/store', {}),
     BFStore.getDoc('products/smooth', { colors: {} }),
-    BFStore.getDoc('products/catalog', {})
+    BFStore.getDoc('products/catalog', {items:[]})
   ]);
-  ribbedCatalog=BFCatalog.mergeCatalog(savedCatalog||{});
   productData = products || { colors: {} };
+  catalogItems=(catalog.items&&catalog.items.length?catalog.items:(window.BF_CATALOG_DEFAULTS||[]));
   storeSettings = settings || {};
 
   standardBundles = DEFAULT_STANDARD.map(b => ({
@@ -570,17 +573,13 @@ async function initWholesale() {
     ...b,
     price: Number(settings[`customWholesale${b.pieces}Price`] ?? b.price)
   }));
-  const smoothStandard=[...standardBundles],smoothCustom=[...customBundles];
-  const applyMaterial=material=>{wholesaleMaterial=material==='ribbed'?'ribbed':'smooth';if(wholesaleMaterial==='ribbed'){wholesaleStyle='flat';activeColourStyle='flat';standardBundles=smoothCustom.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));document.getElementById('style-stage').hidden=true;}else{standardBundles=smoothStandard.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));document.getElementById('style-stage').hidden=false;}resetColourState();bundleIndex=0;resetStyleSplit();document.querySelectorAll('[data-wholesale-material]').forEach(b=>{b.classList.toggle('active',b.dataset.wholesaleMaterial===wholesaleMaterial);b.setAttribute('aria-checked',String(b.dataset.wholesaleMaterial===wholesaleMaterial))});renderBundles();renderCustom();updateAll();};
 
   const params = new URLSearchParams(location.search);
-  if(params.get('material')==='ribbed') wholesaleMaterial='ribbed';
   if (['flat', 'twisted', 'mixed'].includes(params.get('style'))) wholesaleStyle = params.get('style');
   if (params.get('type') === 'custom') orderType = 'custom';
   activeColourStyle = wholesaleStyle === 'mixed' ? 'flat' : wholesaleStyle;
   resetStyleSplit();
 
-  $$('[data-wholesale-material]').forEach(btn=>btn.onclick=()=>applyMaterial(btn.dataset.wholesaleMaterial));
   $$('[data-wholesale-style]').forEach(btn => btn.onclick = () => requestStyle(btn.dataset.wholesaleStyle));
   $$('[data-order-type]').forEach(btn => btn.onclick = () => setOrderType(btn.dataset.orderType));
   $$('[data-preset]').forEach(btn => btn.onclick = () => choosePreset(btn.dataset.preset));
@@ -628,8 +627,6 @@ async function initWholesale() {
     activeColourStyle=wholesaleStyle;
   }
 
-  if(wholesaleMaterial==='ribbed'){standardBundles=smoothCustom.map(x=>({...x}));customBundles=smoothCustom.map(x=>({...x}));wholesaleStyle='flat';activeColourStyle='flat';$('#style-stage').hidden=true;}
-  $$('[data-wholesale-material]').forEach(b=>b.classList.toggle('active',b.dataset.wholesaleMaterial===wholesaleMaterial));
   $('#colour-stage').hidden = orderType !== 'custom';
   renderBundles();
   renderCustom();
@@ -637,3 +634,15 @@ async function initWholesale() {
 }
 
 document.addEventListener('DOMContentLoaded', initWholesale);
+
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('[data-material]').forEach(btn=>btn.addEventListener('click',()=>{
+    wholesaleMaterial=btn.dataset.material;
+    document.querySelectorAll('[data-material]').forEach(x=>x.classList.toggle('active',x===btn));
+    bundleIndex=0;resetColourState();resetStyleSplit();
+    document.querySelectorAll('[data-order-type]').forEach(x=>x.disabled=false);
+    renderBundles();renderCustom();updateAll();
+  }));
+});
