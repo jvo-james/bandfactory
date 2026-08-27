@@ -87,7 +87,7 @@ const positiveColourCount = style => Object.values(allocations[style] || {}).fil
 const allProgress = () => activeStyles().some(style => selectedColors[style].length || allocationTotal(style));
 
 function allWholesaleColours() {
-  if(wholesaleMaterial==='ribbed') return [['Black','#111'],['White','#f7f4ef'],['Yellow','#f4d84a'],['Baby Pink','#f6bfd3'],['Hot Pink','#ef4d94'],['Olive','#7a7b43'],['Teal','#197d7b'],['Orange','#ef8b3a'],['Burgundy','#681c2c'],['Mustard','#c69a2d'],['Flamingo','#f47680']];
+  if(wholesaleMaterial==='ribbed') return [['Black','#111'],['White','#f7f4ef'],['Yellow','#f4d84a'],['Baby Pink','#f6bfd3'],['Hot Pink','#ef4d94'],['Chartreuse','#8fb339'],['Green','#2e7d32'],['Orange','#ef8b3a'],['Burgundy','#681c2c'],['Caramel','#c68642'],['Flamingo','#f47680']];
   const map = new Map([...(BF.colors || []), ...WHOLESALE_EXTRA_COLOURS]);
   return [...map.entries()];
 }

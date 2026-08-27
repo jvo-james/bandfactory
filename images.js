@@ -36,11 +36,11 @@ window.BF_IMAGES = {
     'ribbed-yellow':'images/ryellow.jpg', // PLACEHOLDER: yellow ribbed hairband.
     'ribbed-baby-pink':'images/rbpink.jpg', // PLACEHOLDER: baby pink ribbed hairband.
     'ribbed-hot-pink':'images/rhpink.jpg', // PLACEHOLDER: hot pink ribbed hairband.
-    'ribbed-olive':'images/rolive.jpg', // PLACEHOLDER: olive ribbed hairband.
-    'ribbed-teal':'images/rteal.jpg', // PLACEHOLDER: teal ribbed hairband.
+    'ribbed-olive':'images/rolive.jpg', // Chartreuse ribbed hairband (legacy key kept so existing stock/image data still works).
+    'ribbed-teal':'images/rteal.jpg', // Green ribbed hairband (legacy key kept so existing stock/image data still works).
     'ribbed-orange':'images/rorange.jpg', // PLACEHOLDER: orange ribbed hairband.
     'ribbed-burgundy':'images/rburgundy.jpg', // PLACEHOLDER: burgundy ribbed hairband.
-    'ribbed-mustard':'images/rmustard.jpg', // PLACEHOLDER: mustard ribbed hairband.
+    'ribbed-mustard':'images/rmustard.jpg', // Caramel ribbed hairband (legacy key kept so existing stock/image data still works).
     'ribbed-flamingo':'images/rflamingo.jpg', // PLACEHOLDER: flamingo ribbed hairband.
     'spandex-tube-top':'images/new.jpeg', // Existing top already in the repo - maintained.
     'second-skin-tee':'images/second-skin-tee.jpg', // Second Skin Tee: dark brown.
