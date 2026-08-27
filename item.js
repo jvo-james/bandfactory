@@ -1,5 +1,13 @@
 let currentItem=null,currentSettings={},selectedSize='',qty=1,allItems=[];
 const $id=id=>document.getElementById(id);
+const apparelSizeOrder=['S','L','M','XL','2XL','XS','3XL','4XL','5XL','6XL'];
+function sortedSizes(sizes={}){
+  return Object.entries(sizes).sort(([a],[b])=>{
+    const A=String(a).trim().toUpperCase(),B=String(b).trim().toUpperCase();
+    const ai=apparelSizeOrder.indexOf(A),bi=apparelSizeOrder.indexOf(B);
+    return (ai<0?1000:ai)-(bi<0?1000:bi)||A.localeCompare(B,undefined,{numeric:true});
+  });
+}
 function showError(msg=''){const el=$id('itemError');if(!el)return;el.textContent=msg;el.hidden=!msg}
 function itemStock(){return BFCatalog.stock(currentItem,selectedSize)}
 function updateBuy(){const price=BFCatalog.price(currentItem,currentSettings),btn=$id('itemAdd');$id('qtyValue').textContent=qty;if(!btn)return;btn.textContent=currentItem?.sizes&&!selectedSize?'Choose a size':price?`Add to Bag · ${BF.money(price*qty)}`:'Add to Bag';btn.disabled=currentItem?.available===false||!!currentItem?.sizes&&!selectedSize}
@@ -10,7 +18,7 @@ async function initItem(){
   const features=(currentItem.subtitle||currentItem.color||'').split('·').map(x=>x.trim()).filter(Boolean).slice(0,4);$id('itemFeatureRow').innerHTML=features.map(x=>`<span>${x}</span>`).join('');
   $id('itemPackNote').innerHTML=currentItem.packSize?`<i class="fa-solid fa-layer-group"></i> ${currentItem.packSize}-piece purchase.`:'';
   if(currentItem.sizes){
-    $id('itemSizeArea').hidden=false;$id('itemSizes').innerHTML=Object.entries(currentItem.sizes).map(([size,d])=>`<button class="tube-size-btn" data-size="${size}" ${d.available===false||Number(d.stock)<=0?'disabled':''}>${size}</button>`).join('');
+    $id('itemSizeArea').hidden=false;$id('itemSizes').innerHTML=sortedSizes(currentItem.sizes).map(([size,d])=>`<button class="tube-size-btn" data-size="${size}" ${d.available===false||Number(d.stock)<=0?'disabled':''}>${size}</button>`).join('');
     $id('itemSizes').querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=b.dataset.size;qty=1;showError();$id('selectedSizeLabel').textContent=`Selected: ${selectedSize}`;$id('itemSizes').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));updateBuy()});
   }
   $id('qtyMinus').onclick=()=>{qty=Math.max(1,qty-1);showError();updateBuy()};$id('qtyPlus').onclick=()=>{if(currentItem.sizes&&!selectedSize)return showError('Choose a size first.');const stock=itemStock();if(stock&&qty>=stock)return showError(`Only ${stock} ${stock===1?'piece is':'pieces are'} available right now.`);qty++;showError();updateBuy()};

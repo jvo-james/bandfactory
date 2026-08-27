@@ -104,3 +104,10 @@
 @media(max-width:1100px){.ribbed-admin-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.ribbed-admin-grid{grid-template-columns:repeat(2,1fr)}.admin-size-row.compact,.tube-size-admin-row.simple{grid-template-columns:1fr 1fr!important}.admin-size-row.compact .availability-check,.tube-size-admin-row.simple .availability-check{grid-column:1/-1}}
 @media(max-width:420px){.ribbed-admin-grid{grid-template-columns:1fr 1fr}.ribbed-admin-card .body{padding:10px}.ribbed-admin-card strong{font-size:10px}}
+
+/* Size inventory controls */
+.admin-size-row.compact{grid-template-columns:minmax(80px,.7fr) minmax(100px,1fr) auto auto!important}
+.size-remove-btn{border:0;background:transparent;color:#7d334f;font:inherit;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:9px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.size-remove-btn:hover{color:#b43868}
+.tube-size-admin-row.simple{grid-template-columns:minmax(100px,1fr) minmax(130px,.65fr) auto auto!important}
+@media(max-width:780px){.admin-size-row.compact,.tube-size-admin-row.simple{grid-template-columns:1fr 1fr!important}.admin-size-row.compact .availability-check,.tube-size-admin-row.simple .availability-check{grid-column:1/2}.admin-size-row.compact .size-remove-btn,.tube-size-admin-row.simple .size-remove-btn{grid-column:2/3;justify-self:end}}

@@ -2737,6 +2737,11 @@
 .hero-slider{min-height:100svh;position:relative;background:#171314;overflow:hidden;color:#fff}
 .hero-slider .hero-slide{position:absolute;inset:0;display:flex;align-items:flex-end;opacity:0;visibility:hidden;transition:opacity .75s ease,visibility .75s ease;background-size:cover;background-position:center;z-index:0}
 .hero-slider .hero-slide.active{opacity:1;visibility:visible;z-index:1}
+/* Portrait hero photography: keep the important upper part visible on wide screens. */
+@media(min-width:901px){
+  .hero-slider .hero-slide[data-hero-image="home.hero1"],
+  .hero-slider .hero-slide[data-hero-image="home.hero3"]{background-position:center top}
+}
 .hero-slider .hero-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,11,13,.72) 0%,rgba(15,11,13,.32) 52%,rgba(15,11,13,.12) 100%),linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.2))}
 .hero-slider .hero-content{position:relative;z-index:2;padding-bottom:76px}
 .hero-slider-controls{position:absolute;z-index:5;right:max(24px,4vw);bottom:54px;display:flex;align-items:center;gap:14px}
