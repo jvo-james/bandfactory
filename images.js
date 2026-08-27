@@ -31,17 +31,17 @@ window.BF_IMAGES = {
     'ribbed-cherry-milk':'images/cm.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
     'ribbed-navy-milk':'images/nm.jpg', // Navy Milk: blue and white printed Ribbed Hairband.
     'ribbed-noir-gold':'images/ng.jpg', // Noir Gold: black and gold printed Ribbed Hairband.
-    'ribbed-black':'images/ribbed-placeholder.svg', // PLACEHOLDER: black ribbed hairband.
-    'ribbed-white':'images/ribbed-placeholder.svg', // PLACEHOLDER: white ribbed hairband.
-    'ribbed-yellow':'images/ribbed-placeholder.svg', // PLACEHOLDER: yellow ribbed hairband.
-    'ribbed-baby-pink':'images/ribbed-placeholder.svg', // PLACEHOLDER: baby pink ribbed hairband.
-    'ribbed-hot-pink':'images/ribbed-placeholder.svg', // PLACEHOLDER: hot pink ribbed hairband.
-    'ribbed-olive':'images/ribbed-placeholder.svg', // PLACEHOLDER: olive ribbed hairband.
-    'ribbed-teal':'images/ribbed-placeholder.svg', // PLACEHOLDER: teal ribbed hairband.
-    'ribbed-orange':'images/ribbed-placeholder.svg', // PLACEHOLDER: orange ribbed hairband.
-    'ribbed-burgundy':'images/ribbed-placeholder.svg', // PLACEHOLDER: burgundy ribbed hairband.
-    'ribbed-mustard':'images/ribbed-placeholder.svg', // PLACEHOLDER: mustard ribbed hairband.
-    'ribbed-flamingo':'images/ribbed-placeholder.svg', // PLACEHOLDER: flamingo ribbed hairband.
+    'ribbed-black':'images/rblack.jpg', // PLACEHOLDER: black ribbed hairband.
+    'ribbed-white':'images/rwhite.jpg', // PLACEHOLDER: white ribbed hairband.
+    'ribbed-yellow':'images/ryellow.jpg', // PLACEHOLDER: yellow ribbed hairband.
+    'ribbed-baby-pink':'images/rbpink.jpg', // PLACEHOLDER: baby pink ribbed hairband.
+    'ribbed-hot-pink':'images/rhpink.jpg', // PLACEHOLDER: hot pink ribbed hairband.
+    'ribbed-olive':'images/rolive.jpg', // PLACEHOLDER: olive ribbed hairband.
+    'ribbed-teal':'images/rteal.jpg', // PLACEHOLDER: teal ribbed hairband.
+    'ribbed-orange':'images/rorange.jpg', // PLACEHOLDER: orange ribbed hairband.
+    'ribbed-burgundy':'images/rburgundy.jpg', // PLACEHOLDER: burgundy ribbed hairband.
+    'ribbed-mustard':'images/rmustard.jpg', // PLACEHOLDER: mustard ribbed hairband.
+    'ribbed-flamingo':'images/rflamingo.jpg', // PLACEHOLDER: flamingo ribbed hairband.
     'spandex-tube-top':'images/new.jpeg', // Existing top already in the repo - maintained.
     'second-skin-tee':'images/second-skin-tee.jpg', // Second Skin Tee: dark brown.
     'essential-vest-top':'images/essential-vest-top.jpg', // Essential Vest Top: black, coral and white 3-piece set.
