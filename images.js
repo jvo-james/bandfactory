@@ -14,7 +14,10 @@ window.BF_IMAGES = {
     logoPink: 'images/brand-logo-pink.jpg' // Existing social/share image.
   },
   home: {
-    hero: 'images/placeholder-fashion.svg', // PLACEHOLDER: replace with a lifestyle image showing the wider Band Factory range.
+    hero: 'images/hero.webp', // Existing hero image.
+    hero1: 'images/hero.webp', // HOMEPAGE SLIDE 1: replace with your main campaign image.
+    hero2: 'images/IMG_3249.jpeg', // HOMEPAGE SLIDE 2: replace with a Ribbed campaign image if preferred.
+    hero3: 'images/placeholder-fashion.svg', // PLACEHOLDER HOMEPAGE SLIDE 3: replace with a Basics lifestyle image.
     smooth: 'images/flat.jpg', // Existing smooth hairband category image.
     ribbed: 'images/IMG_3249.jpeg', // Existing ribbed hairband category image; replace if you want a stronger category shot.
     hairbands: 'images/IMG_3249.jpeg', // Existing hairband image.
@@ -48,7 +51,7 @@ window.BF_IMAGES = {
     'ribbed-burgundy':'images/ribbed-placeholder.svg', // PLACEHOLDER: burgundy ribbed hairband.
     'ribbed-mustard':'images/ribbed-placeholder.svg', // PLACEHOLDER: mustard ribbed hairband.
     'ribbed-flamingo':'images/ribbed-placeholder.svg', // PLACEHOLDER: flamingo ribbed hairband.
-    'spandex-tube-top':'images/new.jpeg', // Existing top already in the repo — maintained.
+    'spandex-tube-top':'images/new.jpeg', // Existing top already in the repo - maintained.
     'second-skin-tee':'images/placeholder-top.svg', // PLACEHOLDER: dark brown Second Skin Tee.
     'essential-vest-top':'images/placeholder-top.svg', // PLACEHOLDER: Essential Vest Top 3-piece pack (black/coral/white).
     'second-skin-long-sleeve':'images/placeholder-set.svg', // PLACEHOLDER: 3-piece long-sleeve set (white/blue black/nude).

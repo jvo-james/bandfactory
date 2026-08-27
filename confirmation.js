@@ -18,7 +18,7 @@
 
   function itemDescription(i){
     if(i.type==='wholesale') return i.summary || `${i.bundlePieces||''} pieces`;
-    if(i.type==='apparel') return `Black · Size ${i.size||'—'} · Quantity ${i.qty||1}`;
+    if(i.type==='apparel') return `Black · Size ${i.size||'-'} · Quantity ${i.qty||1}`;
     if(i.type==='simple') return `Quantity ${i.qty||1}`;
     return `${i.color||''} · Quantity ${i.qty||1}`;
   }

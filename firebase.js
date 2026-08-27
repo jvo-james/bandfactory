@@ -1,4 +1,4 @@
-/* Band Factory Firebase data layer — loads Firebase Compat SDK dynamically. */
+/* Band Factory Firebase data layer - loads Firebase Compat SDK dynamically. */
 (function(){
   const cfg=window.BF_CONFIG||{};
   const readyConfig=cfg.firebase && !String(cfg.firebase.apiKey||'').startsWith('REPLACE_');

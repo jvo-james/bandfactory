@@ -21,7 +21,7 @@
 const BF = {
   products: {
     smooth: { id:'smooth', name:'Smooth Hairband', price:10,
-      // IMAGE: DEFAULT PRODUCT FALLBACK — replace if you want a different fallback photo.
+      // IMAGE: DEFAULT PRODUCT FALLBACK - replace if you want a different fallback photo.
       image:'images/hero.webp' }
   },
   colors: [
@@ -118,7 +118,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
       allocations,
       qty:1,
       price:bundle.price,
-      // IMAGE: WHOLESALE BAG THUMBNAIL — replace this with your stacked/bulk hairband photo.
+      // IMAGE: WHOLESALE BAG THUMBNAIL - replace this with your stacked/bulk hairband photo.
       image:'images/shopping.jpg',
       bundlePieces:bundle.pieces,
       summary
@@ -201,7 +201,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   openDrawer(id){document.getElementById(id)?.classList.add('open');document.querySelector('.drawer-backdrop')?.classList.add('show');document.body.classList.add('drawer-open')},
   closeDrawers(){document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));document.querySelector('.drawer-backdrop')?.classList.remove('show');document.body.classList.remove('drawer-open')},
   toast(msg){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;t.classList.add('show');clearTimeout(this._toast);this._toast=setTimeout(()=>t.classList.remove('show'),2300)},
-  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look — starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'REPLACE WITH PICKUP ADDRESS' },
+  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look - starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'REPLACE WITH PICKUP ADDRESS' },
   async loadSettings(){
     try{const data=await BFStore.getDoc('settings/store',{});this.settings={...this.settings,...data};this.products.smooth.price=Number(this.settings.retailPrice||10);document.dispatchEvent(new CustomEvent('bf:settings',{detail:this.settings}));return this.settings}catch(e){console.warn(e);return this.settings}
   },
@@ -241,21 +241,29 @@ async subscribe(email,name=''){
 }
 };
 function buildSearchIndex(){
-  const colourItems=BF.colors.map(([name])=>({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth hairband retail colour color`}));
-  return [...colourItems,
-    {title:'Spandex Tube Top',meta:'NEW · Black · XS–2XL · GHS 64',url:'tube-top.html',image:'images/new.jpeg',terms:'spandex tube top black top clothing apparel xs small medium large xl 2xl new limited'},
-    {title:'Standard Wholesale',meta:'Band Factory selects and mixes colours',url:'wholesale.html#how',terms:'standard wholesale 30 50 100 200 bulk reseller'},
-    {title:'Custom Colour Wholesale',meta:'Choose colours and quantities',url:'wholesale.html#how',terms:'custom colour color wholesale 30 50 100 200 bulk'},
-    {title:'Ribbed Hairbands',meta:'Solid colours and print edits',url:'ribbed.html',terms:'ribbed hairbands cherry milk navy noir gold'},
-    {title:'Tops',meta:'Band Factory basics',url:'tops.html',terms:'tops second skin tee essential vest spandex tube'},
-    {title:'Sets',meta:'Coordinated Band Factory basics',url:'sets.html',terms:'sets second skin long sleeve second set'},
-    {title:'Delivery & Pickup',meta:'Checkout and fulfilment information',url:'checkout.html',terms:'delivery pickup dispatch location'},
-    {title:'Contact Band Factory',meta:'Questions or order help',url:'contact.html',terms:'contact whatsapp email help'}];
+  const colourItems=BF.colors.map(([name])=>({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth flat twisted hairband retail colour color`}));
+  const ribbed=['Cherry Milk','Navy Milk','Noir Gold','Black','White','Yellow','Baby Pink','Hot Pink','Olive','Teal','Orange','Burgundy','Mustard','Flamingo'].map(name=>{const id=name==='Cherry Milk'?'ribbed-cherry-milk':name==='Navy Milk'?'ribbed-navy-milk':name==='Noir Gold'?'ribbed-noir-gold':'ribbed-'+name.toLowerCase().replace(/ /g,'-');return {title:name.includes('Milk')||name==='Noir Gold'?name:`${name} Ribbed Hairband`,meta:'Ribbed Hairband',url:`item.html?id=${id}`,terms:`${name} ribbed hairband colour color print`}});
+  const products=[
+    {title:'Spandex Tube Top',meta:'Basics · Tops',url:'tube-top.html',image:'images/new.jpeg',terms:'spandex tube top black xs s m l xl 2xl top basics'},
+    {title:'Second Skin Tee',meta:'Dark Brown · GHS 70',url:'item.html?id=second-skin-tee',terms:'second skin tee dark brown top basics small medium large xl 2xl'},
+    {title:'Essential Vest Top',meta:'3-piece set · Black, Coral and White',url:'item.html?id=essential-vest-top',terms:'essential vest top black coral white 3 piece pack basics'},
+    {title:'Second Skin Long Sleeve',meta:'3-piece set · White, Blue Black and Nude',url:'item.html?id=second-skin-long-sleeve',terms:'second skin long sleeve white blue black nude set basics'},
+    {title:'Second Set',meta:'White · GHS 160',url:'item.html?id=second-set',terms:'second set white basics'}
+  ];
+  return [...colourItems,...ribbed,...products,
+    {title:'Smooth Hairbands',meta:'Flat and Twisted',url:'smooth.html',terms:'smooth hairbands flat twisted shop'},
+    {title:'Ribbed Hairbands',meta:'11 colours and print collection',url:'ribbed.html',terms:'ribbed hairbands shop cherry navy noir'},
+    {title:'Tops',meta:'Band Factory Basics',url:'tops.html',terms:'tops basics clothing apparel'},
+    {title:'Sets',meta:'Band Factory Basics',url:'sets.html',terms:'sets basics clothing apparel'},
+    {title:'Wholesale Hairbands',meta:'Smooth and Ribbed',url:'wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands smooth ribbed'},
+    {title:'Reviews',meta:'Customer Reviews',url:'index.html#reviews',terms:'reviews feedback worn loved customers'},
+    {title:'Delivery and Pickup',meta:'Order fulfilment information',url:'checkout.html',terms:'delivery pickup dispatch wednesday saturday checkout'},
+    {title:'Contact Band Factory',meta:'Questions and order help',url:'contact.html',terms:'contact whatsapp email help support'}];
 }
 function setupSiteSearch(){
   const overlay=document.getElementById('siteSearch'),input=document.getElementById('siteSearchInput'),results=document.getElementById('siteSearchResults'); if(!overlay||!input)return;
   const index=buildSearchIndex();
-  const render=q=>{const term=q.trim().toLowerCase();const found=term?index.filter(x=>(x.title+' '+x.meta+' '+x.terms).toLowerCase().includes(term)).slice(0,8):index.slice(0,6);results.innerHTML=found.map(x=>`<a class="search-result" href="${x.url}">${x.image?`<img src="${x.image}" alt="">`:`<span class="search-result-icon"><i class="fa-solid fa-arrow-right"></i></span>`}<span><strong>${x.title}</strong><small>${x.meta}</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`).join('')||'<div class="search-empty">No exact match. Try a colour name or “wholesale”.</div>'};
+  const render=q=>{const term=q.trim().toLowerCase();const found=term?index.filter(x=>(x.title+' '+x.meta+' '+x.terms).toLowerCase().includes(term)).slice(0,8):index.slice(0,6);results.innerHTML=found.map(x=>`<a class="search-result" href="${x.url}">${x.image?`<img src="${x.image}" alt="">`:`<span class="search-result-icon"><i class="fa-solid fa-arrow-right"></i></span>`}<span><strong>${x.title}</strong><small>${x.meta}</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`).join('')||'<div class="search-empty">No results found. Try a product name, colour or category.</div>'};
   const open=()=>{overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');document.body.classList.add('search-open');render(input.value);setTimeout(()=>input.focus(),100)};
   const close=()=>{overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('search-open')};
   document.querySelectorAll('[data-open-search]').forEach(b=>b.addEventListener('click',open));document.querySelectorAll('[data-close-search]').forEach(b=>b.addEventListener('click',close));overlay.addEventListener('click',e=>{if(e.target===overlay)close()});input.addEventListener('input',()=>render(input.value));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('open'))close();if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}});
@@ -285,13 +293,13 @@ function sharedShell() {
             id="siteSearchInput"
             type="search"
             autocomplete="off"
-            placeholder="Search colours, wholesale, delivery…"
+            placeholder="Search Band Factory…"
             aria-label="Search Band Factory"
           >
         </div>
 
         <div class="search-hint">
-          Try “Black”, “wholesale”, “tops” or “delivery”.
+          Search products, colours, categories, wholesale, delivery and more.
         </div>
 
         <div class="search-results" id="siteSearchResults"></div>
@@ -410,7 +418,7 @@ function sharedShell() {
                   letter-spacing:0;
                 "
               >
-                — not shown publicly
+                - not shown publicly
               </span>
             </label>
 
@@ -766,7 +774,8 @@ function sharedShell() {
 document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
 
 function setupShopNavigation(){
-  document.querySelectorAll('.nav-left a[href="shop.html"]').forEach(link=>{if(link.parentElement?.classList.contains('shop-dropdown-wrap'))return;const wrap=document.createElement('div');wrap.className='shop-dropdown-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);const menu=document.createElement('div');menu.className='shop-dropdown';menu.innerHTML='<strong>Hairbands</strong><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><strong>Basics</strong><a href="tops.html">Tops</a><a href="sets.html">Sets</a>';wrap.appendChild(menu)});
+  document.querySelectorAll('.nav-left a[href="shop.html"]').forEach(link=>{if(link.parentElement?.classList.contains('shop-dropdown-wrap'))return;const wrap=document.createElement('div');wrap.className='shop-dropdown-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);link.setAttribute('aria-haspopup','true');link.setAttribute('aria-expanded','false');const menu=document.createElement('div');menu.className='shop-dropdown';menu.innerHTML='<strong>Hairbands</strong><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><strong>Basics</strong><a href="tops.html">Tops</a><a href="sets.html">Sets</a><strong>Shop</strong><a href="shop.html">View all collections</a>';wrap.appendChild(menu);link.addEventListener('click',e=>{e.preventDefault();const open=!wrap.classList.contains('open');document.querySelectorAll('.shop-dropdown-wrap.open').forEach(x=>x.classList.remove('open'));wrap.classList.toggle('open',open);link.setAttribute('aria-expanded',String(open))})});
+  document.addEventListener('click',e=>{if(!e.target.closest('.shop-dropdown-wrap'))document.querySelectorAll('.shop-dropdown-wrap.open').forEach(x=>x.classList.remove('open'))});
   document.querySelectorAll('.mobile-menu a[href="shop.html"]').forEach(link=>{if(link.closest('details'))return;const d=document.createElement('details');d.className='mobile-shop-tree';d.innerHTML='<summary>Shop</summary><div class="mobile-shop-sub"><b>Hairbands</b><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><b>Basics</b><a href="tops.html">Tops</a><a href="sets.html">Sets</a></div>';link.replaceWith(d)});
 }
 
@@ -777,3 +786,4 @@ function applyConfiguredImages(){
   document.querySelectorAll('[data-bf-image]').forEach(img=>{const path=img.dataset.bfImage.split('.').reduce((obj,key)=>obj?.[key],window.BF_IMAGES);if(path)img.src=path;});
 }
 document.addEventListener('DOMContentLoaded',applyConfiguredImages);
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-category-hero]').forEach(hero=>{const path=hero.dataset.categoryHero.split('.').reduce((o,k)=>o?.[k],window.BF_IMAGES);if(path)hero.style.backgroundImage=`url("${path}")`})});

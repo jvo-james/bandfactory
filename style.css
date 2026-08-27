@@ -137,3 +137,15 @@ input[type="checkbox"] {
 .brand-with-logo>span{font-family:var(--brand-font);font-size:18px;line-height:.88;text-align:left;letter-spacing:.2em;font-weight:300;text-transform:uppercase;white-space:nowrap}
 .brand-with-logo>span small{display:block;font-family:var(--brand-font);font-size:6px;letter-spacing:.38em;margin-top:7px;font-weight:300}
 @media(max-width:900px){.brand-with-logo{gap:7px}.brand-with-logo img{width:36px;height:36px;border-radius:8px}.brand-with-logo>span{font-size:14px;letter-spacing:.15em}.brand-with-logo>span small{font-size:5px;margin-top:5px}}
+
+/* ===== SHOP NAVIGATION ===== */
+.shop-dropdown-wrap{position:relative;display:flex;align-items:center;height:var(--header-h)}
+.shop-dropdown{position:absolute;top:calc(100% - 6px);left:-22px;width:250px;background:var(--white);color:var(--black);border:1px solid var(--line);padding:14px;box-shadow:0 20px 55px rgba(17,17,17,.12);opacity:0;visibility:hidden;transform:translateY(8px);transition:.2s ease;z-index:120}
+.shop-dropdown-wrap:hover .shop-dropdown,.shop-dropdown-wrap:focus-within .shop-dropdown{opacity:1;visibility:visible;transform:none}
+.shop-dropdown strong{display:block;padding:8px 10px 4px;color:var(--pink-strong);font-size:9px;letter-spacing:.17em;text-transform:uppercase}
+.shop-dropdown a{display:block;padding:9px 10px;font-size:12px;font-weight:600;letter-spacing:.02em}
+.shop-dropdown a:hover{background:var(--powder)}
+.mobile-shop-tree summary{font:inherit;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:13px 0;display:flex;justify-content:space-between;align-items:center}
+.mobile-shop-tree summary:after{content:'+';font-size:18px}.mobile-shop-tree[open] summary:after{content:'−'}
+.mobile-shop-sub{padding:0 0 12px 16px!important}.mobile-shop-sub b{display:block;color:var(--pink-strong);font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin:11px 0 3px}.mobile-shop-sub a{padding:8px 0!important;text-transform:none!important;letter-spacing:.03em!important}
+.shop-dropdown-wrap.open .shop-dropdown{opacity:1;visibility:visible;transform:none}

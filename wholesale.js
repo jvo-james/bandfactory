@@ -4,7 +4,7 @@
 ========================================================== */
 
 /* ----------------------------------------------------------
-   WHOLESALE PRICES — EDIT THESE VALUES WHEN YOUR PRICES CHANGE.
+   WHOLESALE PRICES - EDIT THESE VALUES WHEN YOUR PRICES CHANGE.
    Admin/Firestore prices still override these defaults when set.
 ---------------------------------------------------------- */
 const DEFAULT_STANDARD = [
@@ -24,7 +24,7 @@ const DEFAULT_CUSTOM = [
 ];
 
 /* ----------------------------------------------------------
-   CUSTOM COLOUR LIMITS — EASY TO CHANGE LATER.
+   CUSTOM COLOUR LIMITS - EASY TO CHANGE LATER.
 
    maxPerColour = maximum pieces allowed for ONE colour.
    minColours   = minimum different colours required for a
@@ -53,6 +53,8 @@ const WHOLESALE_EXTRA_COLOURS = [
 
 let standardBundles = [...DEFAULT_STANDARD];
 let customBundles = [...DEFAULT_CUSTOM];
+let ribbedStandardBundles = [...DEFAULT_CUSTOM]; // Ribbed Standard follows Smooth Custom pricing.
+let ribbedCustomBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Math.ceil(b.price*1.25/10)*10})); // Ribbed Custom is priced above Ribbed Standard.
 let productData = { colors: {} };
 let catalogItems = [];
 let storeSettings = {};
@@ -70,12 +72,13 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const money = n => `GH₵${Number(n || 0).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`;
 const titleCase = value => String(value || '').replace(/^./, c => c.toUpperCase());
-const styleLabel = style => style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat';
+const styleLabel = style => wholesaleMaterial==='ribbed' ? 'Ribbed' : (style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat');
 const modeLabel = () => orderType === 'custom' ? 'Custom Colour Mix' : 'Standard Mix';
-const currentBundles = () => wholesaleMaterial==='ribbed' ? customBundles : (orderType === 'custom' ? customBundles : standardBundles);
+const currentBundles = () => wholesaleMaterial==='ribbed' ? (orderType==='custom'?ribbedCustomBundles:ribbedStandardBundles) : (orderType === 'custom' ? customBundles : standardBundles);
 const currentBundle = () => currentBundles()[bundleIndex] || currentBundles()[0];
-const currentRule = () => CUSTOM_COLOUR_RULES[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: 99 };
-const styleImage = style => style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg';
+const RIBBED_CUSTOM_COLOUR_RULES={10:{maxPerColour:2,minColours:6,maxColours:11},30:{maxPerColour:3,minColours:10,maxColours:11},50:{maxPerColour:5,minColours:10,maxColours:11},100:{maxPerColour:10,minColours:10,maxColours:11},200:{maxPerColour:19,minColours:11,maxColours:11}};
+const currentRule = () => (wholesaleMaterial==='ribbed'?RIBBED_CUSTOM_COLOUR_RULES:CUSTOM_COLOUR_RULES)[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: wholesaleMaterial==='ribbed'?11:99 };
+const styleImage = style => wholesaleMaterial==='ribbed' ? 'images/IMG_3249.jpeg' : (style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg');
 const editStyle = () => wholesaleStyle === 'mixed' ? activeColourStyle : wholesaleStyle;
 const activeStyles = () => wholesaleStyle === 'mixed' ? ['flat', 'twisted'] : [wholesaleStyle];
 const styleTarget = style => wholesaleStyle === 'mixed' ? Number(styleSplit[style] || 0) : currentBundle().pieces;
@@ -359,7 +362,7 @@ function splitEvenly() {
 
   const base = Math.floor(target / names.length);
   const remainder = target % names.length;
-  if (base + (remainder ? 1 : 0) > rule.maxPerColour) return BF.toast(`Add more colours — maximum ${rule.maxPerColour} pieces per colour`);
+  if (base + (remainder ? 1 : 0) > rule.maxPerColour) return BF.toast(`Add more colours - maximum ${rule.maxPerColour} pieces per colour`);
 
   names.forEach((name, i) => allocations[style][name] = base + (i < remainder ? 1 : 0));
   renderCustom();
@@ -521,8 +524,8 @@ function updateLabels() {
     ? `Choose colours for <span id="colourStyleName">${styleLabel(editStyle())}</span>.`
     : `Build your <span id="colourStyleName">${styleLabel(editStyle())}</span> bundle.`;
   renderColourTabs();
-  const standardPrice=wholesaleMaterial==='ribbed'?customBundles[0]?.price:standardBundles[0]?.price;
-  const customPrice=customBundles[0]?.price;
+  const standardPrice=wholesaleMaterial==='ribbed'?ribbedStandardBundles[0]?.price:standardBundles[0]?.price;
+  const customPrice=wholesaleMaterial==='ribbed'?ribbedCustomBundles[0]?.price:customBundles[0]?.price;
   const standardLabel=document.querySelector('[data-order-type="standard"] .order-type-price');if(standardLabel)standardLabel.textContent=`10 pieces · ${money(standardPrice)}`;
   const customLabel=document.querySelector('[data-order-type="custom"] .order-type-price');if(customLabel)customLabel.textContent=`10 pieces · ${money(customPrice)}`;
 }
@@ -573,6 +576,9 @@ async function initWholesale() {
     ...b,
     price: Number(settings[`customWholesale${b.pieces}Price`] ?? b.price)
   }));
+  ribbedStandardBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedStandardWholesale${b.pieces}Price`] ?? settings[`customWholesale${b.pieces}Price`] ?? b.price)}));
+  ribbedCustomBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedCustomWholesale${b.pieces}Price`] ?? Math.ceil(b.price*1.25/10)*10)}));
+  ribbedCustomBundles = ribbedCustomBundles.map((b,i)=>({...b,price:Math.max(Number(b.price||0),Number(ribbedStandardBundles[i]?.price||0)+10)}));
 
   const params = new URLSearchParams(location.search);
   if (['flat', 'twisted', 'mixed'].includes(params.get('style'))) wholesaleStyle = params.get('style');
@@ -589,8 +595,8 @@ async function initWholesale() {
   $('#twistedSplitInput').onchange = e => updateStyleSplit('twisted', e.target.value);
   $('#evenStyleSplit').onclick = splitStylesEvenly;
   $('#splitEvenly').onclick = splitEvenly;
-  $('#changeStyle').onclick = () => $('#style-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  $('#reviewStyle').onclick = () => $('#style-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#changeStyle').onclick = () => $(wholesaleMaterial==='ribbed'?'#material-stage':'#style-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#reviewStyle').onclick = () => $(wholesaleMaterial==='ribbed'?'#material-stage':'#style-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#addWholesaleToBag').onclick = addWholesaleToBag;
   $('#resalePrice').oninput = updateProfit;
 
@@ -641,7 +647,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-material]').forEach(btn=>btn.addEventListener('click',()=>{
     wholesaleMaterial=btn.dataset.material;
     document.querySelectorAll('[data-material]').forEach(x=>x.classList.toggle('active',x===btn));
-    bundleIndex=0;resetColourState();resetStyleSplit();
+    bundleIndex=0;resetColourState();wholesaleStyle='flat';activeColourStyle='flat';resetStyleSplit();
+    const styleStage=document.getElementById('style-stage');if(styleStage)styleStage.hidden=wholesaleMaterial==='ribbed';
+    const std=document.querySelector('[data-order-type="standard"] p'),cus=document.querySelector('[data-order-type="custom"] p'),change=document.getElementById('changeStyle');
+    if(std)std.textContent=wholesaleMaterial==='ribbed'?'Choose a bundle and Band Factory will create a balanced mix from the 11 available Ribbed colours.':'Choose the style and bundle. Band Factory creates a mixed-colour selection from available stock.';
+    if(cus)cus.textContent=wholesaleMaterial==='ribbed'?'Choose a bundle, then set exact quantities across the available Ribbed colours within the mix limits.':'Choose the style, bundle and exact quantity you want in each available colour.';
+    if(change)change.textContent=wholesaleMaterial==='ribbed'?'Change material':'Change style';
     document.querySelectorAll('[data-order-type]').forEach(x=>x.disabled=false);
     renderBundles();renderCustom();updateAll();
   }));

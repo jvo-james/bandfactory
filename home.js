@@ -1,6 +1,6 @@
 let homeInventory={colors:{},styles:{}},homeSettings={lowStockThreshold:10},homeTubeTop={sizes:{}};
 /* ==========================================================
-   BAND FACTORY — HOME PAGE
+   BAND FACTORY - HOME PAGE
 ========================================================== */
 
 
@@ -567,7 +567,7 @@ function applyHomepageSettings(settings) {
     ) {
 
         wholesalePrice.textContent =
-            `30 bands — ${BF.money(
+            `30 bands - ${BF.money(
                 Number(settings.wholesale30Price)
             )}`;
 
@@ -901,3 +901,20 @@ document.addEventListener(
 
     }
 );
+
+/* Homepage hero slideshow */
+document.addEventListener('DOMContentLoaded',()=>{
+  const slides=[...document.querySelectorAll('.hero-slider .hero-slide')];
+  if(!slides.length)return;
+  slides.forEach(slide=>{
+    const path=String(slide.dataset.heroImage||'').split('.').reduce((o,k)=>o?.[k],window.BF_IMAGES);
+    if(path)slide.style.backgroundImage=`url("${path}")`;
+  });
+  const dots=[...document.querySelectorAll('[data-hero-dot]')];
+  let index=0,timer;
+  const show=i=>{index=(i+slides.length)%slides.length;slides.forEach((s,n)=>s.classList.toggle('active',n===index));dots.forEach((d,n)=>d.classList.toggle('active',n===index));clearInterval(timer);timer=setInterval(()=>show(index+1),6500)};
+  document.querySelector('[data-hero-next]')?.addEventListener('click',()=>show(index+1));
+  document.querySelector('[data-hero-prev]')?.addEventListener('click',()=>show(index-1));
+  dots.forEach((d,n)=>d.addEventListener('click',()=>show(n)));
+  show(0);
+});
