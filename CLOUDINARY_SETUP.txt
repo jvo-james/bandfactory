@@ -1,0 +1,12 @@
+BAND FACTORY — CLOUDINARY ADMIN UPLOAD SETUP
+
+Add these environment variables in Netlify → Site configuration → Environment variables:
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+Do NOT put CLOUDINARY_API_SECRET in config.js or any browser-side file.
+The included Netlify function verifies the signed-in Firebase admin first, then creates a short-lived Cloudinary upload signature. Product/category images are uploaded directly from the Admin Catalog Studio and only the secure Cloudinary URL is saved in Firestore.
+
+After adding the variables, redeploy the site once.

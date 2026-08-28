@@ -14,6 +14,12 @@ const BF_CATALOG_DEFAULTS = [
 ];
 
 window.BF_CATALOG_DEFAULTS = BF_CATALOG_DEFAULTS;
+window.BF_CATEGORY_DEFAULTS = [
+  {id:'smooth',name:'Smooth',eyebrow:'Hairbands',description:'Flat and Twisted smooth hairbands.',image:'images/flat.jpg',sortOrder:1,visible:true,system:true,url:'smooth.html'},
+  {id:'ribbed',name:'Ribbed',eyebrow:'Hairbands',description:'Ribbed hairbands in colours, prints, Flat and Twisted styles.',image:'images/IMG_3249.jpeg',sortOrder:2,visible:true,system:true,url:'ribbed.html'},
+  {id:'tops',name:'Tops',eyebrow:'Basics',description:'Band Factory everyday tops.',image:'images/second-skin-tee.jpg',sortOrder:3,visible:true,system:true,url:'tops.html'},
+  {id:'sets',name:'Sets',eyebrow:'Basics',description:'Coordinated Band Factory sets.',image:'images/second-skin-long-sleeve.jpg',sortOrder:4,visible:true,system:true,url:'sets.html'}
+];
 
 window.BFCatalog = {
   async load(){
@@ -39,13 +45,22 @@ window.BFCatalog = {
       item.styles.twisted={stock:0,available:false,...(item.styles.twisted||{})};
       item.stock=Number(item.styles.flat.stock??0);item.available=item.styles.flat.available!==false;
     }
-    return items;
+    return items.filter(x=>x.deleted!==true);
   },
-  image(item,style='flat'){if(item?.category==='ribbed'&&style==='twisted')return item?.twistedImageKey?BF_IMAGE(item.twistedImageKey):'images/ribbed-placeholder.svg';return BF_IMAGE(item?.imageKey||item?.id);},
+  image(item,style='flat'){if(item?.category==='ribbed'&&style==='twisted')return item?.twistedImage|| (item?.twistedImageKey?BF_IMAGE(item.twistedImageKey):'images/ribbed-placeholder.svg');return item?.image||BF_IMAGE(item?.imageKey||item?.id);},
   variant(item,style='flat'){if(item?.category!=='ribbed')return item||{};const clean=style==='twisted'?'twisted':'flat';return item?.styles?.[clean]||(clean==='flat'?{stock:Number(item?.stock??0),available:item?.available!==false}:{stock:0,available:false});},
   price(item,settings={}){const ribbedDefault=Number(settings.ribbedPrice||settings.retailPrice||10);return Number(item?.price ?? (item?.category==='ribbed'?ribbedDefault:0) ?? 0);},
   stock(item,size=''){
-    if(item?.sizes){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
+    if(item?.sizes&&Object.keys(item.sizes).length){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
     return item?.available===false?0:Math.max(0,Number(item?.stock??0));
-  }
+  },
+  async loadCategories(){
+    let saved={};try{saved=await BFStore.getDoc('products/categories',{});}catch(e){console.warn(e)}
+    const byId=Object.fromEntries((saved.items||[]).map(x=>[x.id,x]));
+    const items=(window.BF_CATEGORY_DEFAULTS||[]).map(x=>({...x,...(byId[x.id]||{}),id:x.id,system:true}));
+    for(const x of (saved.items||[]))if(!items.some(i=>i.id===x.id))items.push(x);
+    return items.filter(x=>x.deleted!==true).sort((a,b)=>Number(a.sortOrder||99)-Number(b.sortOrder||99)||String(a.name||'').localeCompare(String(b.name||'')));
+  },
+  categoryUrl(category){return category?.url||`collection.html?category=${encodeURIComponent(category?.id||'')}`;}
+
 };

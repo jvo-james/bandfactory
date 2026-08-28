@@ -96,7 +96,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     let summary='';
     if(mode==='standard'){
       const splitText=cleanStyle==='mixed'?` · ${Number(split.flat||0)} Flat + ${Number(split.twisted||0)} Twisted`:'';
-      summary=`Colours selected and mixed by Band Factory based on availability${splitText}`;
+      summary=bundle.productName?`${bundle.productName} · Flat · GH₵10 each`:`Colours selected and mixed by Band Factory based on availability${splitText}`;
     }else if(cleanStyle==='mixed'&&allocations&&typeof allocations==='object'){
       const styleLines=['flat','twisted'].map(kind=>{
         const entries=Object.entries(allocations[kind]||{}).filter(([,q])=>Number(q)>0).map(([c,q])=>`${q} ${c}`).join(', ');
@@ -111,7 +111,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
       key:`wholesale-${Date.now()}`,
       type:'wholesale',
       wholesaleMode:mode,
-      name:`${bundle.pieces} Piece ${materialLabel} ${prettyStyle} ${modeLabel}`,
+      name:bundle.productName?`${bundle.pieces} Piece ${bundle.productName} Ribbed Wholesale`:`${bundle.pieces} Piece ${materialLabel} ${prettyStyle} ${modeLabel}`,
       material,
       style:cleanStyle,
       styleAllocations:split,
@@ -119,8 +119,11 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
       qty:1,
       price:bundle.price,
       // IMAGE: WHOLESALE BAG THUMBNAIL - replace this with your stacked/bulk hairband photo.
-      image:'images/shopping.jpg',
+      image:bundle.image||'images/shopping.jpg',
       bundlePieces:bundle.pieces,
+      wholesaleProductId:bundle.productId||'',
+      wholesaleProductName:bundle.productName||'',
+      lockedBundleQty:!!bundle.productName,
       summary
     });
     this.saveCart(cart); this.toast('Wholesale bundle added to your Bag'); this.openDrawer('bagDrawer');
@@ -158,7 +161,20 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
         if(total<need)throw new Error(`Only ${total} ${style} wholesale piece${total===1?' is':'s are'} available for ${label} right now.`);
         for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
       };
+      const ribbedItems=JSON.parse(JSON.stringify(catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[])));
+      const printIds=new Set(['ribbed-cherry-milk','ribbed-navy-milk','ribbed-noir-gold']);
+      const ribbedVariant=(product,style)=>{product.styles=product.styles||{};return {...(style==='flat'?{stock:Number(product.stock||0),available:product.available!==false}:{stock:0,available:false}),...(product.styles[style]||{})}};
+      const takeRibbedProduct=(product,style,qty,label)=>{style=style==='twisted'?'twisted':'flat';qty=Math.max(0,Number(qty||0));const d=ribbedVariant(product,style),have=d.available===false?0:Math.max(0,Number(d.stock||0));if(qty>have)throw new Error(have>0?`Only ${have} ${label} ${have===1?'is':'are'} available right now.`:`${label} is sold out right now.`);product.styles[style]={...d,stock:have-qty};if(style==='flat')product.stock=have-qty;};
+      const takeRibbedStandard=(style,qty,label)=>{let need=Math.max(0,Number(qty||0));const choices=ribbedItems.filter(x=>x.category==='ribbed'&&!printIds.has(x.id)).map(product=>({product,d:ribbedVariant(product,style)})).filter(x=>x.d.available!==false&&Number(x.d.stock)>0).sort((a,b)=>Number(b.d.stock)-Number(a.d.stock));const total=choices.reduce((sum,x)=>sum+Number(x.d.stock||0),0);if(total<need)throw new Error(`Only ${total} Ribbed ${style} wholesale piece${total===1?' is':'s are'} available for ${label} right now.`);for(const x of choices){if(need<=0)break;const used=Math.min(Number(ribbedVariant(x.product,style).stock||0),need);takeRibbedProduct(x.product,style,used,`${x.product.name} ${style}`);need-=used;}};
       for(const item of cart){
+        if(item.type==='catalog'&&item.category==='ribbed'){
+          const product=ribbedItems.find(x=>x.id===item.productId);if(!product)throw new Error('That Ribbed Hairband is no longer available.');takeRibbedProduct(product,item.style==='twisted'?'twisted':'flat',Number(item.qty||0),`${item.color||product.name} Ribbed ${item.style||'flat'}`);continue;
+        }
+        if(item.type==='wholesale'&&item.material==='ribbed'){
+          const mult=Math.max(1,Number(item.qty||1));
+          if(item.wholesaleProductId){const product=ribbedItems.find(x=>x.id===item.wholesaleProductId);if(!product)throw new Error('That Ribbed print is no longer available.');takeRibbedProduct(product,'flat',Number(item.bundlePieces||0)*mult,item.wholesaleProductName||product.name);continue;}
+          if(item.wholesaleMode==='custom'&&item.allocations){if(item.style==='mixed'){for(const style of ['flat','twisted'])for(const [color,qty] of Object.entries(item.allocations?.[style]||{})){const product=ribbedItems.find(x=>x.category==='ribbed'&&!printIds.has(x.id)&&String(x.color||'').toLowerCase()===String(color).toLowerCase());if(!product)throw new Error(`${color} Ribbed is no longer available.`);takeRibbedProduct(product,style,Number(qty)*mult,`${color} Ribbed ${style}`);}}else{const style=item.style==='twisted'?'twisted':'flat';for(const [color,qty] of Object.entries(item.allocations||{})){const product=ribbedItems.find(x=>x.category==='ribbed'&&!printIds.has(x.id)&&String(x.color||'').toLowerCase()===String(color).toLowerCase());if(!product)throw new Error(`${color} Ribbed is no longer available.`);takeRibbedProduct(product,style,Number(qty)*mult,`${color} Ribbed ${style}`);}}}else if(item.style==='mixed'){takeRibbedStandard('flat',Number(item.styleAllocations?.flat||0)*mult,'this Ribbed Mixed bundle');takeRibbedStandard('twisted',Number(item.styleAllocations?.twisted||0)*mult,'this Ribbed Mixed bundle');}else takeRibbedStandard(item.style==='twisted'?'twisted':'flat',Number(item.bundlePieces||0)*mult,`this Ribbed ${item.style||'flat'} bundle`);continue;
+        }
         if((item.material||'smooth')!=='smooth')continue;
         if(item.type==='retail'){
           const style=item.style==='twisted'?'twisted':'flat';take(style,item.color,Number(item.qty||0),`${item.color} ${style} hairband${Number(item.qty||0)===1?'':'s'}`);
@@ -188,6 +204,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   },
   async changeQty(index,delta){
     const c=this.getCart();if(!c[index])return;
+    if(c[index].lockedBundleQty&&delta>0){this.toast('Signature print wholesale is sold only as 10, 30, 50, 100 or 200-piece bundles. Choose the bundle size you want.');return;}
     const previous=Number(c[index].qty||1),next=Math.max(1,previous+delta);
     if(next===previous)return;
     c[index].qty=next;

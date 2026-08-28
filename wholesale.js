@@ -67,18 +67,26 @@ let activeColourStyle = 'flat';
 let styleSplit = { flat: 5, twisted: 5 };
 let selectedColors = { flat: [], twisted: [] };
 let allocations = { flat: {}, twisted: {} };
+let ribbedRange = 'colours';
+const RIBBED_PRINTS = [
+  {id:'ribbed-cherry-milk',name:'Cherry Milk',image:'images/cm.jpg'},
+  {id:'ribbed-navy-milk',name:'Navy Milk',image:'images/nm.jpg'},
+  {id:'ribbed-noir-gold',name:'Noir Gold',image:'images/ng.jpg'}
+];
+const printBundles=DEFAULT_STANDARD.map(b=>({pieces:b.pieces,price:b.pieces*10}));
+const activePrint=()=>RIBBED_PRINTS.find(x=>x.id===ribbedRange)||null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const money = n => `GH₵${Number(n || 0).toLocaleString('en-GH', { maximumFractionDigits: 2 })}`;
 const titleCase = value => String(value || '').replace(/^./, c => c.toUpperCase());
-const styleLabel = style => wholesaleMaterial==='ribbed' ? 'Ribbed' : (style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat');
+const styleLabel = style => `${wholesaleMaterial==='ribbed'?'Ribbed ':''}${style === 'mixed' ? 'Mixed' : style === 'twisted' ? 'Twisted' : 'Flat'}`.trim();
 const modeLabel = () => orderType === 'custom' ? 'Custom Colour Mix' : 'Standard Mix';
-const currentBundles = () => wholesaleMaterial==='ribbed' ? (orderType==='custom'?ribbedCustomBundles:ribbedStandardBundles) : (orderType === 'custom' ? customBundles : standardBundles);
+const currentBundles = () => activePrint()?printBundles:(wholesaleMaterial==='ribbed' ? (orderType==='custom'?ribbedCustomBundles:ribbedStandardBundles) : (orderType === 'custom' ? customBundles : standardBundles));
 const currentBundle = () => currentBundles()[bundleIndex] || currentBundles()[0];
 const RIBBED_CUSTOM_COLOUR_RULES={10:{maxPerColour:2,minColours:6,maxColours:11},30:{maxPerColour:3,minColours:10,maxColours:11},50:{maxPerColour:5,minColours:10,maxColours:11},100:{maxPerColour:10,minColours:10,maxColours:11},200:{maxPerColour:19,minColours:11,maxColours:11}};
-const currentRule = () => (wholesaleMaterial==='ribbed'?RIBBED_CUSTOM_COLOUR_RULES:CUSTOM_COLOUR_RULES)[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: wholesaleMaterial==='ribbed'?11:99 };
-const styleImage = style => wholesaleMaterial==='ribbed' ? 'images/IMG_3249.jpeg' : (style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg');
+const currentRule = () => (wholesaleMaterial==='ribbed'?RIBBED_CUSTOM_COLOUR_RULES:CUSTOM_COLOUR_RULES)[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: wholesaleMaterial==='ribbed'?13:99 };
+const styleImage = style => activePrint()?.image || (wholesaleMaterial==='ribbed' ? (style==='twisted'?'images/ribbed-placeholder.svg':'images/IMG_3249.jpeg') : (style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg'));
 const editStyle = () => wholesaleStyle === 'mixed' ? activeColourStyle : wholesaleStyle;
 const activeStyles = () => wholesaleStyle === 'mixed' ? ['flat', 'twisted'] : [wholesaleStyle];
 const styleTarget = style => wholesaleStyle === 'mixed' ? Number(styleSplit[style] || 0) : currentBundle().pieces;
@@ -87,13 +95,17 @@ const positiveColourCount = style => Object.values(allocations[style] || {}).fil
 const allProgress = () => activeStyles().some(style => selectedColors[style].length || allocationTotal(style));
 
 function allWholesaleColours() {
-  if(wholesaleMaterial==='ribbed') return [['Black','#111'],['White','#f7f4ef'],['Yellow','#f4d84a'],['Baby Pink','#f6bfd3'],['Hot Pink','#ef4d94'],['Chartreuse','#8fb339'],['Green','#2e7d32'],['Orange','#ef8b3a'],['Burgundy','#681c2c'],['Caramel','#c68642'],['Flamingo','#f47680']];
+  if(wholesaleMaterial==='ribbed'){
+    const hex={Black:'#111',White:'#f7f4ef',Yellow:'#f4d84a','Baby Pink':'#f6bfd3','Hot Pink':'#ef4d94',Chartreuse:'#8fb339',Green:'#2e7d32',Teal:'#017f7c','Royal Blue':'#2852af',Orange:'#ef8b3a',Burgundy:'#681c2c',Caramel:'#c68642',Flamingo:'#f47680'};
+    const names=[...new Set((catalogItems||[]).filter(x=>x.category==='ribbed'&&!RIBBED_PRINTS.some(p=>p.id===x.id)&&x.color).map(x=>x.color))];
+    return names.map(name=>[name,hex[name]||'#d8c7ce']);
+  }
   const map = new Map([...(BF.colors || []), ...WHOLESALE_EXTRA_COLOURS]);
   return [...map.entries()];
 }
 
 function colourStock(style,name){
-  if(wholesaleMaterial==='ribbed'){const item=(catalogItems||[]).find(x=>x.category==='ribbed'&&String(x.color||'').toLowerCase()===String(name).toLowerCase());return item&&item.available!==false?Math.max(0,Number(item.stock??0)):0;}
+  if(wholesaleMaterial==='ribbed'){const item=(catalogItems||[]).find(x=>x.category==='ribbed'&&!RIBBED_PRINTS.some(p=>p.id===x.id)&&String(x.color||'').toLowerCase()===String(name).toLowerCase());const d=item?BFCatalog.variant(item,style):null;return d&&d.available!==false?Math.max(0,Number(d.stock??0)):0;}
   const data=productData.styles?.[style]?.colors?.[name] || productData.colors?.[name] || {};
   const styleOn=style==='twisted'?storeSettings.smoothTwistedAvailable!==false:storeSettings.smoothFlatAvailable!==false;
   return storeSettings.smoothAvailable!==false && styleOn && data.available!==false ? Math.max(0,Number(data.stock??0)) : 0;
@@ -102,6 +114,7 @@ function styleStock(style){ return allWholesaleColours().reduce((sum,[name])=>su
 function availableColors(style = editStyle()) { return allWholesaleColours().filter(([name])=>colourStock(style,name)>0); }
 function bundleStockReady(){
   const b=currentBundle();
+  if(activePrint()){const item=(catalogItems||[]).find(x=>x.id===activePrint().id),d=item?BFCatalog.variant(item,'flat'):null;return !!d&&d.available!==false&&Number(d.stock||0)>=b.pieces;}
   if(wholesaleStyle==='mixed') return styleStock('flat')>=Number(styleSplit.flat||0) && styleStock('twisted')>=Number(styleSplit.twisted||0);
   return styleStock(wholesaleStyle)>=b.pieces;
 }
@@ -138,14 +151,16 @@ function validationForStyle(style) {
 }
 
 function customReady() {
+  if(activePrint())return true;
   if (orderType !== 'custom') return true;
   return activeStyles().every(style => validationForStyle(style).ready);
 }
 
 function bundleButton(bundle, index) {
+  const print=activePrint(),printItem=print?(catalogItems||[]).find(x=>x.id===print.id):null,printVariant=printItem?BFCatalog.variant(printItem,'flat'):null,disabled=!!print&&(printVariant?.available===false||Number(printVariant?.stock||0)<bundle.pieces);
   const each = bundle.pieces ? bundle.price / bundle.pieces : 0;
   const eachText = Number.isInteger(each) ? money(each) : `GH₵${each.toFixed(2)}`;
-  return `<button class="bundle-choice ${index === bundleIndex ? 'active' : ''}" type="button" data-bundle="${index}" aria-pressed="${index === bundleIndex}"><strong>${bundle.pieces}</strong><span>pieces</span><b>${money(bundle.price)}</b><em>${eachText} each</em></button>`;
+  return `<button class="bundle-choice ${index === bundleIndex ? 'active' : ''} ${disabled?'sold-out':''}" type="button" data-bundle="${index}" aria-pressed="${index === bundleIndex}" ${disabled?'disabled aria-disabled="true"':''}><strong>${bundle.pieces}</strong><span>pieces</span><b>${money(bundle.price)}</b><em>${disabled?'Not enough stock':eachText+' each'}</em></button>`;
 }
 
 function renderBundles() {
@@ -237,6 +252,7 @@ function renderColourTabs() {
 }
 
 function renderCustom() {
+  if(activePrint())return;
   if (orderType !== 'custom') return;
   const style = editStyle();
   const colours = allWholesaleColours();
@@ -441,7 +457,7 @@ function updateSticky() {
   const b = currentBundle();
   $('#stickyStyleImage').src = styleImage(wholesaleStyle);
   const splitText = wholesaleStyle === 'mixed' ? ` · ${styleSplit.flat}F/${styleSplit.twisted}T` : '';
-  $('#stickyMain').textContent = `${styleLabel(wholesaleStyle)} · ${modeLabel()} · ${b.pieces} pieces${splitText}`;
+  $('#stickyMain').textContent = activePrint()?`${activePrint().name} · Flat · ${b.pieces} pieces`:`${styleLabel(wholesaleStyle)} · ${modeLabel()} · ${b.pieces} pieces${splitText}`;
   $('#stickyBundle').textContent = `${b.pieces} pieces`;
   $('#stickyPrice').textContent = money(b.price);
 }
@@ -480,6 +496,9 @@ function updateSummary() {
   $('#summaryModeRow').textContent = modeLabel();
   $('#summaryBundleRow').textContent = `${b.pieces} pieces`;
   $('#summaryTotalRow').textContent = money(b.price);
+  if(activePrint()){
+    const print=activePrint();$('#summaryStyleBadge').textContent='Signature Print';$('#summaryStyle').textContent=print.name;$('#summaryStyleRow').textContent=`${print.name} · Flat`;$('#summaryModeRow').textContent='Signature Print Wholesale';$('#summaryDescription').textContent=`${print.name} Flat Ribbed Hairbands · GH₵10 per piece. Choose 10, 30, 50, 100 or 200 pieces.`;$('#summaryColours').hidden=true;$('#summaryColourList').innerHTML='';$('#summaryNote').textContent=ready?`${b.pieces} ${print.name} hairbands · ${money(b.price)} total.`:`Only bundles covered by live ${print.name} stock can be added.`;$('#addWholesaleToBag').disabled=!ready;return;
+  }
 
   if (custom) {
     $('#summaryDescription').textContent = wholesaleStyle === 'mixed'
@@ -517,13 +536,14 @@ function updateSummary() {
 function updateLabels() {
   const b = currentBundle();
   const styleText = wholesaleStyle === 'mixed' ? 'Mixed Flat + Twisted' : styleLabel(wholesaleStyle);
-  $('#bundleHint').textContent = `Choose a ${modeLabel()} bundle for your ${styleText} hairbands.`;
+  $('#bundleHint').textContent = activePrint()?`Choose 10, 30, 50, 100 or 200 ${activePrint().name} hairbands · GH₵10 each.`:`Choose a ${modeLabel()} bundle for your ${styleText} hairbands.`;
   $('#colourStyleName').textContent = styleLabel(editStyle());
   $('#bundleCount').textContent = styleTarget(editStyle());
   $('#colour-title').innerHTML = wholesaleStyle === 'mixed'
     ? `Choose colours for <span id="colourStyleName">${styleLabel(editStyle())}</span>.`
     : `Build your <span id="colourStyleName">${styleLabel(editStyle())}</span> bundle.`;
   renderColourTabs();
+  if(activePrint())return;
   const standardPrice=wholesaleMaterial==='ribbed'?ribbedStandardBundles[0]?.price:standardBundles[0]?.price;
   const customPrice=wholesaleMaterial==='ribbed'?ribbedCustomBundles[0]?.price:customBundles[0]?.price;
   const standardLabel=document.querySelector('[data-order-type="standard"] .order-type-price');if(standardLabel)standardLabel.textContent=`10 pieces · ${money(standardPrice)}`;
@@ -542,6 +562,7 @@ function updateAll() {
 function addWholesaleToBag() {
   const b = currentBundle();
   if (!bundleStockReady()) return BF.toast('That wholesale bundle is sold out at the moment. Try a smaller bundle or another style.');
+  if(activePrint()){const print=activePrint();BF.addWholesale({...b,productId:print.id,productName:print.name,image:print.image}, {[print.name]:b.pieces}, 'standard', 'flat', 'ribbed', {flat:b.pieces});return;}
   if (orderType === 'custom' && !customReady()) return BF.toast('Complete your custom colour mix before adding this bundle');
 
   const styleAllocations = wholesaleStyle === 'mixed'
@@ -645,16 +666,23 @@ document.addEventListener('DOMContentLoaded', initWholesale);
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-material]').forEach(btn=>btn.addEventListener('click',()=>{
-    wholesaleMaterial=btn.dataset.material;
+    wholesaleMaterial=btn.dataset.material;ribbedRange='colours';
     document.querySelectorAll('[data-material]').forEach(x=>x.classList.toggle('active',x===btn));
     bundleIndex=0;resetColourState();wholesaleStyle='flat';activeColourStyle='flat';resetStyleSplit();
-    const styleStage=document.getElementById('style-stage');if(styleStage)styleStage.hidden=wholesaleMaterial==='ribbed';
+    const styleStage=document.getElementById('style-stage');if(styleStage)styleStage.hidden=false;const rangeStage=document.getElementById('ribbed-range-stage');if(rangeStage)rangeStage.hidden=wholesaleMaterial!=='ribbed';document.querySelectorAll('[data-ribbed-range]').forEach(x=>x.classList.toggle('active',x.dataset.ribbedRange==='colours'));const orderTypeStage=document.getElementById('order-type-stage');if(orderTypeStage)orderTypeStage.hidden=false;const colourStage=document.getElementById('colour-stage');if(colourStage)colourStage.hidden=orderType!=='custom';
     const std=document.querySelector('[data-order-type="standard"] p'),cus=document.querySelector('[data-order-type="custom"] p'),change=document.getElementById('changeStyle');
     if(std)std.textContent=wholesaleMaterial==='ribbed'?'Choose a bundle and Band Factory will create a balanced mix from the 11 available Ribbed colours.':'Choose the style and bundle. Band Factory creates a mixed-colour selection from available stock.';
     if(cus)cus.textContent=wholesaleMaterial==='ribbed'?'Choose a bundle, then set exact quantities across the available Ribbed colours within the mix limits.':'Choose the style, bundle and exact quantity you want in each available colour.';
-    if(change)change.textContent=wholesaleMaterial==='ribbed'?'Change material':'Change style';
+    if(change)change.textContent='Change style';
     document.querySelectorAll('[data-order-type]').forEach(x=>x.disabled=false);
     renderBundles();renderCustom();updateAll();
+  }));
+});
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('[data-ribbed-range]').forEach(btn=>btn.addEventListener('click',()=>{
+    ribbedRange=btn.dataset.ribbedRange||'colours';document.querySelectorAll('[data-ribbed-range]').forEach(x=>x.classList.toggle('active',x===btn));bundleIndex=0;resetColourState();wholesaleStyle='flat';activeColourStyle='flat';resetStyleSplit();const print=activePrint();document.getElementById('style-stage').hidden=!!print;document.getElementById('order-type-stage').hidden=!!print;document.getElementById('colour-stage').hidden=!!print||orderType!=='custom';document.getElementById('mixed-split-stage').hidden=true;if(print){orderType='standard';document.querySelectorAll('[data-order-type]').forEach(x=>x.classList.toggle('active',x.dataset.orderType==='standard'));}renderBundles();renderCustom();updateAll();BF.toast(print?`${print.name} wholesale · GH₵10 each`:'Ribbed colour collection selected');
   }));
 });
 
