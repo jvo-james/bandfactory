@@ -38,8 +38,8 @@ window.BF_IMAGES = {
     'ribbed-hot-pink':'images/rhpink.jpg', // PLACEHOLDER: hot pink ribbed hairband.
     'ribbed-olive':'images/rolive.jpg', // Chartreuse ribbed hairband (legacy key kept so existing stock/image data still works).
     'ribbed-teal':'images/rgreen.jpg', // Green ribbed hairband (legacy key retained for existing inventory).
-    'ribbed-new-teal':'images/rteal.jpg', // Teal ribbed hairband.
-    'ribbed-royal-blue':'images/ribbed-placeholder.svg', // Royal Blue ribbed hairband: replace with the final product photo when available.
+    'ribbed-new-teal':'images/rtea.jpg', // Teal ribbed hairband.
+    'ribbed-royal-blue':'images/rb.jpg', // Royal Blue ribbed hairband: replace with the final product photo when available.
     'ribbed-orange':'images/rorange.jpg', // PLACEHOLDER: orange ribbed hairband.
     'ribbed-burgundy':'images/rburgundy.jpg', // PLACEHOLDER: burgundy ribbed hairband.
     'ribbed-mustard':'images/rmustard.jpg', // Caramel ribbed hairband (legacy key kept so existing stock/image data still works).
