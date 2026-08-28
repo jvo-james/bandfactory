@@ -79,10 +79,10 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     if(found)found.qty+=qty;else cart.push({key,type:'apparel',productId:id,name,size:cleanSize,color:'Black',qty,price:amount,image});
     this.saveCart(cart);this.toast(`${name} · ${cleanSize} added to your Bag`);this.openDrawer('bagDrawer');
   },
-  addCatalogProduct(item,size,price,image,qty=1){
+  addCatalogProduct(item,size,price,image,qty=1,style='flat'){
     const amount=Number(price||0);if(amount<=0)return this.toast('This product price has not been set yet.');
-    const cleanSize=String(size||'');const cart=this.getCart();const key=`catalog-${item.id}-${cleanSize||'one'}`;const found=cart.find(i=>i.key===key);
-    const line={key,type:'catalog',productId:item.id,name:item.name,size:cleanSize,color:item.color||'',category:item.category,qty,price:amount,image,packSize:Number(item.packSize||1)};
+    const cleanSize=String(size||''),cleanStyle=style==='twisted'?'twisted':'flat';const cart=this.getCart();const styleKey=item.category==='ribbed'?`-${cleanStyle}`:'';const key=`catalog-${item.id}${styleKey}-${cleanSize||'one'}`;const found=cart.find(i=>i.key===key);
+    const line={key,type:'catalog',productId:item.id,name:item.category==='ribbed'?`${cleanStyle[0].toUpperCase()+cleanStyle.slice(1)} ${item.name}`:item.name,size:cleanSize,color:item.color||'',category:item.category,material:item.category==='ribbed'?'ribbed':undefined,style:item.category==='ribbed'?cleanStyle:undefined,qty,price:amount,image,packSize:Number(item.packSize||1)};
     if(found)found.qty+=qty;else cart.push(line);this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
   },
   addWholesale(bundle,allocations,mode='custom',style='flat',material='smooth',styleAllocations=null){

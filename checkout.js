@@ -10,7 +10,7 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 function itemsSummary(){
-  return cart.map(i => i.type === 'wholesale' ? `${i.name}: ${i.summary}` : i.type==='apparel' ? `${i.qty} × ${i.name} · Black · Size ${i.size}` : i.type==='simple' ? `${i.qty} × ${i.name}` : `${i.qty} × ${i.color} ${i.material==='ribbed'?'Ribbed':'Smooth'} ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} Hairband`).join(' | ');
+  return cart.map(i => i.type === 'wholesale' ? `${i.name}: ${i.summary}` : i.type==='apparel' ? `${i.qty} × ${i.name} · Black · Size ${i.size}` : i.type==='simple' ? `${i.qty} × ${i.name}` : i.type==='catalog' ? `${i.qty} × ${i.name}` : `${i.qty} × ${i.color} ${i.material==='ribbed'?'Ribbed':'Smooth'} ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} Hairband`).join(' | ');
 }
 
 function selectedFulfilment(){
@@ -87,7 +87,7 @@ function renderSummary(){
   if(!cart.length){
     el.innerHTML = '<p>Your Bag is empty. <a href="shop.html" style="color:#f8dce7;text-decoration:underline">Return to the shop</a>.</p>';
   }else{
-    el.innerHTML = cart.map(i => `<div class="summary-row"><img src="${i.image}" alt="${i.name}"><p><strong>${i.name}</strong><br><small>${i.type === 'wholesale' ? i.summary : i.type==='apparel' ? `Black · Size ${i.size} × ${i.qty}` : i.type==='simple' ? `Quantity × ${i.qty}` : `${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} × ${i.qty}`}</small></p><strong>${BF.money(i.price * i.qty)}</strong></div>`).join('');
+    el.innerHTML = cart.map(i => `<div class="summary-row"><img src="${i.image}" alt="${i.name}"><p><strong>${i.name}</strong><br><small>${i.type === 'wholesale' ? i.summary : i.type==='apparel' ? `Black · Size ${i.size} × ${i.qty}` : i.type==='simple' ? `Quantity × ${i.qty}` : i.type==='catalog' ? `${i.color||i.category||'Product'}${i.style?` · ${i.style[0].toUpperCase()+i.style.slice(1)}`:''} × ${i.qty}` : `${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} × ${i.qty}`}</small></p><strong>${BF.money(i.price * i.qty)}</strong></div>`).join('');
   }
 
   $('#summarySubtotal').textContent = BF.money(subtotal());
@@ -722,7 +722,7 @@ setPaymentState(
 
 
 async function validateCartStock(){
-  const [settings,productData,apparelData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}})]);
+  const [settings,productData,apparelData,catalogData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFStore.getDoc('products/catalog',{items:[]})]);
   const remaining={flat:{},twisted:{}};
   const colors=new Set([...(BF.colors||[]).map(x=>x[0]),...Object.keys(productData.colors||{}),...Object.keys(productData.styles?.flat?.colors||{}),...Object.keys(productData.styles?.twisted?.colors||{})]);
   for(const style of ['flat','twisted']) for(const color of colors){
@@ -742,7 +742,9 @@ async function validateCartStock(){
     for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
   };
   const apparelRemaining={};for(const [size,data] of Object.entries(apparelData?.sizes||{}))apparelRemaining[String(size).toUpperCase()]=data?.available===false?0:Math.max(0,Number(data?.stock??0));
+  const catalogRemaining=Object.fromEntries((catalogData.items||[]).map(item=>[item.id,{flat:{stock:Number(item.styles?.flat?.stock??item.stock??0),available:item.styles?.flat?.available??item.available!==false},twisted:{stock:Number(item.styles?.twisted?.stock??0),available:item.styles?.twisted?.available===true}}]));
   for(const item of cart){
+    if(item.type==='catalog'&&item.category==='ribbed'){const style=item.style==='twisted'?'twisted':'flat',entry=catalogRemaining[item.productId]?.[style]||{stock:0,available:false},have=entry.available===false?0:Math.max(0,Number(entry.stock||0)),need=Math.max(0,Number(item.qty||0));if(need>have)throw new Error(have>0?`Only ${have} ${item.color||'Ribbed'} ${style} hairband${have===1?' is':'s are'} available right now. Please reduce the quantity in your Bag.`:`${item.color||'This Ribbed'} ${style} hairband is sold out. Please remove it from your Bag or choose another option.`);entry.stock=have-need;continue;}
     if(item.type==='apparel'&&item.productId==='spandex-tube-top'){const size=String(item.size||'').toUpperCase(),have=Math.max(0,Number(apparelRemaining[size]||0)),need=Math.max(0,Number(item.qty||0));if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} available in size ${size}. Please reduce the quantity in your Bag.`:`Spandex Tube Top size ${size} is sold out. Please remove it from your Bag or choose another size.`);apparelRemaining[size]=have-need;continue;}
     if((item.material||'smooth')!=='smooth')continue;
     if(item.type==='retail'){
