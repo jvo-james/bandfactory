@@ -9,11 +9,11 @@ window.BF_CONFIG = {
     appId: '1:720382521656:web:4d28d1fa6ea960690451cd'
   },
   emailjs: {
-    publicKey: '9zOvqGRmh5jip3rVa',
-    serviceId: 'service_vfyrhvn',
+    publicKey: 'xdwHgXZdZp8JCf_FC',
+    serviceId: 'service_yhp1rcj',
      templates: {
-    customer: 'template_jgko0m1',
-    admin: 'template_h6xhbrq'
+    customer: 'template_ofwdyij',
+    admin: 'template_pxddvut'
   },
     adminEmail: 'bandfactoryy@gmail.com'
   },
