@@ -382,6 +382,7 @@ function packingItems(o={}){
     if(item.type!=='wholesale'){
       const details=item.type==='apparel'?[`Black`,`Size ${item.size||'-'}`].join(' · '):[
         item.color?receiptEscape(item.color):'',
+        item.size?`Size ${receiptEscape(item.size)}`:'',
         item.style?receiptEscape(titleCase(item.style)):''
       ].filter(Boolean).join(' · ');
 
