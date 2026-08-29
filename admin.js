@@ -118,8 +118,11 @@ function renderOrderItem(item,index){
   const qty=Math.max(1,Number(item.qty||1)),itemTotal=Number(item.price||0)*qty;
   if(item.type==='apparel'){return `<article class="order-product-card"><div class="order-product-head"><span class="order-product-number">${index+1}</span><div><strong>${item.name||'Spandex Tube Top'}</strong><small>Black · Size ${item.size||'-'}</small></div><b>${BF.money(itemTotal)}</b></div><div class="order-product-meta"><span><small>Quantity</small><strong>${qty}</strong></span><span><small>Size</small><strong>${item.size||'-'}</strong></span><span><small>Colour</small><strong>Black</strong></span><span><small>Unit price</small><strong>${BF.money(item.price||0)}</strong></span></div></article>`;}
   if(item.type!=='wholesale'){
-    const style=titleCase(item.style||'flat');
-    return `<article class="order-product-card"><div class="order-product-head"><span class="order-product-number">${index+1}</span><div><strong>${item.name||'Product'}</strong><small>${item.type==='simple'?'Collection item':`${item.color||'No colour'} · ${style}`}</small></div><b>${BF.money(itemTotal)}</b></div><div class="order-product-meta"><span><small>Quantity</small><strong>${qty}</strong></span>${item.type!=='simple'?`<span><small>Style</small><strong>${style}</strong></span><span><small>Colour</small><strong>${item.color||'-'}</strong></span>`:''}<span><small>Unit price</small><strong>${BF.money(item.price||0)}</strong></span></div></article>`;
+    const isCatalog=item.type==='catalog',hasSize=Boolean(String(item.size||'').trim()),hasStyle=Boolean(String(item.style||'').trim());
+    const style=hasStyle?titleCase(item.style):'';
+    const summary=item.type==='simple'?'Collection item':[item.color||'',hasSize?`Size ${item.size}`:'',hasStyle?style:''].filter(Boolean).join(' · ')||'Product';
+    const meta=item.type==='simple'?'':`${hasSize?`<span><small>Size</small><strong>${item.size}</strong></span>`:''}${hasStyle?`<span><small>Style</small><strong>${style}</strong></span>`:''}${item.color?`<span><small>Colour</small><strong>${item.color}</strong></span>`:''}`;
+    return `<article class="order-product-card"><div class="order-product-head"><span class="order-product-number">${index+1}</span><div><strong>${item.name||'Product'}</strong><small>${summary}</small></div><b>${BF.money(itemTotal)}</b></div><div class="order-product-meta"><span><small>Quantity</small><strong>${qty}</strong></span>${meta}<span><small>Unit price</small><strong>${BF.money(item.price||0)}</strong></span></div></article>`;
   }
   const pieces=Number(item.bundlePieces||0),totalPieces=pieces*qty,mode=item.wholesaleMode==='standard'?'Standard mix':'Custom colours',style=item.style||'flat',split=item.styleAllocations||{};
   let allocation='';
