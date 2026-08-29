@@ -86,19 +86,16 @@ const currentBundles = () => activePrint()?printBundles:(wholesaleMaterial==='ri
 const currentBundle = () => currentBundles()[bundleIndex] || currentBundles()[0];
 const RIBBED_CUSTOM_COLOUR_RULES={10:{maxPerColour:2,minColours:6,maxColours:11},30:{maxPerColour:3,minColours:10,maxColours:11},50:{maxPerColour:5,minColours:10,maxColours:11},100:{maxPerColour:10,minColours:10,maxColours:11},200:{maxPerColour:19,minColours:11,maxColours:11}};
 const currentRule = () => (wholesaleMaterial==='ribbed'?RIBBED_CUSTOM_COLOUR_RULES:CUSTOM_COLOUR_RULES)[currentBundle().pieces] || { maxPerColour: currentBundle().pieces, minColours: 1, maxColours: wholesaleMaterial==='ribbed'?13:99 };
-const styleImage = style => activePrint()?.image || (wholesaleMaterial==='ribbed' ? (style==='twisted'?'images/ribbed-placeholder.svg':style==='mixed'?'images/rb.jpg':'images/rb.jpg') : (style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg'));
-
-function syncStyleChoiceImages(){
+const styleImage = style => activePrint()?.image || (wholesaleMaterial==='ribbed' ? (style==='twisted'?'images/ribbed-placeholder.svg':'images/IMG_3249.jpeg') : (style === 'twisted' ? 'images/twisted.jpeg' : style === 'mixed' ? 'images/wholesale-bundle.webp' : 'images/flat.jpg'));
+function updateWholesaleStyleCardImages(){
   const ribbed=wholesaleMaterial==='ribbed';
-  const flatSrc=ribbed?'images/rb.jpg':'images/flat.jpg';
-  const twistedSrc=ribbed?'images/ribbed-placeholder.svg':'images/twisted.jpeg';
-  const flat=document.querySelector('[data-wholesale-style="flat"] .style-photo img');
-  const twisted=document.querySelector('[data-wholesale-style="twisted"] .style-photo img');
-  const mixed=document.querySelectorAll('[data-wholesale-style="mixed"] .mixed-photo-half img');
-  if(flat){flat.src=flatSrc;flat.alt=ribbed?'Flat ribbed hairband':'Flat smooth hairband';}
-  if(twisted){twisted.src=twistedSrc;twisted.alt=ribbed?'Twisted ribbed hairband placeholder':'Twisted smooth hairband';}
-  if(mixed[0]){mixed[0].src=flatSrc;mixed[0].alt=ribbed?'Flat ribbed hairband':'';}
-  if(mixed[1]){mixed[1].src=twistedSrc;mixed[1].alt=ribbed?'Twisted ribbed hairband placeholder':'';}
+  const flat= ribbed ? 'images/IMG_3249.jpeg' : 'images/flat.jpg';
+  const twisted= ribbed ? 'images/ribbed-placeholder.svg' : 'images/twisted.jpeg';
+  const set=(id,src,alt)=>{const img=document.getElementById(id);if(img){img.src=src;img.alt=alt;}};
+  set('wholesaleFlatStyleImage',flat,ribbed?'Flat ribbed hairband':'Flat smooth hairband');
+  set('wholesaleTwistedStyleImage',twisted,ribbed?'Twisted ribbed hairband placeholder':'Twisted smooth hairband');
+  set('wholesaleMixedFlatImage',flat,ribbed?'Flat ribbed hairband':'Flat smooth hairband');
+  set('wholesaleMixedTwistedImage',twisted,ribbed?'Twisted ribbed hairband placeholder':'Twisted smooth hairband');
 }
 
 const editStyle = () => wholesaleStyle === 'mixed' ? activeColourStyle : wholesaleStyle;
@@ -565,7 +562,7 @@ function updateLabels() {
 }
 
 function updateAll() {
-  syncStyleChoiceImages();
+  updateWholesaleStyleCardImages();
   updateSplitUI();
   updateAllocation();
   updateSticky();
@@ -681,7 +678,7 @@ document.addEventListener('DOMContentLoaded', initWholesale);
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-material]').forEach(btn=>btn.addEventListener('click',()=>{
-    wholesaleMaterial=btn.dataset.material;ribbedRange='colours';
+    wholesaleMaterial=btn.dataset.material;ribbedRange='colours';updateWholesaleStyleCardImages();
     document.querySelectorAll('[data-material]').forEach(x=>x.classList.toggle('active',x===btn));
     bundleIndex=0;resetColourState();wholesaleStyle='flat';activeColourStyle='flat';resetStyleSplit();
     const styleStage=document.getElementById('style-stage');if(styleStage)styleStage.hidden=false;const rangeStage=document.getElementById('ribbed-range-stage');if(rangeStage)rangeStage.hidden=wholesaleMaterial!=='ribbed';document.querySelectorAll('[data-ribbed-range]').forEach(x=>x.classList.toggle('active',x.dataset.ribbedRange==='colours'));const orderTypeStage=document.getElementById('order-type-stage');if(orderTypeStage)orderTypeStage.hidden=false;const colourStage=document.getElementById('colour-stage');if(colourStage)colourStage.hidden=orderType!=='custom';

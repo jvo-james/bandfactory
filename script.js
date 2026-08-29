@@ -791,65 +791,9 @@ function sharedShell() {
 document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
 
 function setupShopNavigation(){
-  const submenu='<a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><a href="tops.html">Tops</a><a href="sets.html">Sets</a>';
-
-  document.querySelectorAll('.nav-left a[href="shop.html"]').forEach(link=>{
-    if(link.closest('.shop-dropdown-wrap'))return;
-    const wrap=document.createElement('div');
-    wrap.className='shop-dropdown-wrap';
-    link.parentNode.insertBefore(wrap,link);
-    wrap.appendChild(link);
-    link.classList.add('shop-main-link');
-
-    const toggle=document.createElement('button');
-    toggle.type='button';
-    toggle.className='shop-dropdown-toggle';
-    toggle.setAttribute('aria-label','Show Shop categories');
-    toggle.setAttribute('aria-expanded','false');
-    toggle.innerHTML='<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5l5-5"/></svg>';
-    wrap.appendChild(toggle);
-
-    const menu=document.createElement('div');
-    menu.className='shop-dropdown';
-    menu.setAttribute('aria-label','Shop categories');
-    menu.innerHTML=`<span class="shop-dropdown-eyebrow">Shop by collection</span>${submenu}`;
-    wrap.appendChild(menu);
-
-    let pinned=false;
-    const setOpen=(open)=>{wrap.classList.toggle('open',open);toggle.setAttribute('aria-expanded',String(open));};
-    wrap.addEventListener('mouseenter',()=>setOpen(true));
-    wrap.addEventListener('mouseleave',()=>{if(!pinned)setOpen(false)});
-    toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pinned=!pinned;setOpen(pinned);});
-    wrap._closeShopDropdown=()=>{pinned=false;setOpen(false)};
-  });
-
-  document.addEventListener('click',e=>{
-    document.querySelectorAll('.shop-dropdown-wrap.open').forEach(wrap=>{
-      if(!wrap.contains(e.target))wrap._closeShopDropdown?.();
-    });
-  });
-
-  document.querySelectorAll('.mobile-menu a[href="shop.html"]').forEach(link=>{
-    if(link.closest('.mobile-shop-tree'))return;
-    const tree=document.createElement('div');
-    tree.className='mobile-shop-tree';
-    tree.innerHTML=`<div class="mobile-shop-row"><a class="mobile-shop-main" href="shop.html">Shop</a><button type="button" class="mobile-shop-toggle" aria-label="Show Shop categories" aria-expanded="false"><svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5l5-5"/></svg></button></div><div class="mobile-shop-sub">${submenu}</div>`;
-    link.replaceWith(tree);
-    const toggle=tree.querySelector('.mobile-shop-toggle');
-    let pinned=false;
-    const setOpen=open=>{tree.classList.toggle('open',open);toggle.setAttribute('aria-expanded',String(open));};
-    tree.addEventListener('mouseenter',()=>setOpen(true));
-    tree.addEventListener('mouseleave',()=>{if(!pinned)setOpen(false)});
-    toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pinned=!pinned;setOpen(pinned)});
-    tree._closeShopDropdown=()=>{pinned=false;setOpen(false)};
-    tree.querySelectorAll('.mobile-shop-sub a').forEach(a=>a.addEventListener('click',()=>{document.querySelector('.mobile-menu')?.classList.remove('open');document.body.classList.remove('menu-open')}));
-  });
-
-  document.addEventListener('click',e=>{
-    document.querySelectorAll('.mobile-shop-tree.open').forEach(tree=>{
-      if(!tree.contains(e.target))tree._closeShopDropdown?.();
-    });
-  });
+  document.querySelectorAll('.nav-left a[href="shop.html"]').forEach(link=>{if(link.parentElement?.classList.contains('shop-dropdown-wrap'))return;const wrap=document.createElement('div');wrap.className='shop-dropdown-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);link.setAttribute('aria-haspopup','true');link.setAttribute('aria-expanded','false');const menu=document.createElement('div');menu.className='shop-dropdown';menu.innerHTML='<strong>Hairbands</strong><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><strong>Basics</strong><a href="tops.html">Tops</a><a href="sets.html">Sets</a><strong>Shop</strong><a href="shop.html">View all collections</a>';wrap.appendChild(menu);link.addEventListener('click',e=>{e.preventDefault();const open=!wrap.classList.contains('open');document.querySelectorAll('.shop-dropdown-wrap.open').forEach(x=>x.classList.remove('open'));wrap.classList.toggle('open',open);link.setAttribute('aria-expanded',String(open))})});
+  document.addEventListener('click',e=>{if(!e.target.closest('.shop-dropdown-wrap'))document.querySelectorAll('.shop-dropdown-wrap.open').forEach(x=>x.classList.remove('open'))});
+  document.querySelectorAll('.mobile-menu a[href="shop.html"]').forEach(link=>{if(link.closest('details'))return;const d=document.createElement('details');d.className='mobile-shop-tree';d.innerHTML='<summary>Shop</summary><div class="mobile-shop-sub"><b>Hairbands</b><a href="smooth.html">Smooth</a><a href="ribbed.html">Ribbed</a><b>Basics</b><a href="tops.html">Tops</a><a href="sets.html">Sets</a></div>';link.replaceWith(d)});
 }
 
 document.addEventListener('DOMContentLoaded',setupShopNavigation);
@@ -897,3 +841,37 @@ function enhanceStorefrontChrome(){
   if(switcher){let lastY=window.scrollY,ticking=false;const update=()=>{const y=window.scrollY,delta=y-lastY;if(y<110)switcher.classList.remove('nav-hidden');else if(delta>7)switcher.classList.add('nav-hidden');else if(delta<-7)switcher.classList.remove('nav-hidden');lastY=y;ticking=false};window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(update);ticking=true}},{passive:true});}
 }
 document.addEventListener('DOMContentLoaded',enhanceStorefrontChrome);
+
+
+/* ===== SHOP NAV DROPDOWN ===== */
+function initShopNavigationDropdowns(){
+  const links=[['smooth.html','Smooth'],['ribbed.html','Ribbed'],['tops.html','Tops'],['sets.html','Sets']];
+  const menuMarkup=()=>`<div class="shop-dropdown-menu" role="menu">${links.map(([href,label])=>`<a href="${href}" role="menuitem"><span>${label}</span><i aria-hidden="true">→</i></a>`).join('')}</div>`;
+  const bind=(wrap,button)=>{
+    let hovered=false,pinned=false;
+    const sync=()=>{const open=hovered||pinned;wrap.classList.toggle('is-open',open);wrap.classList.toggle('is-pinned',pinned);button.setAttribute('aria-expanded',String(open));};
+    wrap.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch'){hovered=true;sync();}});
+    wrap.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch'){hovered=false;sync();}});
+    button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pinned=!pinned;hovered=false;sync();});
+    document.addEventListener('click',e=>{if(pinned&&!wrap.contains(e.target)){pinned=false;hovered=false;sync();}});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(pinned||hovered)){pinned=false;hovered=false;sync();button.focus();}});
+  };
+  document.querySelectorAll('.nav-left > a[href="shop.html"]').forEach(anchor=>{
+    if(anchor.closest('.shop-nav-dropdown'))return;
+    const wrap=document.createElement('div');wrap.className='shop-nav-dropdown shop-nav-desktop';
+    const trigger=document.createElement('div');trigger.className='shop-nav-trigger';
+    anchor.parentNode.insertBefore(wrap,anchor);wrap.appendChild(trigger);trigger.appendChild(anchor);
+    anchor.classList.add('shop-main-link');
+    const button=document.createElement('button');button.type='button';button.className='shop-dropdown-toggle';button.setAttribute('aria-label','Show Shop categories');button.setAttribute('aria-expanded','false');button.innerHTML='<span aria-hidden="true">⌄</span>';trigger.appendChild(button);
+    wrap.insertAdjacentHTML('beforeend',menuMarkup());bind(wrap,button);
+  });
+  document.querySelectorAll('.mobile-menu > a[href="shop.html"]').forEach(anchor=>{
+    if(anchor.closest('.shop-nav-dropdown'))return;
+    const wrap=document.createElement('div');wrap.className='shop-nav-dropdown shop-nav-mobile';
+    const row=document.createElement('div');row.className='shop-mobile-row';anchor.parentNode.insertBefore(wrap,anchor);wrap.appendChild(row);row.appendChild(anchor);
+    anchor.classList.add('shop-main-link');
+    const button=document.createElement('button');button.type='button';button.className='shop-dropdown-toggle';button.setAttribute('aria-label','Show Shop categories');button.setAttribute('aria-expanded','false');button.innerHTML='<span aria-hidden="true">⌄</span>';row.appendChild(button);
+    wrap.insertAdjacentHTML('beforeend',menuMarkup());bind(wrap,button);
+  });
+}
+document.addEventListener('DOMContentLoaded',initShopNavigationDropdowns);
