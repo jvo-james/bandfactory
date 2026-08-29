@@ -839,33 +839,89 @@ document.addEventListener('DOMContentLoaded',enhanceStorefrontChrome);
 
 /* ===== SHOP NAV DROPDOWN ===== */
 function initShopNavigationDropdowns(){
-  const links=[['smooth.html','Smooth'],['ribbed.html','Ribbed'],['tops.html','Tops'],['sets.html','Sets']];
-  const menuMarkup=()=>`<div class="shop-dropdown-menu" role="menu">${links.map(([href,label])=>`<a href="${href}" role="menuitem"><span>${label}</span><i aria-hidden="true">→</i></a>`).join('')}</div>`;
+  const links=[['smooth.html','Smooth'],['ribbed.html','Ribbed'],['tops.html','Tops'],['sets.html','Set']];
+  let dropdownIndex=0;
+
+  const menuMarkup=id=>`<div class="shop-dropdown-menu" id="${id}" aria-label="Shop categories">${links.map(([href,label])=>`<a href="${href}"><span>${label}</span><i aria-hidden="true">→</i></a>`).join('')}</div>`;
+
   const bind=(wrap,button)=>{
-    let hovered=false,pinned=false;
-    const sync=()=>{const open=hovered||pinned;wrap.classList.toggle('is-open',open);wrap.classList.toggle('is-pinned',pinned);button.setAttribute('aria-expanded',String(open));};
-    wrap.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch'){hovered=true;sync();}});
-    wrap.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch'){hovered=false;sync();}});
-    button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pinned=!pinned;hovered=false;sync();});
-    document.addEventListener('click',e=>{if(pinned&&!wrap.contains(e.target)){pinned=false;hovered=false;sync();}});
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(pinned||hovered)){pinned=false;hovered=false;sync();button.focus();}});
+    let hovered=false;
+    let pinned=false;
+
+    const sync=()=>{
+      const open=hovered||pinned;
+      wrap.classList.toggle('is-open',open);
+      wrap.classList.toggle('is-pinned',pinned);
+      button.setAttribute('aria-expanded',String(open));
+    };
+
+    // Hover opens the dropdown and moving through the dropdown keeps it open.
+    // A click-pinned dropdown ignores pointer leave and closes only from another
+    // toggle click, Escape, or a click anywhere outside this Shop dropdown.
+    wrap.addEventListener('pointerenter',event=>{
+      if(event.pointerType==='touch')return;
+      hovered=true;
+      sync();
+    });
+    wrap.addEventListener('pointerleave',event=>{
+      if(event.pointerType==='touch')return;
+      hovered=false;
+      sync();
+    });
+
+    button.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      pinned=!pinned;
+      hovered=false;
+      sync();
+    });
+
+    document.addEventListener('click',event=>{
+      if(!pinned||wrap.contains(event.target))return;
+      pinned=false;
+      hovered=false;
+      sync();
+    });
+
+    document.addEventListener('keydown',event=>{
+      if(event.key!=='Escape'||(!pinned&&!hovered))return;
+      pinned=false;
+      hovered=false;
+      sync();
+      button.focus();
+    });
   };
-  document.querySelectorAll('.nav-left > a[href="shop.html"]').forEach(anchor=>{
+
+  const addDropdown=(anchor,variant)=>{
     if(anchor.closest('.shop-nav-dropdown'))return;
-    const wrap=document.createElement('div');wrap.className='shop-nav-dropdown shop-nav-desktop';
-    const trigger=document.createElement('div');trigger.className='shop-nav-trigger';
-    anchor.parentNode.insertBefore(wrap,anchor);wrap.appendChild(trigger);trigger.appendChild(anchor);
+
+    const wrap=document.createElement('div');
+    wrap.className=`shop-nav-dropdown ${variant}`;
+
+    const trigger=document.createElement('div');
+    trigger.className=variant==='shop-nav-mobile'?'shop-mobile-row':'shop-nav-trigger';
+
+    anchor.parentNode.insertBefore(wrap,anchor);
+    wrap.appendChild(trigger);
+    trigger.appendChild(anchor);
     anchor.classList.add('shop-main-link');
-    const button=document.createElement('button');button.type='button';button.className='shop-dropdown-toggle';button.setAttribute('aria-label','Show Shop categories');button.setAttribute('aria-expanded','false');button.innerHTML='<span aria-hidden="true">⌄</span>';trigger.appendChild(button);
-    wrap.insertAdjacentHTML('beforeend',menuMarkup());bind(wrap,button);
-  });
-  document.querySelectorAll('.mobile-menu > a[href="shop.html"]').forEach(anchor=>{
-    if(anchor.closest('.shop-nav-dropdown'))return;
-    const wrap=document.createElement('div');wrap.className='shop-nav-dropdown shop-nav-mobile';
-    const row=document.createElement('div');row.className='shop-mobile-row';anchor.parentNode.insertBefore(wrap,anchor);wrap.appendChild(row);row.appendChild(anchor);
-    anchor.classList.add('shop-main-link');
-    const button=document.createElement('button');button.type='button';button.className='shop-dropdown-toggle';button.setAttribute('aria-label','Show Shop categories');button.setAttribute('aria-expanded','false');button.innerHTML='<span aria-hidden="true">⌄</span>';row.appendChild(button);
-    wrap.insertAdjacentHTML('beforeend',menuMarkup());bind(wrap,button);
-  });
+
+    const menuId=`shop-dropdown-${++dropdownIndex}`;
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='shop-dropdown-toggle';
+    button.setAttribute('aria-label','Show Shop categories');
+    button.setAttribute('aria-expanded','false');
+    button.setAttribute('aria-controls',menuId);
+    button.innerHTML='<span class="shop-dropdown-chevron" aria-hidden="true"></span>';
+    trigger.appendChild(button);
+
+    wrap.insertAdjacentHTML('beforeend',menuMarkup(menuId));
+    bind(wrap,button);
+  };
+
+  document.querySelectorAll('.nav-left > a[href="shop.html"]').forEach(anchor=>addDropdown(anchor,'shop-nav-desktop'));
+  document.querySelectorAll('.mobile-menu > a[href="shop.html"]').forEach(anchor=>addDropdown(anchor,'shop-nav-mobile'));
 }
 document.addEventListener('DOMContentLoaded',initShopNavigationDropdowns);
