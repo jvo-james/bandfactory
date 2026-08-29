@@ -3,11 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Band Factory Admin</title><meta name="description" content="Band Factory store management.">
+  <title>Band Factory Admin | Store Management</title><meta name="description" content="Private Band Factory dashboard for authorised store management and fulfilment.">
    <link rel="icon" href="logo.jpg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="admin.css">
-<link rel="canonical" href="https://bandfactory.store/admin.html"><meta name="robots" content="noindex,follow"><link rel="stylesheet" href="catalog.css"></head>
+<link rel="canonical" href="https://bandfactory.store/admin.html"><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="catalog.css"><meta property="og:type" content="website">
+<meta property="og:site_name" content="Band Factory">
+<meta property="og:title" content="Band Factory Admin | Store Management">
+<meta property="og:description" content="Private Band Factory dashboard for authorised store management and fulfilment.">
+<meta property="og:url" content="https://bandfactory.store/admin.html">
+<meta property="og:image" content="https://bandfactory.store/images/brand-logo-pink.jpg">
+<meta property="og:image:alt" content="Band Factory Admin | Store Management — Band Factory">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Band Factory Admin | Store Management">
+<meta name="twitter:description" content="Private Band Factory dashboard for authorised store management and fulfilment.">
+<meta name="twitter:image" content="https://bandfactory.store/images/brand-logo-pink.jpg">
+</head>
 <body class="admin-body">
   <div class="admin-shell">
     <aside class="admin-side" id="adminSidebar" aria-label="Admin navigation">
@@ -24,7 +35,7 @@
         <button data-section="transactionsPanel"><span class="nav-label"><i class="fa-solid fa-receipt"></i>Transactions</span></button>
         <button data-section="internationalPanel"><span class="nav-label"><i class="fa-solid fa-earth-africa"></i>International Payments</span><span class="nav-count soft" id="internationalNavCount" hidden>0</span></button>
         <button data-section="analyticsPanel"><span class="nav-label"><i class="fa-solid fa-chart-line"></i>Sales Analytics</span></button>
-        <button data-section="productsPanel"><span class="nav-label"><i class="fa-solid fa-boxes-stacked"></i>Inventory &amp; Products</span><span class="nav-count soft" id="productsNavCount" hidden>0</span></button><button data-section="catalogStudioPanel"><span class="nav-label"><i class="fa-solid fa-wand-magic-sparkles"></i>Catalog Studio</span></button>
+        <button data-section="productsPanel"><span class="nav-label"><i class="fa-solid fa-boxes-stacked"></i>Inventory &amp; Products</span><span class="nav-count soft" id="productsNavCount" hidden>0</span></button>
         <button data-section="wholesalePanel"><span class="nav-label"><i class="fa-solid fa-boxes-stacked"></i>Wholesale</span></button>
         <button data-section="reviewsPanel"><span class="nav-label"><i class="fa-solid fa-star"></i>Reviews</span><span class="nav-count" id="reviewsNavCount" hidden>0</span></button>
         <button data-section="customersPanel"><span class="nav-label"><i class="fa-solid fa-users"></i>Customers</span></button>
@@ -183,16 +194,6 @@
         </div>
         <div class="admin-panel ribbed-settings-panel" hidden><div class="page-intro"><div><h3>Ribbed Hairbands</h3><p>Set the retail price for Ribbed Hairbands, then manage each design below.</p></div></div><div class="form-grid"><div class="admin-field"><label>Ribbed retail price (GHS)</label><input id="ribbedRetailPriceTab" type="number" min="0"></div></div></div><div class="admin-panel catalog-admin-panel"><div class="page-intro"><div><h3 id="catalogAdminHeading">Products</h3><p id="catalogAdminHelp">Manage availability and stock for this category.</p></div><button class="small-btn" id="addCatalogProduct" type="button">+ Add product</button></div><div id="catalogAdminList"></div><div class="save-row"><button class="small-btn primary" id="saveCatalogProducts">Save category products</button></div></div><div class="colour-section-heading"><h3>Smooth stock by colour</h3><p>For each colour, enter how many pieces you have and choose whether customers should be able to buy it.</p></div>
         <div class="color-admin-grid" id="colorAdminGrid"></div>
-      </section>
-
-      <section class="admin-section" id="catalogStudioPanel">
-        <div class="page-intro"><div><div class="studio-kicker">Store control centre</div><h2>Catalog Studio</h2><p>Create categories, launch products, upload product photography to Cloudinary, change prices and stock, or hide anything from the storefront without touching code.</p></div><a class="small-btn" href="shop.html" target="_blank">Preview shop ↗</a></div>
-        <div class="catalog-studio-hero"><div><span>Flexible by design</span><h3>New collection next month? Add it here.</h3><p>Existing collections stay intact. New categories automatically receive a storefront collection page and products can be moved between categories whenever you want.</p></div><div class="studio-stat"><strong id="studioCategoryCount">0</strong><span>categories</span></div><div class="studio-stat"><strong id="studioProductCount">0</strong><span>catalog products</span></div></div>
-        <div class="studio-grid">
-          <section class="admin-panel studio-panel"><div class="panel-head"><div><h3>Categories</h3><p class="panel-help">Create, rename, reorder, hide or update collection artwork.</p></div><button class="small-btn primary" type="button" id="newCategoryBtn">+ New category</button></div><div id="studioCategories" class="studio-card-list"></div></section>
-          <section class="admin-panel studio-panel"><div class="panel-head"><div><h3>Products</h3><p class="panel-help">Every product added here can be purchased and stock-managed.</p></div><button class="small-btn primary" type="button" id="newProductBtn">+ New product</button></div><div class="studio-filter-row"><select id="studioProductFilter"><option value="all">All categories</option></select><input id="studioProductSearch" placeholder="Search products"></div><div id="studioProducts" class="studio-product-list"></div></section>
-        </div>
-        <div class="studio-modal" id="studioModal" hidden><div class="studio-modal-card"><button class="studio-modal-close" type="button" id="studioModalClose" aria-label="Close">×</button><div id="studioModalBody"></div></div></div>
       </section>
 
       <section class="admin-section" id="wholesalePanel">
