@@ -165,7 +165,15 @@
       </section>
 
       <section class="admin-section" id="productsPanel">
-        <div class="page-intro"><div><h2>Inventory &amp; Products</h2><p>Keep stock accurate here. Successful online orders automatically reduce the relevant colour/style quantities. You can correct quantities manually after a physical stock count or restock.</p></div></div><div class="dashboard-cards inventory-summary" id="inventorySummary"></div><div class="inventory-product-tabs" role="tablist"><button class="active" type="button" data-inventory-tab="smooth">Smooth Hairbands</button><button type="button" data-inventory-tab="ribbed">Ribbed Hairbands</button><button type="button" data-inventory-tab="tops">Tops</button><button type="button" data-inventory-tab="sets">Sets</button></div>
+        <div class="page-intro catalog-page-intro"><div><h2>Products &amp; Categories</h2><p>Add, remove and update everything customers can shop. Changes saved here are used across the shop, navigation, homepage and wholesale pages.</p></div><div class="catalog-top-actions"><button class="small-btn" type="button" onclick="openCategoryStudio()">+ New category</button><button class="small-btn primary" type="button" onclick="openProductStudio()">+ New product</button></div></div>
+        <div class="dashboard-cards inventory-summary" id="inventorySummary"></div>
+        <div class="catalog-studio-grid">
+          <div class="admin-panel catalog-studio-panel"><div class="panel-head"><div><h3>Categories</h3><p class="panel-help">Control what appears in the Shop menu and category pages.</p></div><span class="studio-count"><b id="studioCategoryCount">0</b> categories</span></div><div id="studioCategories" class="studio-category-list"></div></div>
+          <div class="admin-panel catalog-studio-panel products"><div class="panel-head"><div><h3>Products</h3><p class="panel-help">Select a product to edit it in a side panel.</p></div><span class="studio-count"><b id="studioProductCount">0</b> products</span></div><div class="studio-toolbar"><input id="studioProductSearch" type="search" placeholder="Search products" aria-label="Search products"><select id="studioProductFilter" aria-label="Filter products"></select></div><div id="studioProducts" class="studio-product-list"></div></div>
+        </div>
+        <div class="admin-panel smooth-colour-manager"><div class="panel-head"><div><h3>Smooth hairband colours</h3><p class="panel-help">Add a new shade once and it will be available anywhere Smooth colours are shown.</p></div><button class="small-btn" type="button" onclick="openSmoothColourStudio()">+ Add colour</button></div><div id="studioSmoothColours" class="smooth-colour-list"></div></div>
+        <details class="admin-panel advanced-inventory" id="advancedInventory"><summary><span><strong>Stock &amp; pricing controls</strong><small>Open this when you need to adjust quantities, prices or style availability.</small></span><i class="fa-solid fa-chevron-down"></i></summary><div class="advanced-inventory-body">
+        <div class="inventory-product-tabs" role="tablist"><button class="active" type="button" data-inventory-tab="smooth">Smooth Hairbands</button><button type="button" data-inventory-tab="ribbed">Ribbed Hairbands</button><button type="button" data-inventory-tab="tops">Tops</button><button type="button" data-inventory-tab="sets">Sets</button></div>
         <div class="admin-panel tube-top-admin-panel"><div class="tube-admin-head"><div><span class="admin-product-badge">EXISTING TOP</span><h3>Spandex Tube Top</h3><p>This existing product is maintained. Edit its price, description and size stock here.</p></div><img src="images/new.jpeg" alt="Black Spandex Tube Top"></div><div class="form-grid"><div class="admin-field"><label>Price (GHS)</label><input id="tubeTopPriceAdmin" type="number" min="0"></div><div class="admin-field"><label>Description</label><textarea id="tubeTopDescriptionAdmin"></textarea></div></div><div class="tube-admin-stock" id="tubeTopAdminStock"></div><div class="save-row"><span class="field-help" id="tubeTopAdminTotal">19 pieces total</span><button class="small-btn primary" id="saveTubeTopStock">Save tube top changes</button></div></div>
         <div class="admin-panel product-settings-panel">
           <div class="settings-explainer"><i class="fa-solid fa-circle-info"></i><div><strong>How this section works</strong><p>Prices change what customers pay. Availability controls whether a product can be bought. The low-stock warning tells the Overview page when a colour is running low.</p></div></div>
@@ -183,6 +191,8 @@
         </div>
         <div class="admin-panel ribbed-settings-panel" hidden><div class="page-intro"><div><h3>Ribbed Hairbands</h3><p>Set the retail price for Ribbed Hairbands, then manage each design below.</p></div></div><div class="form-grid"><div class="admin-field"><label>Ribbed retail price (GHS)</label><input id="ribbedRetailPriceTab" type="number" min="0"></div></div></div><div class="admin-panel catalog-admin-panel"><div class="page-intro"><div><h3 id="catalogAdminHeading">Products</h3><p id="catalogAdminHelp">Manage availability and stock for this category.</p></div><button class="small-btn" id="addCatalogProduct" type="button">+ Add product</button></div><div id="catalogAdminList"></div><div class="save-row"><button class="small-btn primary" id="saveCatalogProducts">Save category products</button></div></div><div class="colour-section-heading"><h3>Smooth stock by colour</h3><p>For each colour, enter how many pieces you have and choose whether customers should be able to buy it.</p></div>
         <div class="color-admin-grid" id="colorAdminGrid"></div>
+        </div></details>
+        <div class="studio-modal" id="studioModal" hidden><button class="studio-modal-screen" type="button" onclick="closeStudioModal()" aria-label="Close editor"></button><aside class="studio-drawer" role="dialog" aria-modal="true" aria-label="Product editor"><button class="studio-drawer-close" type="button" onclick="closeStudioModal()" aria-label="Close">×</button><div id="studioModalBody"></div></aside></div>
       </section>
 
       <section class="admin-section" id="wholesalePanel">
@@ -275,7 +285,7 @@
               </form>
             </div>
 
-            <div class="security-note"><i class="fa-solid fa-circle-info"></i><p>Changing the admin sign-in does not transfer or expose the Firebase project owner account. It only changes the credentials for this authorised admin user.</p></div>
+            <div class="security-note"><i class="fa-solid fa-circle-info"></i><p>Changing the admin sign-in only updates the email or password used for this dashboard. Your website and store data stay connected as normal.</p></div>
           </div>
         </div>
       </section>

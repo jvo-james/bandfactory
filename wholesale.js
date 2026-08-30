@@ -592,11 +592,14 @@ function addWholesaleToBag() {
 }
 
 async function initWholesale() {
-  const [settings, products, catalog] = await Promise.all([
+  await BF.loadSmoothPalette();
+  const [settings, products, catalog, categories] = await Promise.all([
     BFStore.getDoc('settings/store', {}),
     BFStore.getDoc('products/smooth', { colors: {} }),
-    BFStore.getDoc('products/catalog', {items:[]})
+    BFStore.getDoc('products/catalog', {items:[]}),
+    BFCatalog.loadCategories()
   ]);
+  const visibleCategoryIds=new Set((categories||[]).filter(c=>c.visible!==false).map(c=>c.id));document.querySelectorAll('[data-material]').forEach(btn=>{const visible=visibleCategoryIds.has(btn.dataset.material);btn.hidden=!visible;btn.disabled=!visible});if(!visibleCategoryIds.has(wholesaleMaterial))wholesaleMaterial=visibleCategoryIds.has('smooth')?'smooth':visibleCategoryIds.has('ribbed')?'ribbed':wholesaleMaterial;
   productData = products || { colors: {} };
   catalogItems=(catalog.items&&catalog.items.length?catalog.items:(window.BF_CATALOG_DEFAULTS||[]));
   storeSettings = settings || {};

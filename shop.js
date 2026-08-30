@@ -14,6 +14,7 @@ function renderShop(list=families.All){
 function setStyle(style){activeStyle=style;document.querySelectorAll('.style-btn').forEach(b=>b.classList.toggle('active',b.dataset.style===style));const intro=document.getElementById('styleIntro');if(intro)intro.textContent=style==='flat'?'Classic flat bands in every available shade.':'Twisted-front smooth bands with the same soft finish and a sculpted centre.';const activeFamily=document.querySelector('.family-btn.active')?.dataset.family||'All';renderShop(families[activeFamily]||families.All)}
 async function initShop(){
   const params=new URLSearchParams(location.search);if(params.get('style')==='twisted')activeStyle='twisted';
+  await BF.loadSmoothPalette(); const categories=await BFCatalog.loadCategories();if(!categories.some(c=>c.id==='smooth'&&c.visible!==false)){location.href='shop.html';return} families.All=BF.colors.map(c=>c[0]);
   [settings,productData]=await Promise.all([BFStore.getDoc('settings/store',settings),BFStore.getDoc('products/smooth',{colors:{}})]);BF.settings={...BF.settings,...settings};BF.products.smooth.price=Number(settings.retailPrice||10);setStyle(activeStyle);
   document.querySelectorAll('.style-btn').forEach(btn=>btn.onclick=()=>setStyle(btn.dataset.style));
   document.querySelectorAll('.family-btn').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.family-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderShop(families[btn.dataset.family]||families.All)});

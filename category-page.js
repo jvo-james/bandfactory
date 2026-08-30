@@ -1,6 +1,6 @@
 async function initCategoryPage(){
-  const [items,settings]=await Promise.all([BFCatalog.load(),BFStore.getDoc('settings/store',{})]);
-  const category=window.BF_CATEGORY;document.querySelector(`[data-cat="${category}"]`)?.classList.add('active');
+  const [items,settings,categories]=await Promise.all([BFCatalog.load(),BFStore.getDoc('settings/store',{}),BFCatalog.loadCategories()]);
+  const category=window.BF_CATEGORY;if(!categories.some(c=>c.id===category&&c.visible!==false)){location.href='shop.html';return}document.querySelector(`[data-cat="${category}"]`)?.classList.add('active');
   const hero=document.querySelector('[data-category-hero]');if(hero){const path=hero.dataset.categoryHero.split('.').reduce((o,k)=>o?.[k],window.BF_IMAGES);if(path)hero.style.backgroundImage=`url("${path}")`}
   const list=items.filter(x=>x.category===category).sort((a,b)=>(a.featuredOrder??99)-(b.featuredOrder??99));
   const grid=document.getElementById('categoryGrid');if(!grid)return;

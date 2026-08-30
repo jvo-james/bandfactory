@@ -32,12 +32,13 @@ const BF = {
   ],
 
   // Product photography is centralized in images.js.
-  imageForColor(name){ return window.BF_IMAGES?.smoothFlat?.[name] || this.products.smooth.image; },
+  imageForColor(name){ return (this.smoothPalette||[]).find(x=>x.name===name)?.image || window.BF_IMAGES?.smoothFlat?.[name] || this.products.smooth.image; },
 
 imageForProduct(style='flat', name='Pink', material='smooth') {
     if(material==='ribbed') return window.BF_IMAGES?.catalog?.['ribbed-'+String(name).toLowerCase().replace(/ /g,'-')] || 'images/ribbed-placeholder.svg';
     const map=style==='twisted'?window.BF_IMAGES?.smoothTwisted:window.BF_IMAGES?.smoothFlat;
-    return map?.[name] || (style==='twisted'?'images/twisted-placeholder.svg':this.products.smooth.image);
+    const custom=(this.smoothPalette||[]).find(x=>x.name===name)?.image;
+    return custom || map?.[name] || (style==='twisted'?'images/twisted-placeholder.svg':this.products.smooth.image);
   },
 
   variantData(productData={},style='flat',color='Pink'){
@@ -222,6 +223,9 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   async loadSettings(){
     try{const data=await BFStore.getDoc('settings/store',{});this.settings={...this.settings,...data};this.products.smooth.price=Number(this.settings.retailPrice||10);document.dispatchEvent(new CustomEvent('bf:settings',{detail:this.settings}));return this.settings}catch(e){console.warn(e);return this.settings}
   },
+  async loadSmoothPalette(){
+    try{const data=await BFStore.getDoc('products/smooth',{});if(Array.isArray(data.palette)&&data.palette.length){this.colors=data.palette.filter(x=>x&&x.deleted!==true&&x.visible!==false&&x.name).map(x=>[String(x.name),x.hex||'#d9d9d9']);this.smoothPalette=data.palette;}return this.colors}catch(e){console.warn(e);return this.colors}
+  },
   async getApprovedReviews(){try{return await BFStore.listWhere('reviews','status','==','approved')}catch{return[]}},
   async submitReview(data){
     const review={...data,status:'pending',submittedAt:new Date().toISOString()};
@@ -279,7 +283,8 @@ function buildSearchIndex(){
 }
 function setupSiteSearch(){
   const overlay=document.getElementById('siteSearch'),input=document.getElementById('siteSearchInput'),results=document.getElementById('siteSearchResults'); if(!overlay||!input)return;
-  const index=buildSearchIndex();
+  let index=buildSearchIndex();
+  (async()=>{try{await BF.loadSmoothPalette();if(window.BFCatalog){const [items,categories]=await Promise.all([BFCatalog.load(),BFCatalog.loadCategories()]),visible=categories.filter(c=>c.visible!==false),visibleIds=new Set(visible.map(c=>c.id));const smoothVisible=visibleIds.has('smooth');const dynamic=[];if(smoothVisible)for(const [name] of BF.colors)dynamic.push({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth flat twisted hairband retail colour color`});for(const c of visible)dynamic.push({title:c.name,meta:c.eyebrow||'Collection',url:BFCatalog.categoryUrl(c),image:c.image||'',terms:`${c.name} ${c.description||''} collection shop category`});for(const item of items.filter(x=>visibleIds.has(x.category)&&x.available!==false))dynamic.push({title:item.name,meta:(visible.find(c=>c.id===item.category)?.name||'Product'),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`,image:BFCatalog.image(item),terms:`${item.name} ${item.subtitle||''} ${item.color||''} ${item.description||''}`});index=[...dynamic,{title:'Wholesale Hairbands',meta:'Bulk orders',url:'wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands'},{title:'Reviews',meta:'Customer Reviews',url:'index.html#reviews',terms:'reviews feedback worn loved customers'},{title:'Contact Band Factory',meta:'Questions and order help',url:'contact.html',terms:'contact whatsapp email help support'}];}}catch(e){console.warn('[Band Factory] Search catalogue could not refresh.',e)}})();
   const render=q=>{const term=q.trim().toLowerCase();const found=term?index.filter(x=>(x.title+' '+x.meta+' '+x.terms).toLowerCase().includes(term)).slice(0,8):index.slice(0,6);results.innerHTML=found.map(x=>`<a class="search-result" href="${x.url}">${x.image?`<img src="${x.image}" alt="">`:`<span class="search-result-icon"><i class="fa-solid fa-arrow-right"></i></span>`}<span><strong>${x.title}</strong><small>${x.meta}</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`).join('')||'<div class="search-empty">No results found. Try a product name, colour or category.</div>'};
   const open=()=>{overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');document.body.classList.add('search-open');render(input.value);setTimeout(()=>input.focus(),100)};
   const close=()=>{overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('search-open')};
@@ -888,3 +893,17 @@ function initShopNavigationDropdowns(){
   });
 }
 document.addEventListener('DOMContentLoaded',initShopNavigationDropdowns);
+
+async function hydrateDynamicStorefront(){
+  try{
+    await BF.loadSmoothPalette();
+    if(!window.BFCatalog)return;
+    const categories=(await BFCatalog.loadCategories()).filter(c=>c.visible!==false),links=categories.map(c=>({name:c.name,url:BFCatalog.categoryUrl(c),id:c.id}));
+    document.querySelectorAll('.shop-dropdown-menu').forEach(menu=>{menu.innerHTML=links.map(c=>`<a href="${c.url}" role="menuitem"><span>${escapeStorefront(c.name)}</span><i aria-hidden="true">→</i></a>`).join('')});
+    document.querySelectorAll('.category-switcher').forEach(nav=>{nav.innerHTML=links.map(c=>`<a href="${c.url}" data-cat="${escapeStorefront(c.id)}">${escapeStorefront(c.name)}</a>`).join('');const active=window.BF_CATEGORY; if(active)nav.querySelector(`[data-cat="${CSS.escape(active)}"]`)?.classList.add('active')});
+    document.querySelectorAll('.footer-grid').forEach(grid=>{const heading=[...grid.querySelectorAll('h4')].find(h=>h.textContent.trim()==='Shop');const wrap=heading?.nextElementSibling;if(wrap?.classList.contains('footer-links'))wrap.innerHTML=links.map(c=>`<a href="${c.url}">${escapeStorefront(c.name)}</a>`).join('')});
+  }catch(e){console.warn('[Band Factory] Storefront navigation could not refresh.',e)}
+}
+function escapeStorefront(v=''){return String(v).replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+document.addEventListener('DOMContentLoaded',hydrateDynamicStorefront);
+

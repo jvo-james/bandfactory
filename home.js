@@ -1,4 +1,4 @@
-let homeInventory={colors:{},styles:{}},homeSettings={lowStockThreshold:10},homeTubeTop={sizes:{}},homeCatalog=[];
+let homeInventory={colors:{},styles:{}},homeSettings={lowStockThreshold:10},homeTubeTop={sizes:{}},homeCatalog=[],homeCategories=[];
 /* ==========================================================
    BAND FACTORY - HOME PAGE
 ========================================================== */
@@ -485,8 +485,8 @@ function renderColourMarquee() {
 
 function renderHomeProducts() {
     const productGrid=document.getElementById('homeProducts'); if(!productGrid)return;
-    const smoothCandidates=[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']].filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`}));
-    const catalogCandidates=homeCatalog.filter(item=>item.available!==false).map(item=>({kind:'catalog',name:item.name,image:BFCatalog.image(item),price:BFCatalog.price(item,homeSettings),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`}));
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));const smoothCandidates=(visibleIds.has('smooth')?[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']]:[]).filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`}));
+    const catalogCandidates=homeCatalog.filter(item=>item.available!==false&&visibleIds.has(item.category)).map(item=>({kind:'catalog',name:item.name,image:BFCatalog.image(item),price:BFCatalog.price(item,homeSettings),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`}));
     const pool=[...catalogCandidates,...smoothCandidates];
     const shuffled=[...pool].sort(()=>Math.random()-.5);
     const picks=[];for(const item of shuffled){if(picks.length===4)break;if(!picks.some(p=>p.name===item.name))picks.push(item)}
@@ -500,8 +500,8 @@ function renderHomeProducts() {
 
 function shadeOptions(name){
     const options=[];
-    for(const style of ['flat','twisted']) if(BF.variantAvailable(homeInventory,homeSettings,style,name)) options.push({name:`Smooth ${style[0].toUpperCase()+style.slice(1)} Hairband`,meta:name,image:BF.imageForProduct(style,name),url:`product.html?color=${encodeURIComponent(name)}&style=${style}`});
-    homeCatalog.filter(item=>item.category==='ribbed'&&String(item.color||'').toLowerCase()===name.toLowerCase()&&item.available!==false&&Number(item.stock??0)>0).forEach(item=>options.push({name:item.name,meta:'Ribbed Hairband',image:BFCatalog.image(item),url:`item.html?id=${encodeURIComponent(item.id)}`}));
+    if(homeCategories.some(c=>c.id==='smooth'&&c.visible!==false))for(const style of ['flat','twisted']) if(BF.variantAvailable(homeInventory,homeSettings,style,name)) options.push({name:`Smooth ${style[0].toUpperCase()+style.slice(1)} Hairband`,meta:name,image:BF.imageForProduct(style,name),url:`product.html?color=${encodeURIComponent(name)}&style=${style}`});
+    homeCatalog.filter(item=>homeCategories.some(c=>c.id==='ribbed'&&c.visible!==false)&&item.category==='ribbed'&&String(item.color||'').toLowerCase()===name.toLowerCase()&&item.available!==false&&Number(item.stock??0)>0).forEach(item=>options.push({name:item.name,meta:'Ribbed Hairband',image:BFCatalog.image(item),url:`item.html?id=${encodeURIComponent(item.id)}`}));
     return options;
 }
 function openShadePicker(name){
@@ -774,8 +774,8 @@ function tubeTopTotalStock(product=homeTubeTop){
 function renderHomepageFeature(){
     const card=document.getElementById('homepageFeatureCard');if(!card)return;
     const image=document.getElementById('homepageFeatureImage'),badge=document.getElementById('homepageFeatureBadge'),eyebrow=document.getElementById('homepageFeatureEyebrow'),title=document.getElementById('homepageFeatureTitle'),copy=document.getElementById('homepageFeatureCopy'),cta=document.getElementById('homepageFeatureCta');
-    const set=homeCatalog.find(x=>x.id==='second-skin-long-sleeve')||{name:'Second Skin Long Sleeve',price:200,subtitle:'White · Blue Black · Nude'};
-    card.href='item.html?id=second-skin-long-sleeve';card.classList.add('editorial-drop-card');image.src=BFCatalog.image(set);image.alt='Second Skin Long Sleeve three-piece top pack';badge.hidden=false;badge.textContent='THREE LONG SLEEVE TOPS';eyebrow.textContent='SECOND SKIN';title.textContent='Second Skin Long Sleeve.';copy.textContent=`White · Blue Black · Nude · ${BF.money(BFCatalog.price(set,homeSettings)||200)}`;cta.textContent='Shop the tops →';
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));const set=homeCatalog.find(x=>x.id==='second-skin-long-sleeve'&&visibleIds.has(x.category)&&x.available!==false)||homeCatalog.find(x=>visibleIds.has(x.category)&&x.available!==false);if(!set){card.hidden=true;return}card.hidden=false;const category=homeCategories.find(c=>c.id===set.category);
+    card.href=set.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(set.id)}`;card.classList.add('editorial-drop-card');image.src=BFCatalog.image(set);image.alt=set.name;badge.hidden=false;badge.textContent=(category?.name||'FEATURED').toUpperCase();eyebrow.textContent=(set.subtitle||category?.eyebrow||'BAND FACTORY').toUpperCase();title.textContent=`${set.name}.`;copy.textContent=`${set.subtitle||set.color||category?.description||''}${BFCatalog.price(set,homeSettings)?` · ${BF.money(BFCatalog.price(set,homeSettings))}`:''}`;cta.textContent=`Shop ${category?.name||'product'} →`;
 }
 
 /* ==========================================================
@@ -786,10 +786,11 @@ async function renderHome() {
 
     try {
 
+        await BF.loadSmoothPalette();
         renderColourMarquee();
         applySocialLinks();
-        const [settings,inventory,tubeTop,catalog]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFCatalog.load()]);
-        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}}; homeCatalog=catalog||[];
+        const [settings,inventory,tubeTop,catalog,categories]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFCatalog.load(),BFCatalog.loadCategories()]);
+        homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}}; homeCatalog=catalog||[]; homeCategories=categories||[];
         renderHomepageFeature();
         renderHomeProducts();
         renderColourBoxes();
