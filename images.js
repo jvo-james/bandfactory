@@ -13,7 +13,7 @@ window.BF_IMAGES = {
     ribbed: 'images/IMG_3249.jpeg', // Existing ribbed hairband category image; replace if you want a stronger category shot.
     hairbands: 'images/IMG_3249.jpeg', // Existing hairband image.
     tops: 'images/second-skin-tee.jpg', // Tops category: Second Skin Tee.
-    sets: 'images/second-skin-long-sleeve.jpg' // Sets category: Second Skin Long Sleeve.
+    sets: 'images/second-set.jpg' // Sets category: Second Skin Long Sleeve.
   },
   smoothFlat: {
     'Pink':'images/fpinkk.jpg','Black':'images/black.jpg','White':'images/white.jpg','Gray':'images/gray.jpg','Ash':'images/ash.jpg','Red':'images/red.jpg',
