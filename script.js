@@ -32,13 +32,14 @@ const BF = {
   ],
 
   // Product photography is centralized in images.js.
-  imageForColor(name){ return (this.smoothPalette||[]).find(x=>x.name===name)?.image || window.BF_IMAGES?.smoothFlat?.[name] || this.products.smooth.image; },
+  imageForColor(name){ const custom=(this.smoothPalette||[]).find(x=>x.name===name);return custom?.flatImage||custom?.image||window.BF_IMAGES?.smoothFlat?.[name]||this.products.smooth.image; },
 
 imageForProduct(style='flat', name='Pink', material='smooth') {
     if(material==='ribbed') return window.BF_IMAGES?.catalog?.['ribbed-'+String(name).toLowerCase().replace(/ /g,'-')] || 'images/ribbed-placeholder.svg';
     const map=style==='twisted'?window.BF_IMAGES?.smoothTwisted:window.BF_IMAGES?.smoothFlat;
-    const custom=(this.smoothPalette||[]).find(x=>x.name===name)?.image;
-    return custom || map?.[name] || (style==='twisted'?'images/twisted-placeholder.svg':this.products.smooth.image);
+    const custom=(this.smoothPalette||[]).find(x=>x.name===name);
+    const customImage=style==='twisted'?(custom?.twistedImage||custom?.image):(custom?.flatImage||custom?.image);
+    return customImage || map?.[name] || (style==='twisted'?'images/twisted-placeholder.svg':this.products.smooth.image);
   },
 
   variantData(productData={},style='flat',color='Pink'){

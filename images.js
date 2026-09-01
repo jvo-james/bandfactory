@@ -27,6 +27,27 @@ window.BF_IMAGES = {
     'Light Brown':'images/twisted-lightbrown.jpg','Mint':'images/twisted-mint.jpg','Mustard':'images/twisted-mustard.jpg','Dark Brown':'images/twisted-darkbrown.jpg','Chocolate Brown':'images/twisted-chocolatebrown.jpg',
     'Army Green':'images/twisted-armygreen.jpg','Peach':'images/new-peach-twisted.jpg','Burgundy':'images/new-b-t.jpg','Teal Blue':'images/new-tblue-t.jpg'
   },
+
+  ribbedTwisted: {
+    // RIBBED TWISTED PRODUCT PHOTOS — change these paths to replace images manually in the repo.
+    // Until you add final twisted photos, each colour falls back to the dedicated placeholder.
+    'ribbed-cherry-milk':'images/ribbed-placeholder.svg',
+    'ribbed-navy-milk':'images/ribbed-placeholder.svg',
+    'ribbed-noir-gold':'images/ribbed-placeholder.svg',
+    'ribbed-black':'images/ribbed-placeholder.svg',
+    'ribbed-white':'images/ribbed-placeholder.svg',
+    'ribbed-yellow':'images/ribbed-placeholder.svg',
+    'ribbed-baby-pink':'images/ribbed-placeholder.svg',
+    'ribbed-hot-pink':'images/ribbed-placeholder.svg',
+    'ribbed-olive':'images/ribbed-placeholder.svg',
+    'ribbed-teal':'images/ribbed-placeholder.svg',
+    'ribbed-new-teal':'images/ribbed-placeholder.svg',
+    'ribbed-royal-blue':'images/ribbed-placeholder.svg',
+    'ribbed-orange':'images/ribbed-placeholder.svg',
+    'ribbed-burgundy':'images/ribbed-placeholder.svg',
+    'ribbed-mustard':'images/ribbed-placeholder.svg',
+    'ribbed-flamingo':'images/ribbed-placeholder.svg'
+  },
   catalog: {
     'ribbed-cherry-milk':'images/cm.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
     'ribbed-navy-milk':'images/nm.jpg', // Navy Milk: blue and white printed Ribbed Hairband.
@@ -53,4 +74,7 @@ window.BF_IMAGES = {
 };
 window.BF_IMAGE = function(key, fallback='images/placeholder-product.svg'){
   return window.BF_IMAGES?.catalog?.[key] || fallback;
+};
+window.BF_RIBBED_TWISTED_IMAGE = function(key, fallback='images/ribbed-placeholder.svg'){
+  return window.BF_IMAGES?.ribbedTwisted?.[key] || fallback;
 };

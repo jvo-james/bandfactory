@@ -47,7 +47,7 @@ window.BFCatalog = {
     }
     return items.filter(x=>x.deleted!==true);
   },
-  image(item,style='flat'){if(item?.category==='ribbed'&&style==='twisted')return item?.twistedImage|| (item?.twistedImageKey?BF_IMAGE(item.twistedImageKey):'images/ribbed-placeholder.svg');return item?.image||BF_IMAGE(item?.imageKey||item?.id);},
+  image(item,style='flat'){if(item?.category==='ribbed'&&style==='twisted')return item?.twistedImage||(window.BF_RIBBED_TWISTED_IMAGE?BF_RIBBED_TWISTED_IMAGE(item?.twistedImageKey||item?.imageKey||item?.id):'images/ribbed-placeholder.svg');return item?.image||BF_IMAGE(item?.imageKey||item?.id);},
   variant(item,style='flat'){if(item?.category!=='ribbed')return item||{};const clean=style==='twisted'?'twisted':'flat';return item?.styles?.[clean]||(clean==='flat'?{stock:Number(item?.stock??0),available:item?.available!==false}:{stock:0,available:false});},
   price(item,settings={}){const ribbedDefault=Number(settings.ribbedPrice||settings.retailPrice||10);return Number(item?.price ?? (item?.category==='ribbed'?ribbedDefault:0) ?? 0);},
   stock(item,size=''){

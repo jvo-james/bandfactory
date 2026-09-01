@@ -2094,3 +2094,128 @@ async function saveStudioProduct(e,id){
 async function persistStudioProducts(){await BFStore.setDoc('products/catalog',{items:DATA.catalog},false)}
 async function deleteStudioProduct(id){DATA.catalog=DATA.catalog.map(p=>p.id===id?{...p,deleted:true,available:false}:p);await persistStudioProducts();closeStudioModal();renderCatalogProducts();renderCatalogStudio();BF.toast('Product removed from the storefront.')}
 
+
+/* =====================================================
+   STORE EDITOR IMAGE WORKFLOW V2
+   Separate Flat/Twisted images + Cloudinary drop/paste uploads.
+===================================================== */
+function studioImageForSmooth(colour,style='flat'){
+  const item=smoothPalette().find(c=>c.name===colour)||{};
+  if(style==='twisted')return item.twistedImage||item.image||window.BF_IMAGES?.smoothTwisted?.[colour]||'images/twisted-placeholder.svg';
+  return item.flatImage||item.image||window.BF_IMAGES?.smoothFlat?.[colour]||'images/placeholder-product.svg';
+}
+function studioDropZoneHtml({title,help,previewId,inputId,value='',background=false,compact=false}){
+  const bg=background?'true':'false';
+  return `<div class="studio-image-drop ${compact?'compact':''}" data-studio-drop data-preview-id="${previewId}" data-url-id="${inputId}" data-background-preview="${bg}" tabindex="0" role="button" aria-label="Upload ${escapeAdminValue(title)}"><div class="studio-drop-preview ${background?'is-background':''}" id="${previewId}">${background?(value?`<img src="${escapeAdminValue(value)}" alt="">`:''):`<img src="${escapeAdminValue(value||'images/placeholder-product.svg')}" alt="">`}</div><div class="studio-upload-zone"><strong>${escapeAdminValue(title)}</strong><p>${escapeAdminValue(help)} Drag &amp; drop an image here, click Choose image, or focus this box and paste a copied image.</p><label class="small-btn pink">Choose image<input hidden type="file" accept="image/*" onchange="uploadStudioAsset(this,'${previewId}','${inputId}',${bg})"></label><small class="studio-paste-hint"><i class="fa-regular fa-clipboard"></i> Drop or Ctrl/Cmd + V</small><button class="studio-repo-reset" type="button" onclick="studioUseRepoImage('${inputId}','${previewId}')">Use repo image instead</button></div></div><input id="${inputId}" type="hidden" value="${escapeAdminValue(value)}">`;
+}
+function studioUseRepoImage(inputId,previewId){const input=document.getElementById(inputId);if(input)input.value='';const preview=document.getElementById(previewId);if(preview){const img=preview.tagName==='IMG'?preview:preview.querySelector('img');if(img)img.style.opacity='.35'}BF.toast('Cloudinary override cleared. Save to use the repo image.')}
+window.studioUseRepoImage=studioUseRepoImage;
+async function uploadStudioFile(file,previewId,urlId,backgroundPreview=false,galleryUpload=false,zone=null){
+  if(!file||!String(file.type||'').startsWith('image/')){BF.toast('Please use an image file.');return}
+  const button=zone?.querySelector('.small-btn')||document.getElementById(previewId)?.closest('[data-studio-drop]')?.querySelector('.small-btn');
+  zone=zone||document.getElementById(previewId)?.closest('[data-studio-drop]');
+  if(button){button.classList.add('is-loading');button.setAttribute('aria-busy','true')}
+  if(zone)zone.classList.add('is-uploading');
+  try{
+    const user=window.__bfAuth?.currentUser;if(!user)throw new Error('Please sign in again.');
+    const token=await user.getIdToken();
+    const sign=await fetch('/.netlify/functions/cloudinary-signature',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({folder:'bandfactory/catalog'})});
+    const signed=await sign.json();if(!sign.ok||!signed.ok)throw new Error(signed.error||'Could not start image upload.');
+    const form=new FormData();form.append('file',file);form.append('api_key',signed.apiKey);form.append('timestamp',signed.timestamp);form.append('signature',signed.signature);form.append('folder',signed.folder);
+    const result=await fetch(`https://api.cloudinary.com/v1_1/${signed.cloudName}/image/upload`,{method:'POST',body:form});
+    const data=await result.json();if(!result.ok||!data.secure_url)throw new Error(data.error?.message||'The image could not be uploaded.');
+    if(galleryUpload)addStudioGalleryImage(data.secure_url);else if(urlId&&document.getElementById(urlId))document.getElementById(urlId).value=data.secure_url;
+    const preview=previewId?document.getElementById(previewId):null;
+    if(preview){if(backgroundPreview&&preview.tagName!=='IMG')preview.innerHTML=`<img src="${data.secure_url}" alt="">`;else if(preview.tagName==='IMG')preview.src=data.secure_url;else{const img=preview.querySelector('img');if(img)img.src=data.secure_url;else preview.innerHTML=`<img src="${data.secure_url}" alt="">`;}}
+    BF.toast('Image uploaded. Save your changes when you are done.');
+    return data.secure_url;
+  }catch(e){BF.toast(e.message||'The image could not be uploaded. Please try again.');}
+  finally{if(button){button.classList.remove('is-loading');button.removeAttribute('aria-busy')}if(zone)zone.classList.remove('is-uploading')}
+}
+async function uploadStudioAsset(input,previewId,urlId,backgroundPreview=false,galleryUpload=false){const file=input.files?.[0];if(!file)return;await uploadStudioFile(file,previewId,urlId,backgroundPreview,galleryUpload,input.closest('[data-studio-drop]')||input.closest('.studio-upload-zone'));input.value=''}
+window.uploadStudioAsset=uploadStudioAsset;
+
+function bindStudioDropPaste(){
+  document.addEventListener('dragover',e=>{const zone=e.target.closest?.('[data-studio-drop]');if(!zone)return;e.preventDefault();zone.classList.add('is-dragover')});
+  document.addEventListener('dragleave',e=>{const zone=e.target.closest?.('[data-studio-drop]');if(zone)zone.classList.remove('is-dragover')});
+  document.addEventListener('drop',e=>{const zone=e.target.closest?.('[data-studio-drop]');if(!zone)return;e.preventDefault();zone.classList.remove('is-dragover');const file=[...(e.dataTransfer?.files||[])].find(f=>String(f.type).startsWith('image/'));if(file)uploadStudioFile(file,zone.dataset.previewId,zone.dataset.urlId,zone.dataset.backgroundPreview==='true',zone.dataset.galleryUpload==='true',zone)});
+  document.addEventListener('paste',e=>{const zone=e.target.closest?.('[data-studio-drop]')||document.activeElement?.closest?.('[data-studio-drop]');if(!zone)return;const file=[...(e.clipboardData?.items||[])].find(i=>i.type?.startsWith('image/'))?.getAsFile();if(file){e.preventDefault();uploadStudioFile(file,zone.dataset.previewId,zone.dataset.urlId,zone.dataset.backgroundPreview==='true',zone.dataset.galleryUpload==='true',zone)}});
+}
+
+function smoothPalette(){
+  const saved=Array.isArray(DATA.products?.palette)?DATA.products.palette:[];
+  const fallback=(BF.colors||[]).map(([name,hex])=>({name,hex,image:'',flatImage:'',twistedImage:'',visible:true}));
+  const base=saved.length?saved:fallback;
+  return base.filter(x=>x&&x.deleted!==true&&x.visible!==false&&x.name).map(x=>({name:String(x.name),hex:x.hex||'#d9d9d9',image:x.image||'',flatImage:x.flatImage||'',twistedImage:x.twistedImage||''}));
+}
+function renderSmoothColourStudioList(){
+  const box=document.getElementById('studioSmoothColours');if(!box)return;
+  const style=window.studioHairbandStyle||'flat';
+  box.innerHTML=smoothPalette().map(c=>`<button class="smooth-colour-card" type="button" onclick="openSmoothColourStudio('${escapeAdminValue(c.name)}','${style}')"><span class="smooth-colour-swatch" style="--swatch:${escapeAdminValue(c.hex)}"><img src="${escapeAdminValue(studioImageForSmooth(c.name,style))}" alt=""></span><span><strong>${escapeAdminValue(c.name)}</strong><small>Edit ${titleCase(style)} image &amp; stock</small></span><i class="fa-solid fa-chevron-right"></i></button>`).join('')||'<div class="studio-empty">No Smooth colours yet.</div>';
+}
+function openSmoothColourStudio(name='',preferredStyle='flat'){
+  const current=smoothPalette().find(c=>c.name===name)||{name:'',hex:'#f4b6ca',image:'',flatImage:'',twistedImage:''},isNew=!name;
+  const legacy=DATA.colors?.[name]||{},flat=DATA.products.styles?.flat?.colors?.[name]||legacy,twisted=DATA.products.styles?.twisted?.colors?.[name]||legacy;
+  const flatValue=current.flatImage||current.image||'',twistedValue=current.twistedImage||'';
+  openStudioModal(`<form id="smoothColourForm" class="studio-form"><div class="studio-form-head"><span>Smooth hairbands</span><h2>${isNew?'Add a colour':'Edit colour'}</h2><p>Flat and Twisted can now use completely different product photos.</p></div><div class="studio-style-switch"><button type="button" data-edit-style="flat" class="${preferredStyle==='flat'?'active':''}">Flat</button><button type="button" data-edit-style="twisted" class="${preferredStyle==='twisted'?'active':''}">Twisted</button></div><div class="studio-style-image" data-style-image="flat" ${preferredStyle==='flat'?'':'hidden'}>${studioDropZoneHtml({title:'Smooth Flat image',help:'This photo is used for the Flat version of this colour.',previewId:'smoothFlatPreview',inputId:'smoothFlatImage',value:flatValue})}</div><div class="studio-style-image" data-style-image="twisted" ${preferredStyle==='twisted'?'':'hidden'}>${studioDropZoneHtml({title:'Smooth Twisted image',help:'This photo is used only for the Twisted version of this colour.',previewId:'smoothTwistedPreview',inputId:'smoothTwistedImage',value:twistedValue||window.BF_IMAGES?.smoothTwisted?.[name]||'images/twisted-placeholder.svg'})}</div><div class="studio-form-grid"><div class="admin-field"><label>Colour name</label><input id="smoothColourName" required value="${escapeAdminValue(current.name)}"></div><div class="admin-field"><label>Colour swatch</label><input id="smoothColourHex" type="color" value="${escapeAdminValue(current.hex)}"></div><div class="admin-field"><label>Flat stock</label><input id="smoothFlatStock" type="number" min="0" value="${Number(flat.stock??0)}"></div><div class="admin-field"><label>Flat availability</label><select id="smoothFlatAvailableEdit"><option value="true" ${flat.available===false?'':'selected'}>Available</option><option value="false" ${flat.available===false?'selected':''}>Unavailable</option></select></div><div class="admin-field"><label>Twisted stock</label><input id="smoothTwistedStock" type="number" min="0" value="${Number(twisted.stock??0)}"></div><div class="admin-field"><label>Twisted availability</label><select id="smoothTwistedAvailableEdit"><option value="true" ${twisted.available===false?'':'selected'}>Available</option><option value="false" ${twisted.available===false?'selected':''}>Unavailable</option></select></div></div><div class="studio-form-actions">${!isNew?'<button class="small-btn danger" type="button" id="deleteSmoothColour">Remove colour</button>':''}<span></span><button class="small-btn" type="button" onclick="closeStudioModal()">Cancel</button><button class="small-btn primary" type="submit">Save colour</button></div></form>`);
+  document.querySelectorAll('[data-edit-style]').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('[data-edit-style]').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('[data-style-image]').forEach(x=>x.hidden=x.dataset.styleImage!==btn.dataset.editStyle)});
+  document.getElementById('smoothColourForm').onsubmit=e=>saveSmoothColour(e,name);document.getElementById('deleteSmoothColour')?.addEventListener('click',()=>deleteSmoothColour(name));
+}
+window.openSmoothColourStudio=openSmoothColourStudio;
+async function saveSmoothColour(e,oldName=''){e.preventDefault();return withAdminLoading(async()=>{const name=document.getElementById('smoothColourName').value.trim();if(!name)return BF.toast('Enter the colour name.');const palette=smoothPalette().filter(c=>c.name!==oldName);if(palette.some(c=>c.name.toLowerCase()===name.toLowerCase()))return BF.toast('That colour already exists.');const old=smoothPalette().find(c=>c.name===oldName)||{};palette.push({name,hex:document.getElementById('smoothColourHex').value,flatImage:document.getElementById('smoothFlatImage')?.value??old.flatImage??old.image??'',twistedImage:document.getElementById('smoothTwistedImage')?.value??old.twistedImage??'',visible:true});const styles=JSON.parse(JSON.stringify(DATA.products.styles||{}));for(const style of ['flat','twisted']){styles[style]||={colors:{}};styles[style].colors||={};if(oldName&&oldName!==name&&styles[style].colors[oldName])delete styles[style].colors[oldName];styles[style].colors[name]={stock:Math.max(0,Number(document.getElementById(style==='flat'?'smoothFlatStock':'smoothTwistedStock').value||0)),available:document.getElementById(style==='flat'?'smoothFlatAvailableEdit':'smoothTwistedAvailableEdit').value==='true'};}const colors={...(DATA.products.colors||{})};if(oldName&&oldName!==name)delete colors[oldName];colors[name]={...(colors[name]||{}),...styles.flat.colors[name]};await BFStore.setDoc('products/smooth',{...DATA.products,palette,styles,colors},false);await BFStore.log(oldName?'Smooth colour updated':'Smooth colour created',{colour:name});closeStudioModal();BF.toast(`${name} saved.`);await loadAll();renderHairbandEditorChoices()},'Saving colour…')}
+
+const _legacyOpenProductStudio=window.openProductStudio;
+const _legacySaveStudioProduct=saveStudioProduct;
+function enhanceRibbedProductStudio(id='',preferredStyle='flat'){
+  const existing=(DATA.catalog||[]).find(p=>p.id===id)||{};
+  const category=document.getElementById('studioProductCategory')?.value||existing.category;
+  if(category!=='ribbed')return;
+  const original=document.querySelector('.studio-cover-edit.product');if(!original)return;
+  original.outerHTML=`<div class="studio-style-switch"><button type="button" data-ribbed-edit-style="flat" class="${preferredStyle==='flat'?'active':''}">Flat</button><button type="button" data-ribbed-edit-style="twisted" class="${preferredStyle==='twisted'?'active':''}">Twisted</button></div><div data-ribbed-style-image="flat" ${preferredStyle==='flat'?'':'hidden'}>${studioDropZoneHtml({title:'Ribbed Flat image',help:'Used when customers select Flat.',previewId:'studioProductPreview',inputId:'studioProductImage',value:existing.image||BFCatalog.image(existing,'flat')})}</div><div data-ribbed-style-image="twisted" ${preferredStyle==='twisted'?'':'hidden'}>${studioDropZoneHtml({title:'Ribbed Twisted image',help:'Used when customers select Twisted.',previewId:'studioProductTwistedPreview',inputId:'studioProductTwistedImage',value:existing.twistedImage||BFCatalog.image(existing,'twisted')})}</div>`;
+  const duplicateFlat=[...document.querySelectorAll('#studioProductImage')];duplicateFlat.slice(1).forEach(x=>x.remove());
+  document.querySelectorAll('[data-ribbed-edit-style]').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('[data-ribbed-edit-style]').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('[data-ribbed-style-image]').forEach(x=>x.hidden=x.dataset.ribbedStyleImage!==btn.dataset.ribbedEditStyle)});
+}
+window.openProductStudio=function(id='',preferredStyle='flat'){
+  _legacyOpenProductStudio(id);
+  const existing=(DATA.catalog||[]).find(p=>p.id===id)||{};
+  if(existing.category==='ribbed')enhanceRibbedProductStudio(id,preferredStyle);
+  else document.querySelectorAll('.studio-cover-edit .studio-upload-zone').forEach(z=>{const wrap=z.closest('.studio-cover-edit');if(wrap&&!wrap.dataset.studioDrop){wrap.dataset.studioDrop='';wrap.dataset.previewId='studioProductPreview';wrap.dataset.urlId='studioProductImage';wrap.tabIndex=0;}});
+};
+
+saveStudioProduct=async function(e,id){
+  const twistedInput=document.getElementById('studioProductTwistedImage');
+  if(!twistedInput)return _legacySaveStudioProduct(e,id);
+  e.preventDefault();
+  const category=document.getElementById('studioProductCategory').value,name=document.getElementById('studioProductName').value.trim();if(!name)return BF.toast('Enter the product name.');
+  return withAdminLoading(async()=>{let cleanId=id||`${studioSlug(category)}-${studioSlug(name)}`;if(!id&&DATA.catalog.some(p=>p.id===cleanId))cleanId+=`-${Date.now().toString().slice(-4)}`;const existing=DATA.catalog.find(p=>p.id===id)||{},sizes=collectStudioSizes(),stock=Math.max(0,Number(document.getElementById('studioProductStock')?.value||0)),available=document.getElementById('studioProductAvailable').value==='true';const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle').value.trim(),color:document.getElementById('studioProductSubtitle').value.trim(),description:document.getElementById('studioProductDescription').value.trim(),price:document.getElementById('studioProductPrice').value===''?null:Number(document.getElementById('studioProductPrice').value),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack').value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder').value||99)),image:document.getElementById('studioProductImage')?.value??existing.image??'',twistedImage:twistedInput.value,images:studioGalleryImages()};if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;if(category==='ribbed'){const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';item.styles=item.styles||{};item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};item.stock=flatStock;item.available=flatAvailable;}if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await BFStore.log(id?'Catalog product updated':'Catalog product created',{productId:cleanId});closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();renderHairbandEditorChoices()},'Saving product…');
+};
+window.saveStudioProduct=saveStudioProduct;
+
+function renderHairbandEditorChoices(){
+  const material=document.getElementById('studioHairbandMaterial')?.value||'',style=document.getElementById('studioHairbandStyle')?.value||'',field=document.getElementById('studioHairbandStyleField'),box=document.getElementById('studioHairbandChoices');if(!field||!box)return;
+  field.hidden=!material;box.hidden=!(material&&style);window.studioHairbandStyle=style||'flat';if(!(material&&style)){box.innerHTML='';return}
+  if(material==='smooth')box.innerHTML=`<div class="hairband-choice-head"><div><strong>Smooth · ${titleCase(style)}</strong><span>Choose a colour to change its ${titleCase(style)} photo and stock.</span></div><button class="small-btn" type="button" onclick="openSmoothColourStudio('','${style}')">+ Add colour</button></div><div class="smooth-colour-list">${smoothPalette().map(c=>`<button class="smooth-colour-card" type="button" onclick="openSmoothColourStudio('${escapeAdminValue(c.name)}','${style}')"><span class="smooth-colour-swatch" style="--swatch:${escapeAdminValue(c.hex)}"><img src="${escapeAdminValue(studioImageForSmooth(c.name,style))}" alt=""></span><span><strong>${escapeAdminValue(c.name)}</strong><small>${titleCase(style)} image</small></span><i class="fa-solid fa-chevron-right"></i></button>`).join('')}</div>`;
+  else {const rows=studioLiveProducts().filter(p=>p.category==='ribbed').sort((a,b)=>Number(a.featuredOrder||99)-Number(b.featuredOrder||99));box.innerHTML=`<div class="hairband-choice-head"><div><strong>Ribbed · ${titleCase(style)}</strong><span>Choose a colour or print to change its ${titleCase(style)} photo and stock.</span></div></div><div class="hairband-ribbed-list">${rows.map(p=>`<button class="hairband-ribbed-card" type="button" onclick="openProductStudio('${escapeAdminValue(p.id)}','${style}')"><img src="${escapeAdminValue(BFCatalog.image(p,style))}" alt=""><span><strong>${escapeAdminValue(p.name)}</strong><small>${titleCase(style)} image</small></span><i class="fa-solid fa-chevron-right"></i></button>`).join('')}</div>`;}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  bindStudioDropPaste();
+  const material=document.getElementById('studioHairbandMaterial'),style=document.getElementById('studioHairbandStyle');
+  material?.addEventListener('change',()=>{if(style)style.value='';renderHairbandEditorChoices()});style?.addEventListener('change',renderHairbandEditorChoices);
+  renderHairbandEditorChoices();
+});
+
+// Extend drag/drop/paste to the existing category, generic product and gallery upload areas too.
+const _storeEditorOpenStudioModalBase=openStudioModal;
+openStudioModal=function(html){
+  _storeEditorOpenStudioModalBase(html);
+  document.querySelectorAll('.studio-cover-edit').forEach(wrap=>{
+    if(wrap.hasAttribute('data-studio-drop'))return;
+    const preview=wrap.querySelector('img,[id$="Preview"]');
+    const hidden=wrap.nextElementSibling?.matches?.('input[type="hidden"]')?wrap.nextElementSibling:null;
+    if(preview&&hidden){wrap.setAttribute('data-studio-drop','');wrap.dataset.previewId=preview.id;wrap.dataset.urlId=hidden.id;wrap.tabIndex=0;wrap.setAttribute('role','button');wrap.setAttribute('aria-label','Drop or paste an image here');}
+  });
+  const gallery=document.querySelector('.studio-gallery-editor');
+  if(gallery&&!gallery.hasAttribute('data-studio-drop')){gallery.setAttribute('data-studio-drop','');gallery.dataset.galleryUpload='true';gallery.tabIndex=0;}
+};
+window.openStudioModal=openStudioModal;
