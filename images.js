@@ -29,24 +29,22 @@ window.BF_IMAGES = {
   },
 
   ribbedTwisted: {
-    // RIBBED TWISTED PRODUCT PHOTOS — change these paths to replace images manually in the repo.
-    // Until you add final twisted photos, each colour falls back to the dedicated placeholder.
-    'ribbed-cherry-milk':'images/ribbed-placeholder.svg',
-    'ribbed-navy-milk':'images/ribbed-placeholder.svg',
-    'ribbed-noir-gold':'images/ribbed-placeholder.svg',
-    'ribbed-black':'images/ribbed-placeholder.svg',
-    'ribbed-white':'images/ribbed-placeholder.svg',
-    'ribbed-yellow':'images/ribbed-placeholder.svg',
-    'ribbed-baby-pink':'images/ribbed-placeholder.svg',
-    'ribbed-hot-pink':'images/ribbed-placeholder.svg',
-    'ribbed-olive':'images/ribbed-placeholder.svg',
-    'ribbed-teal':'images/ribbed-placeholder.svg',
-    'ribbed-new-teal':'images/ribbed-placeholder.svg',
-    'ribbed-royal-blue':'images/ribbed-placeholder.svg',
-    'ribbed-orange':'images/ribbed-placeholder.svg',
-    'ribbed-burgundy':'images/ribbed-placeholder.svg',
-    'ribbed-mustard':'images/ribbed-placeholder.svg',
-    'ribbed-flamingo':'images/ribbed-placeholder.svg'
+    'ribbed-cherry-milk':'images/rtcherry.jpg',
+    'ribbed-navy-milk':'images/rtnavy.jpg',
+    'ribbed-noir-gold':'images/rtnoir.jpg',
+    'ribbed-black':'images/rtblack.jpg',
+    'ribbed-white':'images/rtwhite.jpg',
+    'ribbed-yellow':'images/rtyellow.jpg',
+    'ribbed-baby-pink':'images/rtbabypink.jpg',
+    'ribbed-hot-pink':'images/rtpink.jpg',
+    'ribbed-olive':'images/rtgreen.jpg',
+    'ribbed-teal':'images/rtchartreuse.jpg',
+    'ribbed-new-teal':'images/rtteal.jpg',
+    'ribbed-royal-blue':'images/rtrblue.jpg',
+    'ribbed-orange':'images/rtorange.jpg',
+    'ribbed-burgundy':'images/rtburgundy.jpg',
+    'ribbed-mustard':'images/rtcaramel.jpg',
+    'ribbed-flamingo':'images/rtflamingo.jpg'
   },
   catalog: {
     'ribbed-cherry-milk':'images/cm.jpg', // Cherry Milk: pink and white printed Ribbed Hairband.
