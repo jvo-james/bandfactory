@@ -9,7 +9,7 @@ window.BF_CONFIG = {
     appId: '1:720382521656:web:4d28d1fa6ea960690451cd'
   },
   contactEmail: 'bandfactoryy@gmail.com',
-  paystackPublicKey: 'pk_live_f145bbee01396ac2a1c6a78b1ddb694ae1c8bcff',
+  paystackPublicKey: 'pk_live_a2128a5ce9b17b510541dfa62415ed3d5a649c18',
   secureOrderEndpoint: '/.netlify/functions/verify-payment',
   mapboxAccessToken: 'pk.eyJ1IjoianZvamFtZXMiLCJhIjoiY21zdHlsMnhiMGJ4eDJ5c2ZmZWFwcG55biJ9.keYOyrSD7yFhj39sTHBOQw',
   pickup: {
