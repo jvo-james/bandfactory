@@ -1,5 +1,6 @@
 const crypto=require('crypto');
 const admin=require('firebase-admin');
+const {dispatchStoredEvent}=require('./email-core');
 const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock}=require('./order-stock');
 if(!admin.apps.length){admin.initializeApp({credential:admin.credential.cert({projectId:process.env.FIREBASE_PROJECT_ID,clientEmail:process.env.FIREBASE_CLIENT_EMAIL,privateKey:String(process.env.FIREBASE_PRIVATE_KEY||'').replace(/\\n/g,'\n')})});}
 const db=admin.firestore();
@@ -30,6 +31,7 @@ exports.handler=async event=>{
    if(orderUsesManagedStock(latest)&&!hasReservation&&((orderUsesSmoothStock(latest)&&!productSnap?.exists)||(orderUsesRibbedStock(latest)&&!catalogSnap?.exists)||(orderUsesApparelStock(latest)&&!apparelSnap?.exists)))tx.set(db.collection('notifications').doc(),{type:'inventory',title:'Inventory setup needs attention',message:`${orderId} was paid, but a managed inventory document was not found. Please check stock manually.`,orderId,read:false,createdAt:t});
    else if(stockResult?.shortages?.length)tx.set(db.collection('notifications').doc(),{type:'inventory',title:'Stock count needs checking',message:`${orderId}: ${stockResult.shortages.join('; ')}`,orderId,read:false,createdAt:t});
   });
+  try{await dispatchStoredEvent('purchase',orderId)}catch(emailError){console.error('[Band Factory] Webhook purchase email could not be sent',emailError)}
   return {statusCode:200,body:'OK'};
  }catch(error){console.error('[Band Factory Webhook]',error);return {statusCode:500,body:'Could not finalise payment'};}
 };

@@ -1,4 +1,5 @@
 const admin=require('firebase-admin');
+const {dispatchStoredEvent}=require('./email-core');
 const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock}=require('./order-stock');
 if(!admin.apps.length){admin.initializeApp({credential:admin.credential.cert({projectId:process.env.FIREBASE_PROJECT_ID,clientEmail:process.env.FIREBASE_CLIENT_EMAIL,privateKey:String(process.env.FIREBASE_PRIVATE_KEY||'').replace(/\\n/g,'\n')})});}
 const db=admin.firestore();
@@ -33,6 +34,7 @@ exports.handler=async event=>{
    if(orderUsesManagedStock(order)&&!hasReservation&&((orderUsesSmoothStock(order)&&!productSnap?.exists)||(orderUsesRibbedStock(order)&&!catalogSnap?.exists)||(orderUsesApparelStock(order)&&!apparelSnap?.exists)))tx.set(db.collection('notifications').doc(),{type:'inventory',title:'Inventory setup needs attention',message:`${order.id} was paid, but a managed inventory document was not found. Please check stock manually.`,orderId:order.id,read:false,createdAt:t});
    else if(stockResult?.shortages?.length)tx.set(db.collection('notifications').doc(),{type:'inventory',title:'Stock count needs checking',message:`${order.id}: ${stockResult.shortages.join('; ')}`,orderId:order.id,read:false,createdAt:t});
   });
+  try{await dispatchStoredEvent('purchase',order.id)}catch(emailError){console.error('[Band Factory] Purchase email could not be sent',emailError)}
   return {statusCode:200,headers,body:JSON.stringify({ok:true,verification:{reference,status:data.status,amount:paid,currency,paidAt:data.paid_at||null,channel:data.channel||''}})};
  }catch(error){console.error('[Band Factory] verify-payment error',error);return {statusCode:500,headers,body:JSON.stringify({ok:false,error:'We received the payment response but could not finish saving the order automatically.'})};}
 };
