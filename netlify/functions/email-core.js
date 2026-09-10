@@ -23,12 +23,12 @@ const date=v=>{const d=v?.toDate?v.toDate():new Date(v||Date.now());return Numbe
 const normalizePhone=value=>{let d=String(value||'').replace(/\D/g,'');if(d.startsWith('0')&&d.length>=10)d='233'+d.slice(1);return d};
 const statusKey=s=>String(s||'Preparing').toLowerCase().replace(/[^a-z0-9]+/g,'-');
 
-async function resend({to,subject,html,replyTo}){
+async function resend({to,subject,html,text,replyTo}){
   const key=process.env.RESEND_API_KEY;
   if(!key) throw new Error('RESEND_API_KEY is not configured.');
   const recipients=(Array.isArray(to)?to:[to]).filter(Boolean);
   if(!recipients.length) return {skipped:true};
-  const payload={from:FROM_EMAIL,to:recipients,subject,html};
+  const payload={from:FROM_EMAIL,to:recipients,subject,html,text:text||plainFromHtml(html)};
   if(replyTo) payload.reply_to=replyTo;
   const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const out=await r.json().catch(()=>({}));
@@ -36,20 +36,86 @@ async function resend({to,subject,html,replyTo}){
   return out;
 }
 
-function shell({eyebrow='BAND FACTORY',title,lead='',body='',cta='',ctaUrl='',accent='#E890AE',footer='Wear it. Sell it. Build something.'}){
-  const button=cta&&ctaUrl?`<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 6px"><tr><td bgcolor="${accent}" style="border-radius:999px"><a href="${esc(ctaUrl)}" style="display:inline-block;padding:14px 24px;font-family:Arial,sans-serif;font-size:14px;font-weight:800;letter-spacing:.04em;color:#171315;text-decoration:none">${esc(cta)} &nbsp;→</a></td></tr></table>`:'';
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><style>@media(max-width:620px){.bf-wrap{padding:14px!important}.bf-card{border-radius:24px!important}.bf-pad{padding:28px 20px!important}.bf-title{font-size:35px!important;line-height:.98!important}.bf-grid td{display:block!important;width:100%!important;box-sizing:border-box!important}.bf-grid td+td{padding-top:8px!important}.bf-item-img{width:66px!important;height:78px!important}.bf-hide-mobile{display:none!important}}</style></head><body style="margin:0;background:#F7F1F3;padding:0"><div style="display:none;max-height:0;overflow:hidden">${esc(lead||title)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F7F1F3"><tr><td align="center" class="bf-wrap" style="padding:34px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:660px"><tr><td style="padding:0 8px 16px"><div style="font-family:Arial,sans-serif;font-size:12px;letter-spacing:.26em;font-weight:900;color:#171315">BΛND <span style="font-weight:500">FΛCTORY</span></div></td></tr><tr><td class="bf-card" style="background:#FFFEFD;border:1px solid #E7DCE0;border-radius:34px;overflow:hidden;box-shadow:0 18px 60px rgba(23,19,21,.08)"><div style="height:8px;background:${accent}"></div><div class="bf-pad" style="padding:42px 44px"><div style="font-family:Arial,sans-serif;font-size:11px;line-height:1.3;letter-spacing:.2em;text-transform:uppercase;font-weight:900;color:#A87587">${esc(eyebrow)}</div><h1 class="bf-title" style="margin:13px 0 14px;font-family:Arial,sans-serif;font-size:46px;line-height:.96;letter-spacing:-.045em;color:#171315">${esc(title)}</h1>${lead?`<p style="margin:0 0 26px;font-family:Arial,sans-serif;font-size:16px;line-height:1.65;color:#685D61">${esc(lead)}</p>`:''}${body}${button}</div><div style="background:#171315;padding:25px 44px"><p style="margin:0;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#F9EDF1">${esc(footer)}</p><p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:11px;line-height:1.5;color:#BFAFB5">Band Factory · Ghana</p></div></td></tr></table></td></tr></table></body></html>`;
+function plainFromHtml(html=''){
+  return String(html)
+    .replace(/<style[\s\S]*?<\/style>/gi,' ')
+    .replace(/<br\s*\/?\s*>/gi,'\n')
+    .replace(/<\/p>|<\/div>|<\/tr>|<\/h\d>/gi,'\n')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/&nbsp;/g,' ')
+    .replace(/&amp;/g,'&')
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"')
+    .replace(/&#039;/g,"'")
+    .replace(/[ \t]+/g,' ')
+    .replace(/\n\s+/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
 }
 
-function pill(text,bg='#FFF0F5'){return `<span style="display:inline-block;margin:0 6px 6px 0;padding:7px 11px;border-radius:999px;background:${bg};font-family:Arial,sans-serif;font-size:11px;font-weight:800;color:#5F4C53">${esc(text)}</span>`}
-function infoGrid(rows=[]){return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="bf-grid" style="margin:20px 0;background:#FFF8FA;border:1px solid #F0E1E6;border-radius:20px">${rows.map(([k,v])=>`<tr><td style="width:42%;padding:14px 16px;border-bottom:1px solid #F0E1E6;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:#9A858C">${esc(k)}</td><td style="padding:14px 16px;border-bottom:1px solid #F0E1E6;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#171315">${esc(v||'—')}</td></tr>`).join('')}</table>`}
-function paragraph(text){return `<p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:15px;line-height:1.68;color:#554A4E">${esc(text)}</p>`}
-function quote(text){return `<div style="margin:20px 0;padding:20px 22px;border-radius:20px;background:#FFF2F7;border-left:4px solid #E890AE;font-family:Arial,sans-serif;font-size:15px;line-height:1.65;color:#43383C">${esc(text)}</div>`}
+function shell({eyebrow='BAND FACTORY',title,lead='',body='',cta='',ctaUrl='',accent='#F4B6CA',footer='Hairbands, basics and colour for everyday wear.'}){
+  const button=cta&&ctaUrl?`<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 2px"><tr><td bgcolor="#111111"><a href="${esc(ctaUrl)}" style="display:inline-block;padding:15px 22px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.2;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ffffff;text-decoration:none">${esc(cta)} &nbsp;→</a></td></tr></table>`:'';
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+  <meta name="color-scheme" content="light only">
+  <title>${esc(title)}</title>
+  <style>
+    @media only screen and (max-width:620px){
+      .bf-page{padding:0!important}.bf-shell{width:100%!important}.bf-mast{padding:26px 20px 58px!important}.bf-panel{margin:-34px 14px 0!important}.bf-panel-cell{padding:28px 20px 30px!important}.bf-title{font-size:36px!important;line-height:1.02!important}.bf-grid-label,.bf-grid-value{display:block!important;width:100%!important;text-align:left!important;box-sizing:border-box!important}.bf-grid-label{padding:12px 14px 3px!important;border-bottom:0!important}.bf-grid-value{padding:0 14px 12px!important}.bf-footer{padding:24px 20px!important}.bf-item-price{padding-left:10px!important}.bf-hide-mobile{display:none!important}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#F7F1F3;color:#111111;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(lead||title)}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#F7F1F3">
+    <tr><td align="center" class="bf-page" style="padding:28px 14px 34px">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="bf-shell" style="width:100%;max-width:620px">
+        <tr><td class="bf-mast" style="background:${accent};padding:30px 38px 76px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+            <td valign="top"><div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:.9;font-weight:400;letter-spacing:.18em">BΛND</div><div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:7px;line-height:1;font-weight:400;letter-spacing:.34em">FΛCTORY</div></td>
+            <td align="right" valign="top" style="font-size:9px;line-height:1.4;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5E4450">${esc(eyebrow)}</td>
+          </tr></table>
+        </td></tr>
+        <tr><td>
+          <table role="presentation" width="calc(100% - 36px)" cellspacing="0" cellpadding="0" border="0" class="bf-panel" style="width:calc(100% - 36px);margin:-46px 18px 0;background:#FFFEFD;border:1px solid #E7DCE0">
+            <tr><td class="bf-panel-cell" style="padding:38px 38px 40px">
+              <h1 class="bf-title" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:44px;line-height:1.02;font-weight:400;letter-spacing:-.035em;color:#111111">${esc(title)}</h1>
+              ${lead?`<p style="margin:15px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#675E61">${esc(lead)}</p>`:''}
+              ${body}
+              ${button}
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td class="bf-footer" style="padding:26px 38px 0">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #D9CED2"><tr><td style="padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.65;color:#776D71">
+            <strong style="color:#111111">Band Factory</strong><br>${esc(footer)}<br><a href="${esc(SITE_URL()||'https://bandfactory.store')}" style="color:#111111;text-decoration:underline">bandfactory.store</a>
+          </td></tr></table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function infoGrid(rows=[]){
+  const valid=rows.filter(([,v])=>v!==undefined&&v!==null&&String(v).trim()!=='');
+  if(!valid.length)return '';
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 0;border-top:1px solid #E7DCE0">${valid.map(([k,v])=>`<tr><td class="bf-grid-label" width="38%" style="padding:12px 4px;border-bottom:1px solid #E7DCE0;font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.4;letter-spacing:.11em;text-transform:uppercase;color:#93878C">${esc(k)}</td><td class="bf-grid-value" align="right" style="padding:12px 4px;border-bottom:1px solid #E7DCE0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;font-weight:700;color:#111111">${esc(v||'Not available')}</td></tr>`).join('')}</table>`;
+}
+function paragraph(text){return `<p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.72;color:#554D50">${esc(text)}</p>`}
+function quote(text){return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 0;background:#FFF2F7"><tr><td style="padding:18px 20px;border-left:3px solid #E890AE;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#43383C">${esc(text)}</td></tr></table>`}
 
 function orderItems(order={}){
   const items=Array.isArray(order.items)?order.items:[];
   if(!items.length)return paragraph('Your order items are saved with your order.');
-  return `<div style="margin:24px 0"><div style="margin-bottom:10px;font-family:Arial,sans-serif;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A87587">Your pieces</div>${items.map(i=>{const qty=Number(i.qty||1),meta=[i.color,i.size,i.style&&`${i.style} style`,qty>1?`Qty ${qty}`:''].filter(Boolean).join(' · ');return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 8px;background:#FFF9FB;border:1px solid #F0E1E6;border-radius:17px"><tr><td style="padding:14px 15px"><div style="font-family:Arial,sans-serif;font-size:14px;font-weight:900;color:#171315">${esc(i.name||'Band Factory item')}</div><div style="margin-top:4px;font-family:Arial,sans-serif;font-size:12px;line-height:1.45;color:#88757C">${esc(meta)}</div></td><td align="right" style="padding:14px 15px;font-family:Arial,sans-serif;font-size:13px;font-weight:900;color:#171315;white-space:nowrap">${money(Number(i.price||0)*qty)}</td></tr></table>`}).join('')}</div>`;
+  return `<div style="margin-top:28px"><div style="margin-bottom:7px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E6A78">Your order</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${items.map(i=>{const qty=Number(i.qty||1),meta=[i.color,i.size,i.style,qty>1?`Qty ${qty}`:''].filter(Boolean).join(' · ');return `<tr><td style="padding:13px 0;border-bottom:1px solid #E7DCE0;vertical-align:top"><div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;font-weight:700;color:#111111">${esc(i.name||'Band Factory item')}</div>${meta?`<div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#887D81">${esc(meta)}</div>`:''}</td><td class="bf-item-price" align="right" style="padding:13px 0 13px 18px;border-bottom:1px solid #E7DCE0;vertical-align:top;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;font-weight:700;color:#111111">${money(Number(i.price||0)*qty)}</td></tr>`}).join('')}</table></div>`;
 }
 
 async function ensureTrackingToken(orderId,existingOrder){
@@ -67,50 +133,53 @@ async function sendPurchase(order){
   if(!order?.id)return;
   const access=await ensureTrackingToken(order.id,order);order=access?.order||order;
   const total=money(order.total),ref=order.id;
-  const body=`${paragraph(`Hi ${order.name||'there'}, your payment is confirmed and order ${ref} is officially with us.`)}${orderItems(order)}${infoGrid([['Order',ref],['Status',order.status||'Preparing'],['Fulfilment',order.fulfilment||'Delivery'],['Order total',total],['Placed',date(order.createdAt)]])}${paragraph('We’ll email you whenever your order moves to a new stage. You can also check it anytime without creating an account.')}`;
+  const customerName=String(order.name||'there').trim();
+  const customerBody=`${paragraph(`Hi ${customerName}, thanks for your order. Your payment has been received and ${ref} is confirmed.`)}${orderItems(order)}${infoGrid([['Order number',ref],['Status',order.status||'Preparing'],['Fulfilment',order.fulfilment||'Delivery'],['Total paid',total],['Placed',date(order.createdAt)]])}${paragraph('We will email you when your order status changes. You can also track it on the Band Factory website at any time.')}`;
   const jobs=[];
-  if(order.email)jobs.push(resend({to:order.email,subject:`We’ve got your order ${ref} ♡`,html:shell({eyebrow:'ORDER CONFIRMED',title:'It’s officially yours.',lead:'Payment received. Your Band Factory order is now in motion.',body,cta:'Track my order',ctaUrl:trackingUrl(access.token),accent:'#F4B6CA'})}));
-  jobs.push(resend({to:ADMIN_EMAIL,replyTo:order.email||undefined,subject:`New paid order · ${ref} · ${total}`,html:shell({eyebrow:'NEW SALE',title:'A new order just landed.',lead:`${order.name||'A customer'} completed payment.`,body:`${infoGrid([['Order',ref],['Customer',order.name],['Email',order.email],['Phone',order.phone],['Type',order.type||'Retail'],['Fulfilment',order.fulfilment||'Delivery'],['Total',total]])}${orderItems(order)}`,cta:'Open admin dashboard',ctaUrl:`${SITE_URL()}/admin.html`,accent:'#E890AE'})}));
+  if(order.email)jobs.push(resend({to:order.email,subject:`Order ${ref} confirmed | Band Factory`,html:shell({eyebrow:'Order confirmed',title:'Thank you for your order.',lead:'Payment received. We are getting your Band Factory order ready.',body:customerBody,cta:'Track your order',ctaUrl:trackingUrl(access.token),accent:'#F4B6CA',footer:'Keep this email for your order reference and tracking link.'})}));
+  jobs.push(resend({to:ADMIN_EMAIL,replyTo:order.email||undefined,subject:`New paid order ${ref} | ${total}`,html:shell({eyebrow:'New paid order',title:'A new order is in.',lead:`${order.name||'A customer'} completed payment on the website.`,body:`${infoGrid([['Order number',ref],['Customer',order.name],['Email',order.email],['Phone',order.phone],['Order type',order.type||'Retail'],['Fulfilment',order.fulfilment||'Delivery'],['Total',total]])}${orderItems(order)}`,cta:'Open admin',ctaUrl:`${SITE_URL()}/admin.html`,accent:'#E890AE',footer:'Band Factory website notification.'})}));
   return Promise.allSettled(jobs);
 }
 
 const statusCopy={
-  Preparing:['We’re getting it together.','Your order is being prepared and checked before it moves to the next stage.','#F4B6CA'],
-  Ready:['Your order is ready.','Your pieces are packed and ready for the next step.','#D8CFEF'],
-  Dispatched:['It’s on the move.','Your order has been dispatched. Keep your phone close for delivery updates.','#C9E6D1'],
-  Delivered:['Made it to you ♡','Your order has been marked as delivered. We hope you love every piece.','#F7D6A5'],
-  Cancelled:['Order update.','This order has been marked as cancelled. If this looks unexpected, reply to this email and we’ll help.','#E8DDE1']
+  Preparing:['We are preparing your order.','Your order is being checked and prepared before it moves to the next stage.','#F4B6CA'],
+  Ready:['Your order is ready.','Everything is packed and ready for the next step.','#D8CFEF'],
+  Dispatched:['Your order is on the way.','Your order has been dispatched. Keep your phone nearby for delivery updates.','#CFE7D5'],
+  Delivered:['Your order has been delivered.','We hope you love it. Thank you for shopping with Band Factory.','#F4D6A8'],
+  Cancelled:['There is an update on your order.','This order has been marked as cancelled. If you were not expecting this, reply to this email and we will help.','#E9DDE1']
 };
 async function sendStatus(order,status){
   if(!order?.email)return {skipped:true};
   const access=await ensureTrackingToken(order.id,order);const [title,lead,accent]=statusCopy[status]||['Your order has an update.',`Your order is now ${status}.`,'#F4B6CA'];
-  return resend({to:order.email,subject:`${order.id} is now ${status}`,html:shell({eyebrow:`ORDER ${String(status).toUpperCase()}`,title,lead,body:`${infoGrid([['Order',order.id],['Current status',status],['Fulfilment',order.fulfilment||'Delivery'],['Order total',money(order.total)]])}${paragraph('Tap below to open this exact order. No email, phone number or account sign-in is needed from this link.')}`,cta:'Track this order',ctaUrl:trackingUrl(access.token),accent})});
+  const body=`${infoGrid([['Order number',order.id],['Current status',status],['Fulfilment',order.fulfilment||'Delivery'],['Order total',money(order.total)]])}${paragraph('Use the button below to open this order directly on the Band Factory website.')}`;
+  return resend({to:order.email,subject:`Order ${order.id}: ${status} | Band Factory`,html:shell({eyebrow:'Order update',title,lead,body,cta:'Track your order',ctaUrl:trackingUrl(access.token),accent,footer:'You are receiving this because this email address was used for this order.'})});
 }
 
 async function sendSubscriber(doc){
- const customer=doc.email?resend({to:doc.email,subject:'You’re on the Band Factory list ♡',html:shell({eyebrow:'YOU’RE IN',title:'First dibs look good on you.',lead:'You’re now on the Band Factory updates list.',body:`${paragraph('Expect new drops, restocks, colour news and the occasional very good reason to refresh your wardrobe.')}${infoGrid([['Email',doc.email],['Status','Subscribed']])}`,cta:'See what’s new',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA'})}):Promise.resolve({skipped:true});
- const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New subscriber · ${doc.email||'Band Factory list'}`,html:shell({eyebrow:'AUDIENCE GROWTH',title:'Someone joined the list.',lead:'A new shopper subscribed for Band Factory updates.',body:infoGrid([['Name',doc.name||'Not provided'],['Email',doc.email],['Joined',date(doc.createdAt)]]),cta:'Open subscribers',ctaUrl:`${SITE_URL()}/admin.html#subscribersPanel`,accent:'#D8CFEF'})});
- return Promise.allSettled([customer,admin]);
+  const customer=doc.email?resend({to:doc.email,subject:'Welcome to Band Factory updates',html:shell({eyebrow:'Band Factory updates',title:'You are on the list.',lead:'Thanks for signing up for Band Factory updates.',body:paragraph('We will send you new drops, restocks and product updates from time to time.'),cta:'Shop Band Factory',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA',footer:'You signed up for updates on bandfactory.store.'})}):Promise.resolve({skipped:true});
+  const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New subscriber | ${doc.email||'Band Factory'}`,html:shell({eyebrow:'New subscriber',title:'Someone joined the list.',lead:'A new email subscriber signed up on the website.',body:infoGrid([['Name',doc.name||'Not provided'],['Email',doc.email],['Joined',date(doc.createdAt)]]),cta:'Open admin',ctaUrl:`${SITE_URL()}/admin.html#subscribersPanel`,accent:'#D8CFEF',footer:'Band Factory website notification.'})});
+  return Promise.allSettled([customer,admin]);
 }
 
 async function sendContact(doc){
- const customer=doc.email?resend({to:doc.email,subject:'Message received · Band Factory',html:shell({eyebrow:'MESSAGE RECEIVED',title:'Your note made it to us.',lead:'Thanks for reaching out. We’ll get back to you as soon as we can.',body:`${quote(doc.message||'')}${paragraph('You can reply to this email if you need to add anything else.')}`,cta:'Back to Band Factory',ctaUrl:`${SITE_URL()}/index.html`,accent:'#D8CFEF'})}):Promise.resolve({skipped:true});
- const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New website message · ${doc.name||'Customer'}`,html:shell({eyebrow:'NEW MESSAGE',title:'Your inbox has company.',lead:`${doc.name||'A visitor'} sent a message from the website.`,body:`${infoGrid([['Name',doc.name],['Email',doc.email],['Phone',doc.phone],['Received',date(doc.createdAt)]])}${quote(doc.message||'')}`,cta:'Open messages',ctaUrl:`${SITE_URL()}/admin.html#messagesPanel`,accent:'#C9E6D1'})});
- return Promise.allSettled([customer,admin]);
+  const customer=doc.email?resend({to:doc.email,subject:'We received your message | Band Factory',html:shell({eyebrow:'Message received',title:'Thanks for getting in touch.',lead:'Your message has reached Band Factory. We will reply as soon as we can.',body:quote(doc.message||''),cta:'Visit Band Factory',ctaUrl:`${SITE_URL()}/index.html`,accent:'#D8CFEF',footer:'You received this confirmation after sending a message on bandfactory.store.'})}):Promise.resolve({skipped:true});
+  const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New website message | ${doc.name||'Customer'}`,html:shell({eyebrow:'New message',title:'A customer sent a message.',lead:`Message from ${doc.name||'a website visitor'}.`,body:`${infoGrid([['Name',doc.name],['Email',doc.email],['Phone',doc.phone],['Received',date(doc.createdAt)]])}${quote(doc.message||'')}`,cta:'Open admin',ctaUrl:`${SITE_URL()}/admin.html#messagesPanel`,accent:'#CFE7D5',footer:'Band Factory website notification.'})});
+  return Promise.allSettled([customer,admin]);
 }
 
 async function sendReview(doc){
- const stars='★'.repeat(Math.max(0,Math.min(5,Number(doc.rating)||0)));
- const customer=doc.email?resend({to:doc.email,subject:'We received your review ♡',html:shell({eyebrow:'REVIEW RECEIVED',title:'Thank you for saying it.',lead:'Your review is in and waiting for approval.',body:`<div style="font-family:Arial,sans-serif;font-size:24px;letter-spacing:3px;color:#E890AE;margin:20px 0">${stars}</div>${quote(doc.review||'')}${paragraph('Once approved, your review may appear on the Band Factory website.')}`,cta:'Keep browsing',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA'})}):Promise.resolve({skipped:true});
- const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New ${doc.rating||0}-star review · ${doc.name||'Customer'}`,html:shell({eyebrow:'NEW REVIEW',title:'A customer left a little love.',lead:'A new review is waiting for approval.',body:`<div style="font-family:Arial,sans-serif;font-size:24px;letter-spacing:3px;color:#E890AE;margin:20px 0">${stars}</div>${infoGrid([['Name',doc.name],['Email',doc.email],['City',doc.city],['Purchased?',doc.purchased?'Yes':'Not confirmed'],['Status',doc.status||'pending']])}${quote(doc.review||'')}`,cta:'Review it in admin',ctaUrl:`${SITE_URL()}/admin.html#reviewsPanel`,accent:'#E890AE'})});
- return Promise.allSettled([customer,admin]);
+  const stars='★'.repeat(Math.max(0,Math.min(5,Number(doc.rating)||0)));
+  const rating=`<div style="margin-top:22px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1;letter-spacing:4px;color:#B76E87">${stars}</div>`;
+  const customer=doc.email?resend({to:doc.email,subject:'Thanks for your review | Band Factory',html:shell({eyebrow:'Review received',title:'Thanks for sharing your thoughts.',lead:'We received your review and it is waiting for approval.',body:`${rating}${quote(doc.review||'')}${paragraph('Once approved, your review may appear on the Band Factory website.')}`,cta:'Keep shopping',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA',footer:'You received this confirmation after submitting a review on bandfactory.store.'})}):Promise.resolve({skipped:true});
+  const admin=resend({to:ADMIN_EMAIL,replyTo:doc.email||undefined,subject:`New ${doc.rating||0} star review | ${doc.name||'Customer'}`,html:shell({eyebrow:'New review',title:'A new review is waiting.',lead:'A customer submitted a review on the website.',body:`${rating}${infoGrid([['Name',doc.name],['Email',doc.email],['City',doc.city],['Purchased?',doc.purchased?'Yes':'Not confirmed'],['Status',doc.status||'pending']])}${quote(doc.review||'')}`,cta:'Review in admin',ctaUrl:`${SITE_URL()}/admin.html#reviewsPanel`,accent:'#E890AE',footer:'Band Factory website notification.'})});
+  return Promise.allSettled([customer,admin]);
 }
 
 async function sendGenericCustomer({to,name,subject,message,details,actionText,actionUrl}){
- return resend({to,subject,html:shell({eyebrow:'FROM BAND FACTORY',title:subject,lead:`Hi ${name||'there'},`,body:`${paragraph(message||'')}${details?quote(details):''}`,cta:actionText||'Visit Band Factory',ctaUrl:actionUrl||`${SITE_URL()}/index.html`,accent:'#D8CFEF'})});
+  return resend({to,subject,html:shell({eyebrow:'Band Factory',title:subject,lead:name?`Hi ${name},`:'Hello,',body:`${paragraph(message||'')}${details?quote(details):''}`,cta:actionText||'Visit Band Factory',ctaUrl:actionUrl||`${SITE_URL()}/index.html`,accent:'#D8CFEF'})});
 }
 async function sendBroadcast({to,name,subject,message}){
- return resend({to,subject,html:shell({eyebrow:'BAND FACTORY UPDATE',title:subject,lead:`Hi ${name||'there'},`,body:`${paragraph(message)}${paragraph('You’re receiving this because you joined the Band Factory email list.')}`,cta:'Shop Band Factory',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA'})});
+  return resend({to,subject,html:shell({eyebrow:'Band Factory update',title:subject,lead:name?`Hi ${name},`:'Hello,',body:`${paragraph(message)}${paragraph('You are receiving this because you joined the Band Factory email list.')}`,cta:'Shop Band Factory',ctaUrl:`${SITE_URL()}/shop.html`,accent:'#F4B6CA',footer:'Band Factory email list.'})});
 }
 
 async function getAdmin(event){
