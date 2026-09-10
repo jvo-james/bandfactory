@@ -244,8 +244,9 @@ function syncBatchSelection(){
 async function updateSelectedOrderStatuses(){
   const ids=selectedPaidOrderIds(),status=document.getElementById('bulkOrderStatus')?.value;if(!ids.length||!status)return;
   return withAdminLoading(async()=>{
-    await Promise.all(ids.map(id=>BFStore.update('orders',id,{status})));
-    await BFStore.log('Order status updated',{orderIds:ids,status,bulk:true,count:ids.length});
+    const results=await Promise.allSettled(ids.map(id=>BFEmail.updateOrderStatus(id,status)));
+    const failed=results.filter(r=>r.status==='rejected');
+    if(failed.length)console.error('[Band Factory] Some bulk status emails failed:',failed);
     await loadAll();showSection('ordersPanel',{scroll:false});BF.toast(`${ids.length} order${ids.length===1?'':'s'} updated to ${status}`);
   },`Updating ${ids.length} order${ids.length===1?'':'s'}…`);
 }
@@ -1597,7 +1598,7 @@ window.openOrder=openOrder;
 function closeOrder(){document.getElementById('drawerScreen').classList.remove('show');document.getElementById('orderDrawer').classList.remove('open')}
 window.closeOrder=closeOrder;
 async function saveOrderStatus(id){
-  return withAdminLoading(async()=>{const v=document.getElementById('drawerStatus').value;await BFStore.update('orders',id,{status:v});await BFStore.log('Order status updated',{orderId:id,status:v});closeOrder();await loadAll();BF.toast('Order status saved')},'Saving order…');
+  return withAdminLoading(async()=>{const v=document.getElementById('drawerStatus').value;const result=await BFEmail.updateOrderStatus(id,v);closeOrder();await loadAll();BF.toast(result?.email?.failed?'Order status saved · email needs retry':result?.email?.skipped?'Order status saved':'Order status saved · customer emailed')},'Saving order…');
 }
 window.saveOrderStatus=saveOrderStatus;
 
@@ -1737,7 +1738,7 @@ async function sendBroadcast(){
   const subject=document.getElementById('broadcastSubject').value.trim(),message=document.getElementById('broadcastMessage').value.trim(),list=DATA.subscribers.filter(s=>s.status!=='inactive'&&s.email);
   if(!subject||!message||!list.length)return BF.toast('Add a subject, a message and at least one active subscriber.');
   if(!confirm(`Send this message to ${list.length} subscriber(s)?`))return;
-  return withAdminLoading(async()=>{const button=document.getElementById('sendBroadcast');button.disabled=true;let sent=0;document.getElementById('broadcastProgress').style.width='0%';try{for(const s of list){try{await BFEmail.sendBroadcastToSubscriber({email:s.email,name:s.name||'there',subject,message});sent++}catch(e){console.error(e)}document.getElementById('broadcastProgress').style.width=`${Math.round(sent/list.length*100)}%`;document.getElementById('broadcastStatus').textContent=`Sent ${sent} of ${list.length}`;await new Promise(r=>setTimeout(r,1100))}await BFStore.log('Subscriber broadcast sent',{subject,recipients:sent});BF.toast(`Message sent to ${sent} subscriber${sent===1?'':'s'}`)}finally{button.disabled=false}},'Sending subscriber update…');
+  return withAdminLoading(async()=>{const button=document.getElementById('sendBroadcast');button.disabled=true;let sent=0;document.getElementById('broadcastProgress').style.width='0%';try{for(const s of list){try{await BFEmail.sendBroadcastToSubscriber({email:s.email,name:s.name||'there',subject,message});sent++}catch(e){console.error(e)}document.getElementById('broadcastProgress').style.width=`${Math.round(sent/list.length*100)}%`;document.getElementById('broadcastStatus').textContent=`Sent ${sent} of ${list.length}`;await new Promise(r=>setTimeout(r,150))}await BFStore.log('Subscriber broadcast sent',{subject,recipients:sent});BF.toast(`Message sent to ${sent} subscriber${sent===1?'':'s'}`)}finally{button.disabled=false}},'Sending subscriber update…');
 }
 
 function renderDelivery(){document.getElementById('pickupAddressAdmin').value=DATA.settings.pickupAddress||BF_CONFIG.pickup.address;document.getElementById('sameDayDispatchOpen').value=String(DATA.settings.sameDayDispatchOpen!==false);document.getElementById('deliveryFeeAdmin').value=DATA.settings.deliveryFee||0}
@@ -1897,7 +1898,7 @@ function friendlyActivity(action=''){
   return map[action]||action;
 }
 function renderActivity(){document.getElementById('activityList').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<div class="notification-card"><div><strong>${friendlyActivity(a.action)}</strong><br><small>${fmtDate(a.createdAt)}</small></div></div>`).join(''):'<p>No activity recorded yet.</p>'}
-function renderSettings(){document.getElementById('storeEmail').value=DATA.settings.storeEmail||BF_CONFIG.emailjs.adminEmail;document.getElementById('instagramUrl').value=DATA.settings.instagramUrl||BF_CONFIG.socials.instagram;document.getElementById('tiktokUrl').value=DATA.settings.tiktokUrl||BF_CONFIG.socials.tiktok;const current=document.getElementById('currentAdminEmail');if(current&&window.__bfAuth?.currentUser)current.textContent=window.__bfAuth.currentUser.email||'Admin'}
+function renderSettings(){document.getElementById('storeEmail').value=DATA.settings.storeEmail||BF_CONFIG.contactEmail||'bandfactoryy@gmail.com';document.getElementById('instagramUrl').value=DATA.settings.instagramUrl||BF_CONFIG.socials.instagram;document.getElementById('tiktokUrl').value=DATA.settings.tiktokUrl||BF_CONFIG.socials.tiktok;const current=document.getElementById('currentAdminEmail');if(current&&window.__bfAuth?.currentUser)current.textContent=window.__bfAuth.currentUser.email||'Admin'}
 async function saveSettings(){return withAdminLoading(async()=>{await BFStore.setDoc('settings/store',{storeEmail:document.getElementById('storeEmail').value,instagramUrl:document.getElementById('instagramUrl').value,tiktokUrl:document.getElementById('tiktokUrl').value});await BFStore.log('Store settings updated');BF.toast('Store settings saved');await loadAll()},'Saving store settings…')}
 
 function authFriendlyError(error){

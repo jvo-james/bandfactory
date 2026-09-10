@@ -232,7 +232,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const review={...data,status:'pending',submittedAt:new Date().toISOString()};
     const id=await BFStore.add('reviews',review);
     await BFStore.notify('review','New review awaiting approval',`${data.name} left a ${data.rating}-star review.`,{reviewId:id});
-    BFEmail.sendReviewEmails(review).catch(console.error);
+    BFEmail.sendReviewEmails({id}).catch(console.error);
     return id;
   },
 async subscribe(email,name=''){
@@ -242,7 +242,7 @@ async subscribe(email,name=''){
     throw new Error('Email address is required.');
   }
 
-  await BFStore.add('subscribers', {
+  const id = await BFStore.add('subscribers', {
     email: normalized,
     name: String(name || '').trim(),
     status: 'active',
@@ -256,10 +256,7 @@ async subscribe(email,name=''){
     { email: normalized }
   );
 
-  BFEmail.sendNewsletterWelcome({
-    email: normalized,
-    name
-  }).catch(console.error);
+  BFEmail.sendNewsletterWelcome({id}).catch(console.error);
 }
 };
 function buildSearchIndex(){

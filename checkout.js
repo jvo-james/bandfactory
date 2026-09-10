@@ -676,7 +676,7 @@ const id = orderId;
   };
 
   // IMPORTANT: Paystack has already returned success. Save the success payload immediately.
-  // This guarantees that Firebase or EmailJS problems can never make a paid customer see a failed-payment screen.
+  // This guarantees that Firebase or email delivery problems can never make a paid customer see a failed-payment screen.
   sessionStorage.setItem('bf_payment_success', JSON.stringify({verifiedClientSuccess:true,createdAt:Date.now(),order}));
   sessionStorage.removeItem('bf_checkout_draft');
   localStorage.removeItem('bf_cart');
@@ -702,19 +702,20 @@ setPaymentState(
     await Promise.allSettled(secondary);
   };
 
-  const syncResult = await Promise.allSettled([
-    syncOrder(),
-    BFEmail.sendPurchaseEmails(order)
-  ]);
-
+  const syncResult = await Promise.allSettled([syncOrder()]);
   const firebaseOkay = syncResult[0].status === 'fulfilled';
-  const emailOkay = syncResult[1].status === 'fulfilled' && syncResult[1].value?.success !== false;
+  let emailResult={status:'rejected',reason:new Error('Order sync did not complete.')};
+  if(firebaseOkay){
+    const settled=await Promise.allSettled([BFEmail.sendPurchaseEmails(order)]);
+    emailResult=settled[0];
+  }
+  const emailOkay = emailResult.status === 'fulfilled';
   order.syncStatus = firebaseOkay ? 'synced' : 'pending';
   order.emailStatus = emailOkay ? 'sent' : 'pending';
   sessionStorage.setItem('bf_payment_success', JSON.stringify({verifiedClientSuccess:true,createdAt:Date.now(),order}));
 
   if(!firebaseOkay) console.error('[Band Factory] Payment succeeded but Firebase sync needs attention:', syncResult[0].reason);
-  if(!emailOkay) console.error('[Band Factory] Payment succeeded but email delivery needs attention:', syncResult[1].reason || syncResult[1].value);
+  if(!emailOkay) console.error('[Band Factory] Payment succeeded but email delivery needs attention:', emailResult.reason || emailResult.value);
 
   await ensureSuccessLoaderMoment();
   location.replace('confirmation.html');
