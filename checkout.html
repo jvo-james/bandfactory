@@ -43,7 +43,7 @@
       <div id="checkoutFormWrap">
         <div class="section-kicker">Secure checkout</div>
         <h1>Almost yours.</h1>
-        <p class="checkout-intro">A few details, your preferred fulfilment option, and you’re ready to pay securely.</p>
+        <p class="checkout-intro">A few details, your preferred fulfilment option, and you are ready to pay securely.</p>
 
         <form id="checkoutForm" novalidate>
           <div class="step-card">
@@ -55,9 +55,9 @@
                 <span class="field-error">Please enter your full name.</span>
               </div>
               <div class="form-group">
-                <label>Email <span class="optional-label">Optional · strongly recommended</span></label>
-                <input class="field" name="email" type="email" autocomplete="email" placeholder="you@example.com">
-                <small class="field-help"><strong>Very recommended:</strong> add your email so you receive your receipt, order confirmation and a written record of your purchase. You can still order without one.</small>
+                <label>Email <span class="optional-label">Optional, recommended for order updates</span></label>
+                <input class="field" name="email" type="email" autocomplete="email" placeholder="Email address">
+                <small class="field-help"><strong>Add your email for order updates.</strong> We will send your confirmation and let you know when your order status changes. You can also use your email and order number to track your order on the website. <button type="button" class="checkout-track-link" data-bf-track-open>Track an existing order</button></small>
                 <span class="field-error">If you add an email, please enter a valid address.</span>
               </div>
             </div>
@@ -214,8 +214,8 @@
         <div class="summary-total summary-fee"><span>Subtotal</span><strong id="summarySubtotal">GHS 0</strong></div><div class="summary-total summary-fee"><span>Processing fee</span><strong id="summaryProcessingFee">GHS 0</strong></div><div class="summary-total grand"><span>Total</span><strong id="summaryTotal">GHS 0</strong></div>
         <div class="trust-cues">
           <div class="trust-cue"><i class="fa-solid fa-shield-halved"></i><span>Secure Paystack payment</span></div>
-          <div class="trust-cue"><i class="fa-regular fa-envelope"></i><span>Email receipt when an email is provided</span></div>
-          <div class="trust-cue"><i class="fa-solid fa-receipt"></i><span>Receipt issued after successful payment</span></div>
+          <div class="trust-cue"><i class="fa-regular fa-envelope"></i><span>Email confirmation and order status updates</span></div>
+          <div class="trust-cue"><i class="fa-solid fa-location-dot"></i><span>Track your order anytime on this website</span></div>
         </div>
         <button class="pay-btn" id="payButton" type="button" disabled><span class="paystack-mark"><i></i><b></b></span><span class="pay-label">Complete your details to pay</span></button>
         <div class="payment-state" id="paymentState" aria-live="polite"></div>
