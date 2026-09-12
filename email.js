@@ -44,7 +44,7 @@ const BFEmail=(()=>{
       BFStore.add('activity',{action:'Order status updated',orderId:id,status:next}).catch(error=>console.warn('[Band Factory] Order saved but activity log failed:',error));
       return {ok:true,saved:true,direct:true};
     },
-    async sendOrderStatusEmail(orderId,status){return request('/.netlify/functions/admin-email',{action:'status',orderId,status},true,{timeoutMs:12000})},
+    async sendOrderStatusEmail(orderId,status){return request('/.netlify/functions/admin-email',{action:'status-email',orderId,status},true,{timeoutMs:12000})},
     async sendBroadcastToSubscriber({email,name,subject,message}){return request('/.netlify/functions/admin-email',{action:'broadcast',email,name,subject,message},true)},
     async sendCustomerEmail({toEmail,toName,subject,message,details='',actionText='Visit Band Factory',actionUrl=''}){return request('/.netlify/functions/admin-email',{action:'customer',email:toEmail,name:toName,subject,message,details,actionText,actionUrl},true)}
   };
