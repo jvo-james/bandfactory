@@ -604,8 +604,48 @@ function addWholesaleToBag() {
   }
 }
 
-async function loadWholesalePricing(settings = {}) {
-  await loadWholesalePricing(settings);
+function buildWholesaleBundles(defaults, settings, prefix) {
+  return defaults.map(bundle => {
+    const pieces = bundle.pieces;
+    const priceKey = `${prefix}${pieces}Price`;
+    const compareKey = `${prefix}${pieces}CompareAtPrice`;
+    const configuredPrice = Number(settings?.[priceKey]);
+    const configuredCompare = Number(settings?.[compareKey]);
+    const price = Number.isFinite(configuredPrice) && configuredPrice > 0 ? configuredPrice : Number(bundle.price || 0);
+    const compareAt = Number.isFinite(configuredCompare) && configuredCompare > price ? configuredCompare : 0;
+    return { ...bundle, price, compareAt };
+  });
+}
+
+function applyWholesalePricing(settings = {}) {
+  storeSettings = settings || {};
+  standardBundles = buildWholesaleBundles(DEFAULT_STANDARD, storeSettings, 'standardWholesale');
+  customBundles = buildWholesaleBundles(DEFAULT_CUSTOM, storeSettings, 'customWholesale');
+
+  const ribbedStandardDefaults = DEFAULT_CUSTOM.map(bundle => ({ ...bundle }));
+  const ribbedCustomDefaults = DEFAULT_CUSTOM.map(bundle => ({ ...bundle, price: Math.ceil(bundle.price * 1.25 / 10) * 10 }));
+  ribbedStandardBundles = buildWholesaleBundles(ribbedStandardDefaults, storeSettings, 'ribbedStandardWholesale');
+  ribbedCustomBundles = buildWholesaleBundles(ribbedCustomDefaults, storeSettings, 'ribbedCustomWholesale');
+}
+
+async function initWholesale() {
+  try {
+    if (window.BF?.loadSmoothPalette) await BF.loadSmoothPalette();
+    const [settings, smoothProduct, items] = await Promise.all([
+      BFStore.getDoc('settings/store', {}),
+      BFStore.getDoc('products/smooth', { colors: {}, styles: {} }),
+      window.BFCatalog ? BFCatalog.load() : Promise.resolve([])
+    ]);
+
+    applyWholesalePricing(settings);
+    productData = smoothProduct || { colors: {}, styles: {} };
+    catalogItems = Array.isArray(items) ? items : [];
+    if (window.BF) BF.settings = { ...(BF.settings || {}), ...storeSettings };
+    updateWholesaleStyleCardImages();
+  } catch (error) {
+    console.error('[Band Factory] Wholesale data could not load.', error);
+    applyWholesalePricing({});
+  }
 
   const params = new URLSearchParams(location.search);
   if (['flat', 'twisted', 'mixed'].includes(params.get('style'))) wholesaleStyle = params.get('style');
@@ -646,7 +686,6 @@ async function loadWholesalePricing(settings = {}) {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-checked', String(active));
   });
-
 
   $$('[data-wholesale-style]').forEach(btn => {
     const style=btn.dataset.wholesaleStyle;
