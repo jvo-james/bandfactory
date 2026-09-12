@@ -50,6 +50,8 @@ window.BFCatalog = {
   image(item,style='flat'){if(item?.category==='ribbed'&&style==='twisted')return item?.twistedImage||(window.BF_RIBBED_TWISTED_IMAGE?BF_RIBBED_TWISTED_IMAGE(item?.twistedImageKey||item?.imageKey||item?.id):'images/ribbed-placeholder.svg');return item?.image||BF_IMAGE(item?.imageKey||item?.id);},
   variant(item,style='flat'){if(item?.category!=='ribbed')return item||{};const clean=style==='twisted'?'twisted':'flat';return item?.styles?.[clean]||(clean==='flat'?{stock:Number(item?.stock??0),available:item?.available!==false}:{stock:0,available:false});},
   price(item,settings={}){const ribbedDefault=Number(settings.ribbedPrice||settings.retailPrice||10);return Number(item?.price ?? (item?.category==='ribbed'?ribbedDefault:0) ?? 0);},
+  compareAtPrice(item,settings={}){const current=this.price(item,settings);const fallback=item?.category==='ribbed'?settings.ribbedCompareAtPrice:null;const old=Number(item?.compareAtPrice ?? fallback ?? 0);return old>current?old:0;},
+  priceHtml(price,compareAt=0,extraClass=''){const current=Number(price||0),old=Number(compareAt||0);if(!current)return 'View product';return old>current?`<span class="sale-price-wrap ${extraClass}"><del>${BF.money(old)}</del><strong>${BF.money(current)}</strong><span class="sale-pill">SALE</span></span>`:`<span class="sale-price-wrap ${extraClass}"><strong>${BF.money(current)}</strong></span>`;},
   stock(item,size=''){
     if(item?.sizes&&Object.keys(item.sizes).length){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
     return item?.available===false?0:Math.max(0,Number(item?.stock??0));

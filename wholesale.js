@@ -171,7 +171,7 @@ function bundleButton(bundle, index) {
   const print=activePrint(),printItem=print?(catalogItems||[]).find(x=>x.id===print.id):null,printVariant=printItem?BFCatalog.variant(printItem,'flat'):null,disabled=!!print&&(printVariant?.available===false||Number(printVariant?.stock||0)<bundle.pieces);
   const each = bundle.pieces ? bundle.price / bundle.pieces : 0;
   const eachText = Number.isInteger(each) ? money(each) : `GH₵${each.toFixed(2)}`;
-  return `<button class="bundle-choice ${index === bundleIndex ? 'active' : ''} ${disabled?'sold-out':''}" type="button" data-bundle="${index}" aria-pressed="${index === bundleIndex}" ${disabled?'disabled aria-disabled="true"':''}><strong>${bundle.pieces}</strong><span>pieces</span><b>${money(bundle.price)}</b><em>${disabled?'Not enough stock':eachText+' each'}</em></button>`;
+  return `<button class="bundle-choice ${index === bundleIndex ? 'active' : ''} ${disabled?'sold-out':''}" type="button" data-bundle="${index}" aria-pressed="${index === bundleIndex}" ${disabled?'disabled aria-disabled="true"':''}><strong>${bundle.pieces}</strong><span>pieces</span><b>${bundle.compareAt>bundle.price?`<del>${money(bundle.compareAt)}</del><span>${money(bundle.price)}</span><i>SALE</i>`:money(bundle.price)}</b><em>${disabled?'Not enough stock':eachText+' each'}</em></button>`;
 }
 
 function renderBundles() {
@@ -470,7 +470,7 @@ function updateSticky() {
   const splitText = wholesaleStyle === 'mixed' ? ` · ${styleSplit.flat}F/${styleSplit.twisted}T` : '';
   $('#stickyMain').textContent = activePrint()?`${activePrint().name} · Flat · ${b.pieces} pieces`:`${styleLabel(wholesaleStyle)} · ${modeLabel()} · ${b.pieces} pieces${splitText}`;
   $('#stickyBundle').textContent = `${b.pieces} pieces`;
-  $('#stickyPrice').textContent = money(b.price);
+  $('#stickyPrice').innerHTML = b.compareAt>b.price?`<del>${money(b.compareAt)}</del> <strong>${money(b.price)}</strong>`:money(b.price);
 }
 
 function updateProfit() {
@@ -506,7 +506,7 @@ function updateSummary() {
   $('#summaryStyleRow').textContent = wholesaleStyle === 'mixed' ? `Mixed · ${styleSplit.flat} Flat + ${styleSplit.twisted} Twisted` : styleLabel(wholesaleStyle);
   $('#summaryModeRow').textContent = modeLabel();
   $('#summaryBundleRow').textContent = `${b.pieces} pieces`;
-  $('#summaryTotalRow').textContent = money(b.price);
+  $('#summaryTotalRow').innerHTML = b.compareAt>b.price?`<span class="summary-sale-total"><del>${money(b.compareAt)}</del><strong>${money(b.price)}</strong></span>`:money(b.price);
   if(activePrint()){
     const print=activePrint();$('#summaryStyleBadge').textContent='Signature Print';$('#summaryStyle').textContent=print.name;$('#summaryStyleRow').textContent=`${print.name} · Flat`;$('#summaryModeRow').textContent='Signature Print Wholesale';$('#summaryDescription').textContent=`${print.name} Flat Ribbed Hairbands · GH₵10 per piece. Choose 10, 30, 50, 100 or 200 pieces.`;$('#summaryColours').hidden=true;$('#summaryColourList').innerHTML='';$('#summaryNote').textContent=ready?`${b.pieces} ${print.name} hairbands · ${money(b.price)} total.`:`Only bundles covered by live ${print.name} stock can be added.`;$('#addWholesaleToBag').disabled=!ready;return;
   }
@@ -606,14 +606,16 @@ async function initWholesale() {
 
   standardBundles = DEFAULT_STANDARD.map(b => ({
     ...b,
-    price: Number(settings[`standardWholesale${b.pieces}Price`] ?? settings[`wholesale${b.pieces}Price`] ?? b.price)
+    price: Number(settings[`standardWholesale${b.pieces}Price`] ?? settings[`wholesale${b.pieces}Price`] ?? b.price),
+    compareAt: Number(settings[`standardWholesale${b.pieces}CompareAtPrice`] ?? 0)
   }));
   customBundles = DEFAULT_CUSTOM.map(b => ({
     ...b,
-    price: Number(settings[`customWholesale${b.pieces}Price`] ?? b.price)
+    price: Number(settings[`customWholesale${b.pieces}Price`] ?? b.price),
+    compareAt: Number(settings[`customWholesale${b.pieces}CompareAtPrice`] ?? 0)
   }));
-  ribbedStandardBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedStandardWholesale${b.pieces}Price`] ?? settings[`customWholesale${b.pieces}Price`] ?? b.price)}));
-  ribbedCustomBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedCustomWholesale${b.pieces}Price`] ?? Math.ceil(b.price*1.25/10)*10)}));
+  ribbedStandardBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedStandardWholesale${b.pieces}Price`] ?? settings[`customWholesale${b.pieces}Price`] ?? b.price),compareAt:Number(settings[`ribbedStandardWholesale${b.pieces}CompareAtPrice`] ?? 0)}));
+  ribbedCustomBundles = DEFAULT_CUSTOM.map(b=>({...b,price:Number(settings[`ribbedCustomWholesale${b.pieces}Price`] ?? Math.ceil(b.price*1.25/10)*10),compareAt:Number(settings[`ribbedCustomWholesale${b.pieces}CompareAtPrice`] ?? 0)}));
   ribbedCustomBundles = ribbedCustomBundles.map((b,i)=>({...b,price:Math.max(Number(b.price||0),Number(ribbedStandardBundles[i]?.price||0)+10)}));
 
   const params = new URLSearchParams(location.search);
