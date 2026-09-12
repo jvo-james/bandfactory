@@ -51,6 +51,8 @@ window.BFCatalog = {
   variant(item,style='flat'){if(item?.category!=='ribbed')return item||{};const clean=style==='twisted'?'twisted':'flat';return item?.styles?.[clean]||(clean==='flat'?{stock:Number(item?.stock??0),available:item?.available!==false}:{stock:0,available:false});},
   price(item,settings={}){const ribbedDefault=Number(settings.ribbedPrice||settings.retailPrice||10);return Number(item?.price ?? (item?.category==='ribbed'?ribbedDefault:0) ?? 0);},
   compareAtPrice(item,settings={}){const current=this.price(item,settings);const fallback=item?.category==='ribbed'?settings.ribbedCompareAtPrice:null;const old=Number(item?.compareAtPrice ?? fallback ?? 0);return old>current?old:0;},
+  discountPercent(price,compareAt){const current=Number(price||0),old=Number(compareAt||0);return old>current&&current>=0?Math.max(1,Math.round(((old-current)/old)*100)):0;},
+  savingsHtml(price,compareAt){const current=Number(price||0),old=Number(compareAt||0),pct=this.discountPercent(current,old);if(!pct)return '';return `<div class="sale-saving-note"><i class="fa-solid fa-tag" aria-hidden="true"></i><span>You save <strong>${BF.money(old-current)}</strong> · ${pct}% off</span></div>`;},
   priceHtml(price,compareAt=0,extraClass=''){const current=Number(price||0),old=Number(compareAt||0);if(!current)return 'View product';return old>current?`<span class="sale-price-wrap ${extraClass}"><del>${BF.money(old)}</del><strong>${BF.money(current)}</strong><span class="sale-pill">SALE</span></span>`:`<span class="sale-price-wrap ${extraClass}"><strong>${BF.money(current)}</strong></span>`;},
   stock(item,size=''){
     if(item?.sizes&&Object.keys(item.sizes).length){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}

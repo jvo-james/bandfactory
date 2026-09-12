@@ -16,3 +16,9 @@
 
 /* Sale pricing */
 .product-price .sale-price-wrap{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}.product-price .sale-price-wrap del{color:#9d8f94;text-decoration-thickness:1.5px}.product-price .sale-price-wrap strong{color:#b5315b}.product-price .sale-pill{padding:3px 6px;border-radius:999px;background:#f7dce5;color:#8f2548;font-size:7px;font-style:normal;letter-spacing:.08em}
+
+
+/* Hairband collection sale moment */
+.hairband-sale-banner{margin:4px 0 26px;padding:18px 22px;display:flex;align-items:center;gap:17px;border:1px solid #ead6dd;background:linear-gradient(105deg,#fff7fa 0%,#f9e6ed 58%,#fff 100%);position:relative;overflow:hidden}
+.hairband-sale-banner[hidden]{display:none}.hairband-sale-banner:after{content:"";position:absolute;width:120px;height:120px;border:1px solid rgba(181,49,91,.12);border-radius:50%;right:-35px;top:-55px}.sale-burst{width:62px;height:62px;min-width:62px;border-radius:50%;background:#111;color:#fff;display:grid;place-content:center;text-align:center;transform:rotate(-5deg);box-shadow:0 10px 25px rgba(0,0,0,.12)}.sale-burst strong{font-family:var(--serif);font-size:24px;line-height:.8;font-weight:600}.sale-burst span{font-size:7px;letter-spacing:.16em;font-weight:900;margin-top:5px}.sale-banner-copy{display:grid;gap:3px;position:relative;z-index:1}.sale-banner-copy .sale-eyebrow{font-size:8px;text-transform:uppercase;letter-spacing:.16em;font-weight:900;color:#a22950}.sale-banner-copy>strong{font-family:var(--serif);font-size:clamp(20px,2.4vw,29px);font-weight:500;line-height:1.05}.sale-banner-copy small{font-size:10px;color:#75686d}.ribbed-sale-banner{margin-top:0}
+@media(max-width:600px){.hairband-sale-banner{padding:14px 15px;gap:12px;margin-bottom:20px}.sale-burst{width:54px;height:54px;min-width:54px}.sale-burst strong{font-size:21px}.sale-banner-copy>strong{font-size:20px}.sale-banner-copy small{font-size:9px}}

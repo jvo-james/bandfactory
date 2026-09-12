@@ -11,6 +11,7 @@ async function initCategoryPage(){
     if(category==='ribbed'){
       document.querySelectorAll('[data-ribbed-style]').forEach(b=>b.classList.toggle('active',b.dataset.ribbedStyle===ribbedStyle));
       const intro=document.getElementById('ribbedStyleIntro');if(intro)intro.textContent=ribbedStyle==='flat'?'Classic flat ribbed bands in every available shade.':'Twisted-front ribbed bands with texture and a sculpted centre.';
+      let banner=document.getElementById('hairbandSaleBanner');if(!banner){banner=document.createElement('div');banner.id='hairbandSaleBanner';banner.className='hairband-sale-banner ribbed-sale-banner';grid.parentNode.insertBefore(banner,grid)}const sample=list.map(item=>({price:BFCatalog.price(item,settings),old:BFCatalog.compareAtPrice(item,settings)})).find(x=>x.old>x.price);const pct=sample?BFCatalog.discountPercent(sample.price,sample.old):0;if(pct){banner.hidden=false;banner.innerHTML=`<div class="sale-burst"><strong>${pct}%</strong><span>OFF</span></div><div class="sale-banner-copy"><span class="sale-eyebrow">Hairband offer</span><strong>Ribbed Hairbands are ${pct}% off</strong><small>Discount shown automatically on eligible styles. No code needed.</small></div>`}else{banner.hidden=true;banner.innerHTML=''};
     }
     grid.innerHTML=list.map(item=>{
       const price=BFCatalog.price(item,settings),compareAt=BFCatalog.compareAtPrice(item,settings),variant=category==='ribbed'?ribbedVariant(item):item;

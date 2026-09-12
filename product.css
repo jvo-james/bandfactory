@@ -7,3 +7,7 @@ body{background:#fff}.pdp{display:grid;grid-template-columns:minmax(0,1.42fr) mi
 
 /* Sale pricing */
 .pdp-price .sale-price-wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.pdp-price .sale-price-wrap del{font-family:var(--serif);font-size:22px;color:#a89ca0;text-decoration-thickness:1.5px}.pdp-price .sale-price-wrap>strong{font-family:var(--serif);font-size:34px;color:#b5315b;font-weight:600}.pdp-price .sale-pill{font-family:var(--sans);font-size:8px;border-radius:999px;background:#f7dce5;color:#8f2548;padding:6px 8px;letter-spacing:.12em;font-weight:800}.rec-card .sale-price-wrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.rec-card .sale-price-wrap del{color:#a99da1}.rec-card .sale-price-wrap strong{color:#b5315b}.rec-card .sale-pill{font-size:7px;padding:3px 5px;border-radius:999px;background:#f7dce5;color:#8f2548}
+
+
+/* Quiet savings note beneath product pricing */
+.sale-saving-note{display:inline-flex;align-items:center;gap:7px;margin-top:9px;padding:7px 10px;background:#fff2f6;border:1px solid #f1d4de;color:#8f2548;font-size:10px;font-weight:600;letter-spacing:.01em}.sale-saving-note i{font-size:9px}.sale-saving-note strong{font-weight:900;color:#711c39}.sale-saving-note[hidden]{display:none}
