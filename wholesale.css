@@ -558,3 +558,8 @@
 
 /* Sale pricing */
 .bundle-choice b{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}.bundle-choice b del{font-weight:500;color:#9f9297;text-decoration-thickness:1.5px}.bundle-choice b span{color:#b5315b}.bundle-choice b i{font-style:normal;font:800 6px/1 var(--sans);letter-spacing:.08em;background:#f6d6e1;color:#8f2548;border-radius:999px;padding:3px 5px}.sticky-price del,#stickyPrice del{color:#9d8f94;font-size:.82em}.sticky-price strong,#stickyPrice strong{color:#f19ab7}.summary-sale-total{display:inline-flex;align-items:center;gap:8px}.summary-sale-total del{color:#96898e;font-weight:500}.summary-sale-total strong{color:#f4a3bd}.bundle-choice.active b span{color:#8f2548}
+
+/* Wholesale discount polish */
+.bundle-choice b i{white-space:nowrap;font-size:6.5px;letter-spacing:.07em;padding:4px 6px}
+.bundle-choice b del{opacity:.72}
+.bundle-choice.active b i{background:#111;color:#fff}
