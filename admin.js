@@ -243,12 +243,25 @@ function syncBatchSelection(){
 }
 async function updateSelectedOrderStatuses(){
   const ids=selectedPaidOrderIds(),status=document.getElementById('bulkOrderStatus')?.value;if(!ids.length||!status)return;
-  return withAdminLoading(async()=>{
-    const results=await Promise.allSettled(ids.map(id=>BFEmail.updateOrderStatus(id,status)));
-    const failed=results.filter(r=>r.status==='rejected');
-    if(failed.length)console.error('[Band Factory] Some bulk status emails failed:',failed);
-    await loadAll();showSection('ordersPanel',{scroll:false});BF.toast(`${ids.length} order${ids.length===1?'':'s'} updated to ${status}`);
-  },`Updating ${ids.length} order${ids.length===1?'':'s'}…`);
+  const button=document.getElementById('updateSelectedOrders');if(button?.disabled)return;
+  if(button)button.disabled=true;
+  try{
+    const savedIds=await withAdminLoading(async()=>{
+      const results=await Promise.allSettled(ids.map(id=>BFEmail.updateOrderStatus(id,status)));
+      const saved=ids.filter((id,index)=>results[index]?.status==='fulfilled');
+      const failed=results.filter(r=>r.status==='rejected');
+      if(failed.length)console.error('[Band Factory] Some bulk order status updates failed:',failed);
+      if(!saved.length)throw new Error('The selected orders could not be updated. Please try again.');
+      await loadAll();showSection('ordersPanel',{scroll:false});
+      BF.toast(failed.length?`${saved.length} order${saved.length===1?'':'s'} updated; ${failed.length} failed`:`${saved.length} order${saved.length===1?'':'s'} updated to ${status}`);
+      return saved;
+    },`Updating ${ids.length} order${ids.length===1?'':'s'}…`);
+    Promise.allSettled(savedIds.map(id=>BFEmail.sendOrderStatusEmail(id,status))).then(results=>{
+      const failed=results.filter(r=>r.status==='rejected');
+      if(failed.length){console.error('[Band Factory] Some customer status emails failed:',failed);BF.toast(`Orders updated, but ${failed.length} customer email${failed.length===1?'':'s'} could not be sent`)}
+    });
+  }catch(error){console.error('[Band Factory] Bulk order status update failed:',error);BF.toast(error?.message||'Orders could not be updated. Please try again.')}
+  finally{syncBatchSelection()}
 }
 window.updateSelectedOrderStatuses=updateSelectedOrderStatuses;
 
@@ -1598,7 +1611,23 @@ window.openOrder=openOrder;
 function closeOrder(){document.getElementById('drawerScreen').classList.remove('show');document.getElementById('orderDrawer').classList.remove('open')}
 window.closeOrder=closeOrder;
 async function saveOrderStatus(id){
-  return withAdminLoading(async()=>{const v=document.getElementById('drawerStatus').value;const result=await BFEmail.updateOrderStatus(id,v);closeOrder();await loadAll();BF.toast(result?.email?.failed?'Order status saved · email needs retry':result?.email?.skipped?'Order status saved':'Order status saved · customer emailed')},'Saving order…');
+  const select=document.getElementById('drawerStatus'),button=document.querySelector('#orderDrawer .drawer-save-row .small-btn.primary');
+  const v=select?.value;if(!v||button?.disabled)return;
+  if(button)button.disabled=true;if(select)select.disabled=true;
+  try{
+    await withAdminLoading(async()=>{await BFEmail.updateOrderStatus(id,v);closeOrder();await loadAll();BF.toast('Order status saved')},'Saving order…');
+    BFEmail.sendOrderStatusEmail(id,v).then(result=>{
+      if(result?.email?.skipped)BF.toast('Order updated. No customer email address was saved.');
+      else BF.toast('Customer status email sent');
+    }).catch(error=>{
+      console.error('[Band Factory] Order updated but customer email failed:',error);
+      BF.toast('Order updated, but customer email could not be sent');
+    });
+  }catch(error){
+    console.error('[Band Factory] Order status update failed:',error);
+    BF.toast(error?.message||'Order status could not be updated. Please try again.');
+    if(button)button.disabled=false;if(select)select.disabled=false;
+  }
 }
 window.saveOrderStatus=saveOrderStatus;
 
