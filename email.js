@@ -29,7 +29,21 @@ const BFEmail=(()=>{
     sendReviewEmails:review=>event('review',review?.id||review),
     sendNewsletterWelcome:subscriber=>event('subscriber',subscriber?.id||subscriber),
     sendContactCustomer:message=>event('contact',message?.id||message),
-    async updateOrderStatus(orderId,status){return request('/.netlify/functions/admin-email',{action:'status',orderId,status},true,{timeoutMs:20000})},
+    async updateOrderStatus(orderId,status){
+      const id=String(orderId||'').trim();
+      const next=String(status||'').trim();
+      const allowed=['Preparing','Ready','Dispatched','Delivered','Cancelled'];
+      if(!id||!allowed.includes(next))throw new Error('Choose a valid order status.');
+      await BFStore.ready;
+      const user=window.__bfAuth?.currentUser;
+      if(!user)throw new Error('Please sign in again.');
+      const serverTime=window.firebase?.firestore?.FieldValue?.serverTimestamp?.();
+      const save=BFStore.update('orders',id,{status:next,...(serverTime?{statusUpdatedAt:serverTime}:{statusUpdatedAt:new Date().toISOString()})});
+      const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Saving the order took too long. Please check your connection and try again.')),15000));
+      await Promise.race([save,timeout]);
+      BFStore.add('activity',{action:'Order status updated',orderId:id,status:next}).catch(error=>console.warn('[Band Factory] Order saved but activity log failed:',error));
+      return {ok:true,saved:true,direct:true};
+    },
     async sendOrderStatusEmail(orderId,status){return request('/.netlify/functions/admin-email',{action:'status-email',orderId,status},true,{timeoutMs:12000})},
     async sendBroadcastToSubscriber({email,name,subject,message}){return request('/.netlify/functions/admin-email',{action:'broadcast',email,name,subject,message},true)},
     async sendCustomerEmail({toEmail,toName,subject,message,details='',actionText='Visit Band Factory',actionUrl=''}){return request('/.netlify/functions/admin-email',{action:'customer',email:toEmail,name:toName,subject,message,details,actionText,actionUrl},true)}
