@@ -11,8 +11,14 @@ exports.handler=async event=>{
     const next=await db.runTransaction(async tx=>{
       const snap=await tx.get(ref);let current=Number(snap.exists?snap.data().lastNumber:0)||0;
       if(!current){
-        const orders=await db.collection('orders').get();
-        const maxExisting=orders.docs.reduce((max,d)=>{const data=d.data()||{};const id=String(data.displayId||data.id||d.id);const m=id.match(/^BF-(\d{5,})$/);return m?Math.max(max,Number(m[1])):max;},0);current=Math.max(orders.size,maxExisting);
+        // Recover the sequence with a single document read instead of scanning every order.
+        // Order document IDs are BF-00001, BF-00002, ... so descending document ID gives the latest one.
+        const latestQuery=db.collection('orders').orderBy(admin.firestore.FieldPath.documentId(),'desc').limit(1);
+        const latest=await tx.get(latestQuery);
+        if(!latest.empty){
+          const doc=latest.docs[0],data=doc.data()||{},id=String(data.displayId||data.id||doc.id),m=id.match(/^BF-(\d{5,})$/);
+          current=m?Number(m[1]):0;
+        }
       }
       const value=current+1;tx.set(ref,{lastNumber:value,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});return value;
     });
