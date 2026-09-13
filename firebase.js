@@ -20,15 +20,38 @@
     return true;
   }
   const ready=init().catch(e=>{console.warn('Firebase unavailable; demo fallback active.',e);return false});
+  const emitChange=detail=>{try{window.dispatchEvent(new CustomEvent('bfstorechange',{detail}))}catch{}};
   const api={ready,
     async isLive(){return await ready},
     async getDoc(path, fallback={}){if(await ready){const s=await __bfDb.doc(path).get();return s.exists?{id:s.id,...s.data()}:fallback}return local.get(path,fallback)},
-    async setDoc(path,data,merge=true){if(await ready)return __bfDb.doc(path).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge});const prev=merge?local.get(path,{}):{};local.set(path,{...prev,...data,updatedAt:new Date().toISOString()});return true},
-    async add(collection,data){if(await ready){const r=await __bfDb.collection(collection).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});return r.id}const arr=local.get(collection,[]);const id='LOCAL-'+Date.now();arr.unshift({id,...data,createdAt:new Date().toISOString()});local.set(collection,arr);return id},
+    async setDoc(path,data,merge=true){if(await ready){await __bfDb.doc(path).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge});emitChange({kind:'setDoc',path,data,merge});return true}const prev=merge?local.get(path,{}):{};local.set(path,{...prev,...data,updatedAt:new Date().toISOString()});emitChange({kind:'setDoc',path,data,merge});return true},
+    async add(collection,data){if(await ready){const r=await __bfDb.collection(collection).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});emitChange({kind:'add',collection,id:r.id,data});return r.id}const arr=local.get(collection,[]);const id='LOCAL-'+Date.now();arr.unshift({id,...data,createdAt:new Date().toISOString()});local.set(collection,arr);emitChange({kind:'add',collection,id,data});return id},
     async list(collection,orderBy='createdAt',dir='desc'){if(await ready){let q=__bfDb.collection(collection);try{q=q.orderBy(orderBy,dir)}catch{}const s=await q.get();return s.docs.map(d=>({...d.data(),id:d.id}))}return local.get(collection,[])},
+    async listLimited(collection,orderBy='createdAt',dir='desc',limit=50){
+      limit=Math.max(1,Math.min(250,Number(limit)||50));
+      if(await ready){let q=__bfDb.collection(collection);try{q=q.orderBy(orderBy,dir)}catch{}q=q.limit(limit);const s=await q.get();return s.docs.map(d=>({...d.data(),id:d.id}))}
+      return local.get(collection,[]).slice(0,limit)
+    },
+    _pageCursors:new Map(),
+    async listPage(collection,orderBy='createdAt',dir='desc',limit=50,reset=false){
+      limit=Math.max(1,Math.min(250,Number(limit)||50));
+      const key=[collection,orderBy,dir].join('|');
+      if(await ready){
+        let q=__bfDb.collection(collection);try{q=q.orderBy(orderBy,dir)}catch{}
+        if(reset)api._pageCursors.delete(key);
+        const cursor=api._pageCursors.get(key);
+        if(cursor)q=q.startAfter(cursor);
+        q=q.limit(limit);
+        const s=await q.get();
+        if(s.docs.length)api._pageCursors.set(key,s.docs[s.docs.length-1]);
+        return {items:s.docs.map(d=>({...d.data(),id:d.id})),hasMore:s.docs.length===limit};
+      }
+      const arr=local.get(collection,[]),offset=reset?0:Number(api._pageCursors.get(key)||0),items=arr.slice(offset,offset+limit);api._pageCursors.set(key,offset+items.length);return {items,hasMore:offset+items.length<arr.length}
+    },
+    resetPage(collection,orderBy='createdAt',dir='desc'){api._pageCursors.delete([collection,orderBy,dir].join('|'))},
     async listWhere(collection,field,op,value){if(await ready){const s=await __bfDb.collection(collection).where(field,op,value).get();return s.docs.map(d=>({...d.data(),id:d.id}))}return local.get(collection,[]).filter(x=>op==='=='?x[field]===value:true)},
-    async update(collection,id,data){if(await ready)return __bfDb.collection(collection).doc(id).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});const arr=local.get(collection,[]).map(x=>x.id===id?{...x,...data}:x);local.set(collection,arr)},
-    async remove(collection,id){if(await ready)return __bfDb.collection(collection).doc(id).delete();local.set(collection,local.get(collection,[]).filter(x=>x.id!==id))},
+    async update(collection,id,data){if(await ready){await __bfDb.collection(collection).doc(id).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});emitChange({kind:'update',collection,id,data});return true}const arr=local.get(collection,[]).map(x=>x.id===id?{...x,...data}:x);local.set(collection,arr);emitChange({kind:'update',collection,id,data});return true},
+    async remove(collection,id){if(await ready){await __bfDb.collection(collection).doc(id).delete();emitChange({kind:'remove',collection,id});return true}local.set(collection,local.get(collection,[]).filter(x=>x.id!==id));emitChange({kind:'remove',collection,id});return true},
     async signIn(email,password){await ready;if(!window.__bfAuth)throw new Error('Firebase is not configured.');await __bfAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);return __bfAuth.signInWithEmailAndPassword(email,password)},
     async signOut(){await ready;if(window.__bfAuth)return __bfAuth.signOut()},
     async sendPasswordReset(email){await ready;if(!window.__bfAuth)throw new Error('Firebase is not configured.');const address=String(email||'').trim();if(!address)throw new Error('Enter the admin email address first.');return __bfAuth.sendPasswordResetEmail(address)},

@@ -53,23 +53,87 @@ function showSection(id,options={}){
 }
 window.showSection=showSection;
 
+const ADMIN_PAGE_SIZES={orders:100,reviews:60,customers:100,subscribers:100,notifications:60,messages:60,activity:80,abandonedCarts:80};
+const ADMIN_PAGE_CONFIG={
+  orders:{section:'ordersPanel',orderBy:'createdAt',dir:'desc',label:'orders'},
+  reviews:{section:'reviewsPanel',orderBy:'createdAt',dir:'desc',label:'reviews'},
+  customers:{section:'customersPanel',orderBy:'createdAt',dir:'desc',label:'customers'},
+  subscribers:{section:'subscribersPanel',orderBy:'createdAt',dir:'desc',label:'subscribers'},
+  notifications:{section:'notificationsPanel',orderBy:'createdAt',dir:'desc',label:'notifications'},
+  messages:{section:'messagesPanel',orderBy:'createdAt',dir:'desc',label:'messages'},
+  activity:{section:'activityPanel',orderBy:'createdAt',dir:'desc',label:'activity entries'},
+  abandonedCarts:{section:'abandonedPanel',orderBy:'updatedAt',dir:'desc',label:'abandoned carts'}
+};
+let ADMIN_HAS_MORE={};
+let ADMIN_COLLECTIONS_LOADED=false;
+
 async function loadAll(){
+  if(ADMIN_COLLECTIONS_LOADED){renderAll();return;}
   return withAdminLoading(async()=>{
-    const [orders,reviews,customers,subs,notifs,msgs,activity,abandonedCarts,settings,colors,sequence,tubeTopRaw,catalogRaw,categoriesRaw]=await Promise.all([
-      BFStore.list('orders'),BFStore.list('reviews'),BFStore.list('customers'),BFStore.list('subscribers'),
-      BFStore.list('notifications'),BFStore.list('messages'),BFStore.list('activity'),BFStore.list('abandonedCarts','updatedAt','desc'),
+    const pageEntries=Object.entries(ADMIN_PAGE_CONFIG);
+    const pagePromises=pageEntries.map(([key,cfg])=>BFStore.listPage(key,cfg.orderBy,cfg.dir,ADMIN_PAGE_SIZES[key],true));
+    const [pages,settings,colors,sequence,tubeTopRaw,catalogRaw,categoriesRaw]=await Promise.all([
+      Promise.all(pagePromises),
       BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}}),BFStore.getDoc('settings/orderSequence',{}),BFStore.getDoc('products/spandexTubeTop',null),BFStore.getDoc('products/catalog',{}),BFStore.getDoc('products/categories',{})
     ]);
+    const loaded={};
+    pageEntries.forEach(([key],i)=>{loaded[key]=pages[i].items;ADMIN_HAS_MORE[key]=pages[i].hasMore});
     const tubeTop=tubeTopRaw||{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}};
     if(!tubeTopRaw)await BFStore.setDoc('products/spandexTubeTop',tubeTop,false);
-    const catalogById=Object.fromEntries((catalogRaw.items||[]).map(x=>[x.id,x]));const catalog=BF_CATALOG_DEFAULTS.map(x=>({...x,...(catalogById[x.id]||{})}));for(const x of (catalogRaw.items||[]))if(!catalog.some(i=>i.id===x.id))catalog.push(x);for(const item of catalog){if(item.id==='second-skin-long-sleeve')item.category='tops';if(item.id==='second-set'){item.name='Second Skin Set';item.category='sets';item.subtitle='White set + hairband';item.description='A clean white coordinated set with a fitted long sleeve top, matching bottoms and a matching hairband. The set includes everything shown in the product image except the socks.'}}const categoryById=Object.fromEntries((categoriesRaw.items||[]).map(x=>[x.id,x]));const categories=(window.BF_CATEGORY_DEFAULTS||[]).map(x=>({...x,...(categoryById[x.id]||{}),id:x.id,system:true}));for(const x of (categoriesRaw.items||[]))if(!categories.some(c=>c.id===x.id))categories.push(x);DATA={orders,reviews,customers,subscribers:subs,notifications:notifs,messages:msgs,activity,abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},tubeTop,catalog,categories,sequence:sequence||{}};if(Array.isArray(DATA.products.palette)&&DATA.products.palette.length){BF.smoothPalette=DATA.products.palette;BF.colors=DATA.products.palette.filter(x=>x&&x.deleted!==true&&x.visible!==false&&x.name).map(x=>[String(x.name),x.hex||'#d9d9d9']);}
+    const catalogById=Object.fromEntries((catalogRaw.items||[]).map(x=>[x.id,x]));const catalog=BF_CATALOG_DEFAULTS.map(x=>({...x,...(catalogById[x.id]||{})}));for(const x of (catalogRaw.items||[]))if(!catalog.some(i=>i.id===x.id))catalog.push(x);for(const item of catalog){if(item.id==='second-skin-long-sleeve')item.category='tops';if(item.id==='second-set'){item.name='Second Skin Set';item.category='sets';item.subtitle='White set + hairband';item.description='A clean white coordinated set with a fitted long sleeve top, matching bottoms and a matching hairband. The set includes everything shown in the product image except the socks.'}}const categoryById=Object.fromEntries((categoriesRaw.items||[]).map(x=>[x.id,x]));const categories=(window.BF_CATEGORY_DEFAULTS||[]).map(x=>({...x,...(categoryById[x.id]||{}),id:x.id,system:true}));for(const x of (categoriesRaw.items||[]))if(!categories.some(c=>c.id===x.id))categories.push(x);
+    DATA={orders:loaded.orders,reviews:loaded.reviews,customers:loaded.customers,subscribers:loaded.subscribers,notifications:loaded.notifications,messages:loaded.messages,activity:loaded.activity,abandonedCarts:loaded.abandonedCarts,settings,colors:colors.colors||{},products:colors||{colors:{},styles:{}},tubeTop,catalog,categories,sequence:sequence||{}};
+    if(Array.isArray(DATA.products.palette)&&DATA.products.palette.length){BF.smoothPalette=DATA.products.palette;BF.colors=DATA.products.palette.filter(x=>x&&x.deleted!==true&&x.visible!==false&&x.name).map(x=>[String(x.name),x.hex||'#d9d9d9']);}
     await ensureChronologicalOrderIds();
+    ADMIN_COLLECTIONS_LOADED=true;
     renderAll();
   },'Loading admin…');
 }
 
+async function loadMoreAdmin(collection){
+  const cfg=ADMIN_PAGE_CONFIG[collection];if(!cfg||!ADMIN_HAS_MORE[collection])return;
+  return withAdminLoading(async()=>{
+    const page=await BFStore.listPage(collection,cfg.orderBy,cfg.dir,ADMIN_PAGE_SIZES[collection],false);
+    const existing=new Set((DATA[collection]||[]).map(x=>x.id));
+    DATA[collection]=[...(DATA[collection]||[]),...page.items.filter(x=>!existing.has(x.id))];
+    ADMIN_HAS_MORE[collection]=page.hasMore;
+    renderAll();
+  },`Loading more ${cfg.label}…`);
+}
+window.loadMoreAdmin=loadMoreAdmin;
+
+
+window.addEventListener('bfstorechange',event=>{
+  if(!ADMIN_COLLECTIONS_LOADED)return;
+  const d=event.detail||{};
+  if(d.collection&&Array.isArray(DATA[d.collection])){
+    const arr=DATA[d.collection],idx=arr.findIndex(x=>x.id===d.id);
+    if(d.kind==='remove'){if(idx>=0)arr.splice(idx,1);}
+    else if(d.kind==='update'){if(idx>=0)arr[idx]={...arr[idx],...d.data};}
+    else if(d.kind==='add'){
+      if(idx<0)arr.unshift({id:d.id,...d.data,createdAt:new Date()});
+    }
+  }
+  if(d.kind==='setDoc'&&d.path){
+    if(d.path==='settings/store')DATA.settings=d.merge?{...DATA.settings,...d.data}:{...d.data};
+    if(d.path==='products/smooth'){DATA.products=d.merge?{...DATA.products,...d.data}:{...d.data};DATA.colors=DATA.products.colors||{};}
+    if(d.path==='products/catalog'&&Array.isArray(d.data?.items))DATA.catalog=d.data.items;
+    if(d.path==='products/categories'&&Array.isArray(d.data?.items))DATA.categories=d.data.items;
+    if(d.path==='products/spandexTubeTop')DATA.tubeTop=d.merge?{...DATA.tubeTop,...d.data}:{...d.data};
+    if(d.path==='settings/orderSequence')DATA.sequence=d.merge?{...DATA.sequence,...d.data}:{...d.data};
+  }
+});
+
 function renderAll(){
-  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderPendingPayments();renderTransactions();renderInternationalPayments();renderProducts();renderCatalogProducts();renderTubeTopInventory();renderInventorySummary();renderCatalogStudio();renderSmoothColourStudioList();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderNotificationPopover();renderActivity();renderSettings();
+  renderNavCounts();renderOverview();renderAnalytics();renderOrders();renderPendingPayments();renderTransactions();renderInternationalPayments();renderProducts();renderCatalogProducts();renderTubeTopInventory();renderInventorySummary();renderCatalogStudio();renderSmoothColourStudioList();renderWholesale();renderReviews();renderCustomers();renderAbandonedCarts();renderSubscribers();renderDelivery();renderMessages();renderNotifications();renderNotificationPopover();renderActivity();renderSettings();renderAdminLoadMoreControls();
+}
+function renderAdminLoadMoreControls(){
+  document.querySelectorAll('.bf-load-more-wrap').forEach(x=>x.remove());
+  for(const [collection,cfg] of Object.entries(ADMIN_PAGE_CONFIG)){
+    if(!ADMIN_HAS_MORE[collection])continue;
+    const section=document.getElementById(cfg.section);if(!section)continue;
+    const wrap=document.createElement('div');wrap.className='bf-load-more-wrap';wrap.style.cssText='display:flex;justify-content:center;padding:18px 0 4px';
+    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.textContent=`Load more ${cfg.label}`;btn.onclick=()=>loadMoreAdmin(collection);wrap.appendChild(btn);section.appendChild(wrap);
+  }
 }
 function setNavCount(id,count){
   const el=document.getElementById(id);if(!el)return;
