@@ -2145,8 +2145,10 @@ async function saveStudioCategory(e,id){
   if(existing.url)category.url=existing.url;
   else delete category.url;
 
-  return withAdminLoading(async()=>{
-    try{
+  startAdminLoading('Saving category…');
+  try{
+    // Yield one frame so the loading overlay/spinner is visible immediately.
+    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
       if(id)DATA.categories=DATA.categories.map(c=>c.id===id?category:c);
       else DATA.categories=[...DATA.categories,category];
 
@@ -2155,12 +2157,13 @@ async function saveStudioCategory(e,id){
       closeStudioModal();
       BF.toast(`${name} saved.`);
       renderCatalogStudio();
-    }catch(error){
-      DATA.categories=previousCategories;
-      console.error('Category save failed:',error);
-      BF.toast(error?.message?`Could not save category: ${error.message}`:'Could not save category. Please try again.');
-    }
-  },'Saving category…');
+  }catch(error){
+    DATA.categories=previousCategories;
+    console.error('Category save failed:',error);
+    BF.toast(error?.message?`Could not save category: ${error.message}`:'Could not save category. Please try again.');
+  }finally{
+    stopAdminLoading();
+  }
 }
 async function persistStudioCategories(){
   const items=DATA.categories.map(c=>{
@@ -2172,7 +2175,45 @@ async function persistStudioCategories(){
   });
   await BFStore.setDoc('products/categories',{items},false);
 }
-async function deleteStudioCategory(id){if(studioLiveProducts().some(p=>p.category===id))return BF.toast('Move or delete the products in this category first.');DATA.categories=DATA.categories.map(c=>c.id===id?{...c,deleted:true,visible:false}:c);await persistStudioCategories();closeStudioModal();renderCatalogStudio();BF.toast('Category removed.')}
+async function deleteStudioCategory(id){
+  const category=(DATA.categories||[]).find(c=>c.id===id);
+  if(!category)return BF.toast('Category not found. Refresh the admin and try again.');
+
+  const linkedProducts=studioLiveProducts().filter(p=>p.category===id);
+  if(linkedProducts.length){
+    return BF.toast(`This category still has ${linkedProducts.length} product${linkedProducts.length===1?'':'s'}. Move or remove them first.`);
+  }
+
+  if(!confirm(`Remove “${category.name||'this category'}” from the storefront?`))return;
+
+  const previousCategories=[...DATA.categories];
+  startAdminLoading('Removing category…');
+  try{
+    // Yield one frame so the loading overlay/spinner is painted immediately.
+    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+
+    if(category.system===true||window.BF_CATEGORY_DEFAULTS?.some(d=>d.id===id)){
+      // Default categories must be kept as a tombstone so catalog.js does not restore them.
+      DATA.categories=DATA.categories.map(c=>c.id===id?{...c,deleted:true,visible:false}:c);
+    }else{
+      // Custom categories can be removed from the saved list completely.
+      DATA.categories=DATA.categories.filter(c=>c.id!==id);
+    }
+
+    await persistStudioCategories();
+    try{await BFStore.log('Category removed',{categoryId:id});}catch(logError){console.warn('Category removal was saved, but activity logging failed:',logError)}
+
+    closeStudioModal();
+    renderCatalogStudio();
+    BF.toast('Category removed.');
+  }catch(error){
+    DATA.categories=previousCategories;
+    console.error('Category removal failed:',error);
+    BF.toast(error?.message?`Could not remove category: ${error.message}`:'Could not remove category. Please try again.');
+  }finally{
+    stopAdminLoading();
+  }
+}
 function studioSizeRowsHtml(sizes={}){
   const entries=sortAdminSizes(Object.entries(sizes||{}));
   return entries.map(([name,d])=>studioSizeRowHtml(name,Number(d?.stock||0),d?.available!==false)).join('');
