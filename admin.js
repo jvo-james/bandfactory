@@ -2120,8 +2120,58 @@ function removeStudioGalleryImage(index){const input=document.getElementById('st
 window.removeStudioGalleryImage=removeStudioGalleryImage;
 function openCategoryStudio(id=''){const existing=(DATA.categories||[]).find(c=>c.id===id)||{},isNew=!existing.id;openStudioModal(`<form id="studioCategoryForm" class="studio-form"><div class="studio-form-head"><span>Collection builder</span><h2>${isNew?'Create a category':'Edit category'}</h2><p>New categories automatically appear on the Shop and get a reusable collection page.</p></div><div class="studio-cover-edit"><img id="studioCategoryPreview" src="${escapeAdminValue(existing.image||'images/placeholder-fashion.svg')}" alt=""><div class="studio-upload-zone"><strong>Collection cover</strong><p>Use a landscape image for the strongest storefront result.</p><label class="small-btn pink">Choose image<input hidden type="file" accept="image/*" onchange="uploadStudioAsset(this,'studioCategoryPreview','studioCategoryImage')"></label></div></div><input id="studioCategoryImage" type="hidden" value="${escapeAdminValue(existing.image||'')}"><div class="studio-form-grid"><div class="admin-field"><label>Category name</label><input id="studioCategoryName" required value="${escapeAdminValue(existing.name||'')}"></div><div class="admin-field"><label>Short label</label><input id="studioCategoryEyebrow" value="${escapeAdminValue(existing.eyebrow||'Collection')}"></div><div class="admin-field span-2"><label>Description</label><textarea id="studioCategoryDescription">${escapeAdminValue(existing.description||'')}</textarea></div><div class="admin-field"><label>Storefront order</label><input id="studioCategoryOrder" type="number" min="1" value="${Number(existing.sortOrder||studioLiveCategories().length+1)}"></div><div class="admin-field"><label>Visibility</label><select id="studioCategoryVisible"><option value="true" ${existing.visible!==false?'selected':''}>Live in shop</option><option value="false" ${existing.visible===false?'selected':''}>Hidden</option></select></div></div><div class="studio-form-actions">${!isNew?'<button class="small-btn danger" type="button" id="deleteStudioCategory">Remove category</button>':''}<span></span><button class="small-btn" type="button" onclick="closeStudioModal()">Cancel</button><button class="small-btn primary" type="submit">Save category</button></div></form>`);document.getElementById('studioCategoryForm').onsubmit=e=>saveStudioCategory(e,id);document.getElementById('deleteStudioCategory')?.addEventListener('click',()=>deleteStudioCategory(id))}
 window.openCategoryStudio=openCategoryStudio;window.closeStudioModal=closeStudioModal;
-async function saveStudioCategory(e,id){e.preventDefault();const name=document.getElementById('studioCategoryName').value.trim();let cleanId=id||studioSlug(name);if(!cleanId)return BF.toast('Enter a category name.');if(!id&&DATA.categories.some(c=>c.id===cleanId))cleanId=`${cleanId}-${Date.now().toString().slice(-4)}`;const existing=DATA.categories.find(c=>c.id===id)||{};const category={...existing,id:cleanId,name,eyebrow:document.getElementById('studioCategoryEyebrow').value.trim()||'Collection',description:document.getElementById('studioCategoryDescription').value.trim(),image:document.getElementById('studioCategoryImage').value,sortOrder:Math.max(1,Number(document.getElementById('studioCategoryOrder').value||99)),visible:document.getElementById('studioCategoryVisible').value==='true',system:existing.system===true,url:existing.url||undefined};if(id){DATA.categories=DATA.categories.map(c=>c.id===id?category:c)}else DATA.categories.push(category);await persistStudioCategories();await BFStore.log(id?'Category updated':'Category created',{categoryId:cleanId});closeStudioModal();BF.toast(`${name} saved.`);renderCatalogStudio()}
-async function persistStudioCategories(){await BFStore.setDoc('products/categories',{items:DATA.categories.map(c=>{const copy={...c};if(copy.system&&window.BF_CATEGORY_DEFAULTS?.some(d=>d.id===copy.id)){delete copy.system;}return copy})},false)}
+async function saveStudioCategory(e,id){
+  e.preventDefault();
+  const name=document.getElementById('studioCategoryName').value.trim();
+  let cleanId=id||studioSlug(name);
+  if(!cleanId)return BF.toast('Enter a category name.');
+  if(!id&&DATA.categories.some(c=>c.id===cleanId))cleanId=`${cleanId}-${Date.now().toString().slice(-4)}`;
+
+  const existing=DATA.categories.find(c=>c.id===id)||{};
+  const previousCategories=[...DATA.categories];
+  const category={
+    ...existing,
+    id:cleanId,
+    name,
+    eyebrow:document.getElementById('studioCategoryEyebrow').value.trim()||'Collection',
+    description:document.getElementById('studioCategoryDescription').value.trim(),
+    image:document.getElementById('studioCategoryImage').value||'',
+    sortOrder:Math.max(1,Number(document.getElementById('studioCategoryOrder').value||99)),
+    visible:document.getElementById('studioCategoryVisible').value==='true',
+    system:existing.system===true
+  };
+
+  // Firestore rejects undefined values. Preserve a custom URL only when one exists.
+  if(existing.url)category.url=existing.url;
+  else delete category.url;
+
+  return withAdminLoading(async()=>{
+    try{
+      if(id)DATA.categories=DATA.categories.map(c=>c.id===id?category:c);
+      else DATA.categories=[...DATA.categories,category];
+
+      await persistStudioCategories();
+      await BFStore.log(id?'Category updated':'Category created',{categoryId:cleanId});
+      closeStudioModal();
+      BF.toast(`${name} saved.`);
+      renderCatalogStudio();
+    }catch(error){
+      DATA.categories=previousCategories;
+      console.error('Category save failed:',error);
+      BF.toast(error?.message?`Could not save category: ${error.message}`:'Could not save category. Please try again.');
+    }
+  },'Saving category…');
+}
+async function persistStudioCategories(){
+  const items=DATA.categories.map(c=>{
+    const copy={...c};
+    // Never send undefined top-level category fields to Firestore.
+    Object.keys(copy).forEach(key=>{if(copy[key]===undefined)delete copy[key]});
+    if(copy.system&&window.BF_CATEGORY_DEFAULTS?.some(d=>d.id===copy.id))delete copy.system;
+    return copy;
+  });
+  await BFStore.setDoc('products/categories',{items},false);
+}
 async function deleteStudioCategory(id){if(studioLiveProducts().some(p=>p.category===id))return BF.toast('Move or delete the products in this category first.');DATA.categories=DATA.categories.map(c=>c.id===id?{...c,deleted:true,visible:false}:c);await persistStudioCategories();closeStudioModal();renderCatalogStudio();BF.toast('Category removed.')}
 function studioSizeRowsHtml(sizes={}){
   const entries=sortAdminSizes(Object.entries(sizes||{}));
