@@ -309,9 +309,23 @@ async function updateSelectedOrderStatuses(){
   const ids=selectedPaidOrderIds(),status=document.getElementById('bulkOrderStatus')?.value;if(!ids.length||!status)return;
   return withAdminLoading(async()=>{
     const results=await Promise.allSettled(ids.map(id=>BFEmail.updateOrderStatus(id,status)));
-    const failed=results.filter(r=>r.status==='rejected');
-    if(failed.length)console.error('[Band Factory] Some bulk status emails failed:',failed);
-    await loadAll();showSection('ordersPanel',{scroll:false});BF.toast(`${ids.length} order${ids.length===1?'':'s'} updated to ${status}`);
+    const updateFailures=results.filter(r=>r.status==='rejected');
+    const emailFailures=results.filter(r=>r.status==='fulfilled'&&r.value?.email?.failed);
+    const emailSkipped=results.filter(r=>r.status==='fulfilled'&&r.value?.email?.skipped);
+    const emailed=results.filter(r=>r.status==='fulfilled'&&!r.value?.email?.failed&&!r.value?.email?.skipped);
+    if(updateFailures.length)console.error('[Band Factory] Some bulk order updates failed:',updateFailures);
+    if(emailFailures.length)console.error('[Band Factory] Some bulk status emails failed:',emailFailures);
+    await loadAll();showSection('ordersPanel',{scroll:false});
+    const updated=results.length-updateFailures.length;
+    if(updateFailures.length){
+      BF.toast(`${updated}/${ids.length} orders updated · ${updateFailures.length} update${updateFailures.length===1?'':'s'} failed`);
+    }else if(emailFailures.length){
+      BF.toast(`${ids.length} orders updated · ${emailed.length} emailed · ${emailFailures.length} email${emailFailures.length===1?'':'s'} need retry`);
+    }else if(emailSkipped.length){
+      BF.toast(`${ids.length} orders updated · ${emailed.length} emailed · ${emailSkipped.length} had no customer email`);
+    }else{
+      BF.toast(`${ids.length} order${ids.length===1?'':'s'} updated to ${status} · customers emailed`);
+    }
   },`Updating ${ids.length} order${ids.length===1?'':'s'}…`);
 }
 window.updateSelectedOrderStatuses=updateSelectedOrderStatuses;
