@@ -290,6 +290,15 @@ window.filterInternationalCountry=filterInternationalCountry;
 
 
 function orderLabel(o={}){return o.displayId||o.id||'-'}
+function applyOrderStatusLocally(id,status){
+  const order=DATA.orders.find(o=>o.id===id);
+  if(order){order.status=status;order.statusUpdatedAt=new Date();order.updatedAt=new Date();}
+}
+function adminDispatchDays(settings=DATA.settings){
+  const raw=Array.isArray(settings?.dispatchDays)?settings.dispatchDays:[3,6];
+  const days=[...new Set(raw.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6))];
+  return days.length?days:[3,6];
+}
 async function ensureChronologicalOrderIds(){
   if(DATA.sequence?.migrated===true)return;
   const rows=[...DATA.orders].sort((a,b)=>orderDate(a)-orderDate(b)||String(a.id).localeCompare(String(b.id)));
@@ -315,7 +324,8 @@ async function updateSelectedOrderStatuses(){
     const emailed=results.filter(r=>r.status==='fulfilled'&&!r.value?.email?.failed&&!r.value?.email?.skipped);
     if(updateFailures.length)console.error('[Band Factory] Some bulk order updates failed:',updateFailures);
     if(emailFailures.length)console.error('[Band Factory] Some bulk status emails failed:',emailFailures);
-    await loadAll();showSection('ordersPanel',{scroll:false});
+    results.forEach((r,index)=>{if(r.status==='fulfilled')applyOrderStatusLocally(ids[index],status)});
+    renderAll();showSection('ordersPanel',{scroll:false});
     const updated=results.length-updateFailures.length;
     if(updateFailures.length){
       BF.toast(`${updated}/${ids.length} orders updated · ${updateFailures.length} update${updateFailures.length===1?'':'s'} failed`);
@@ -1676,7 +1686,7 @@ window.openOrder=openOrder;
 function closeOrder(){document.getElementById('drawerScreen').classList.remove('show');document.getElementById('orderDrawer').classList.remove('open')}
 window.closeOrder=closeOrder;
 async function saveOrderStatus(id){
-  return withAdminLoading(async()=>{const v=document.getElementById('drawerStatus').value;const result=await BFEmail.updateOrderStatus(id,v);closeOrder();await loadAll();BF.toast(result?.email?.failed?'Order status saved · email needs retry':result?.email?.skipped?'Order status saved':'Order status saved · customer emailed')},'Saving order…');
+  return withAdminLoading(async()=>{const v=document.getElementById('drawerStatus').value;const result=await BFEmail.updateOrderStatus(id,v);applyOrderStatusLocally(id,v);renderAll();closeOrder();BF.toast(result?.email?.failed?'Order status saved · email needs retry':result?.email?.skipped?'Order status saved':'Order status saved · customer emailed')},'Saving order…');
 }
 window.saveOrderStatus=saveOrderStatus;
 
@@ -1820,8 +1830,19 @@ async function sendBroadcast(){
   return withAdminLoading(async()=>{const button=document.getElementById('sendBroadcast');button.disabled=true;let sent=0;document.getElementById('broadcastProgress').style.width='0%';try{for(const s of list){try{await BFEmail.sendBroadcastToSubscriber({email:s.email,name:s.name||'there',subject,message});sent++}catch(e){console.error(e)}document.getElementById('broadcastProgress').style.width=`${Math.round(sent/list.length*100)}%`;document.getElementById('broadcastStatus').textContent=`Sent ${sent} of ${list.length}`;await new Promise(r=>setTimeout(r,150))}await BFStore.log('Subscriber broadcast sent',{subject,recipients:sent});BF.toast(`Message sent to ${sent} subscriber${sent===1?'':'s'}`)}finally{button.disabled=false}},'Sending subscriber update…');
 }
 
-function renderDelivery(){document.getElementById('pickupAddressAdmin').value=DATA.settings.pickupAddress||BF_CONFIG.pickup.address;document.getElementById('sameDayDispatchOpen').value=String(DATA.settings.sameDayDispatchOpen!==false);document.getElementById('deliveryFeeAdmin').value=DATA.settings.deliveryFee||0}
-async function saveDelivery(){return withAdminLoading(async()=>{await BFStore.setDoc('settings/store',{pickupAddress:document.getElementById('pickupAddressAdmin').value,sameDayDispatchOpen:document.getElementById('sameDayDispatchOpen').value==='true',deliveryFee:Number(document.getElementById('deliveryFeeAdmin').value||0)});await BFStore.log('Delivery settings updated');BF.toast('Delivery settings saved');await loadAll()},'Saving delivery settings…')}
+function renderDelivery(){
+  document.getElementById('pickupAddressAdmin').value=DATA.settings.pickupAddress||BF_CONFIG.pickup.address;
+  document.getElementById('sameDayDispatchOpen').value=String(DATA.settings.sameDayDispatchOpen!==false);
+  document.getElementById('deliveryFeeAdmin').value=DATA.settings.deliveryFee||0;
+  const selected=new Set(adminDispatchDays());
+  document.querySelectorAll('[data-dispatch-day]').forEach(input=>{input.checked=selected.has(Number(input.dataset.dispatchDay))});
+}
+async function saveDelivery(){return withAdminLoading(async()=>{
+  const dispatchDays=[...document.querySelectorAll('[data-dispatch-day]:checked')].map(input=>Number(input.dataset.dispatchDay));
+  if(!dispatchDays.length){BF.toast('Select at least one delivery day.');return;}
+  await BFStore.setDoc('settings/store',{pickupAddress:document.getElementById('pickupAddressAdmin').value,sameDayDispatchOpen:document.getElementById('sameDayDispatchOpen').value==='true',deliveryFee:Number(document.getElementById('deliveryFeeAdmin').value||0),dispatchDays});
+  await BFStore.log('Delivery settings updated',{dispatchDays});BF.toast('Delivery settings saved');renderDelivery();
+},'Saving delivery settings…')}
 function renderMessages(){document.getElementById('messagesList').innerHTML=DATA.messages.length?DATA.messages.map(m=>`<article class="message-card"><div><strong>${m.name||'Customer'}</strong> · ${m.email||''}<p>${m.message||''}</p><small>${fmtDate(m.createdAt)}</small></div><button class="small-btn" onclick="markMessage('${m.id}')" ${m.status==='read'?'disabled':''}>${m.status==='read'?'Read':'Mark as read'}</button></article>`).join(''):'<p>No messages yet.</p>'}
 async function markMessage(id){return withAdminLoading(async()=>{await BFStore.update('messages',id,{status:'read'});await loadAll()},'Marking message as read…')}
 window.markMessage=markMessage;

@@ -99,7 +99,7 @@ function renderSummary(){
 
 function nextDispatch(settings = {}){
   const now = new Date();
-  const dispatchDays = [3, 6]; // Wednesday, Saturday
+  const dispatchDays = window.BFDispatch?.days(settings) || [3, 6];
   for(let d = 0; d < 8; d++){
     const date = new Date(now);
     date.setHours(12,0,0,0);
@@ -150,6 +150,7 @@ async function updateDispatch(){
     checkoutSettings = {};
   }
 
+  window.BFDispatch?.apply(checkoutSettings);
   const date = nextDispatch(checkoutSettings);
   window.__bfDispatchDate = date;
   $('#dispatchNote').innerHTML = date

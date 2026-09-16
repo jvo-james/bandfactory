@@ -220,7 +220,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   openDrawer(id){document.getElementById(id)?.classList.add('open');document.querySelector('.drawer-backdrop')?.classList.add('show');document.body.classList.add('drawer-open')},
   closeDrawers(){document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));document.querySelector('.drawer-backdrop')?.classList.remove('show');document.body.classList.remove('drawer-open')},
   toast(msg){let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;t.classList.add('show');clearTimeout(this._toast);this._toast=setTimeout(()=>t.classList.remove('show'),2300)},
-  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look - starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'Pickup details are shared when your order is confirmed.' },
+  settings:{ retailPrice:10, twistedRetailPrice:10, smoothFlatAvailable:true, smoothTwistedAvailable:true, heroTitle:'EVERYDAY ESSENTIALS. REIMAGINED.', heroCopy:'Thoughtful pieces made to finish the look - starting with our signature hairbands, with more everyday essentials to come.', wholesaleHeadline:'BUY MORE. BUILD MORE.', pickupAddress:'Pickup details are shared when your order is confirmed.', dispatchDays:[3,6] },
   async loadSettings(){
     try{const data=await BFStore.getDoc('settings/store',{});this.settings={...this.settings,...data};this.products.smooth.price=Number(this.settings.retailPrice||10);document.dispatchEvent(new CustomEvent('bf:settings',{detail:this.settings}));return this.settings}catch(e){console.warn(e);return this.settings}
   },
@@ -791,7 +791,28 @@ function sharedShell() {
   };
 }
 
-document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
+function bfDispatchDays(settings={}){
+  const raw=Array.isArray(settings?.dispatchDays)?settings.dispatchDays:[3,6];
+  const days=[...new Set(raw.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=6))];
+  return days.length?days:[3,6];
+}
+function bfDispatchDaysText(settings={}){
+  const names=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const order=[1,2,3,4,5,6,0];
+  const chosen=new Set(bfDispatchDays(settings));
+  const labels=order.filter(day=>chosen.has(day)).map(day=>names[day]);
+  if(labels.length===1)return labels[0];
+  if(labels.length===2)return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0,-1).join(', ')} and ${labels.at(-1)}`;
+}
+function bfApplyDeliveryDayCopy(settings={}){
+  const days=bfDispatchDaysText(settings);
+  document.querySelectorAll('[data-delivery-days-copy]').forEach(el=>{el.textContent=`Delivery is available nationwide. Orders are dispatched on ${days}; timing varies by destination.`});
+  document.querySelectorAll('[data-delivery-days-checkout]').forEach(el=>{el.textContent=`Have your order sent to the address you provide. Dispatches run on ${days}.`});
+}
+window.BFDispatch={days:bfDispatchDays,text:bfDispatchDaysText,apply:bfApplyDeliveryDayCopy};
+
+document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{bfApplyDeliveryDayCopy(st);const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
 
 
 
