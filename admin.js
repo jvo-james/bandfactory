@@ -70,13 +70,17 @@ let ADMIN_COLLECTIONS_LOADED=false;
 async function loadAll(){
   if(ADMIN_COLLECTIONS_LOADED){renderAll();return;}
   return withAdminLoading(async()=>{
-    const pageEntries=Object.entries(ADMIN_PAGE_CONFIG);
+    // Orders and customers are intentionally loaded in full. Orders are also used to
+    // build the customer list, so pagination here could silently hide records.
+    const pageEntries=Object.entries(ADMIN_PAGE_CONFIG).filter(([key])=>!['orders','customers'].includes(key));
     const pagePromises=pageEntries.map(([key,cfg])=>BFStore.listPage(key,cfg.orderBy,cfg.dir,ADMIN_PAGE_SIZES[key],true));
-    const [pages,settings,colors,sequence,tubeTopRaw,catalogRaw,categoriesRaw]=await Promise.all([
+    const [allOrders,pages,settings,colors,sequence,tubeTopRaw,catalogRaw,categoriesRaw]=await Promise.all([
+      BFStore.listAll('orders'),
       Promise.all(pagePromises),
       BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{}}),BFStore.getDoc('settings/orderSequence',{}),BFStore.getDoc('products/spandexTubeTop',null),BFStore.getDoc('products/catalog',{}),BFStore.getDoc('products/categories',{})
     ]);
-    const loaded={};
+    const loaded={orders:allOrders,customers:[]};
+    ADMIN_HAS_MORE.orders=false;ADMIN_HAS_MORE.customers=false;
     pageEntries.forEach(([key],i)=>{loaded[key]=pages[i].items;ADMIN_HAS_MORE[key]=pages[i].hasMore});
     const tubeTop=tubeTopRaw||{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}};
     if(!tubeTopRaw)await BFStore.setDoc('products/spandexTubeTop',tubeTop,false);
@@ -90,6 +94,8 @@ async function loadAll(){
 }
 
 async function loadMoreAdmin(collection){
+  // Orders and customers are fully loaded up front, so these sections have no pagination.
+  if(collection==='orders'||collection==='customers')return;
   const cfg=ADMIN_PAGE_CONFIG[collection];if(!cfg||!ADMIN_HAS_MORE[collection])return;
   return withAdminLoading(async()=>{
     const page=await BFStore.listPage(collection,cfg.orderBy,cfg.dir,ADMIN_PAGE_SIZES[collection],false);
@@ -129,7 +135,7 @@ function renderAll(){
 function renderAdminLoadMoreControls(){
   document.querySelectorAll('.bf-load-more-wrap').forEach(x=>x.remove());
   for(const [collection,cfg] of Object.entries(ADMIN_PAGE_CONFIG)){
-    if(!ADMIN_HAS_MORE[collection])continue;
+    if(collection==='orders'||collection==='customers'||!ADMIN_HAS_MORE[collection])continue;
     const section=document.getElementById(cfg.section);if(!section)continue;
     const wrap=document.createElement('div');wrap.className='bf-load-more-wrap';wrap.style.cssText='display:flex;justify-content:center;padding:18px 0 4px';
     const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.textContent=`Load more ${cfg.label}`;btn.onclick=()=>loadMoreAdmin(collection);wrap.appendChild(btn);section.appendChild(wrap);
@@ -288,6 +294,57 @@ function filterInternationalCountry(country){
 }
 window.filterInternationalCountry=filterInternationalCountry;
 
+
+function isPaidOrder(o={}){return String(o?.payment||'').trim().toLowerCase()==='paid'}
+function isPendingOrder(o={}){return !isPaidOrder(o)}
+function searchableDateValues(value){
+  if(!value)return [];
+  let d=value;
+  try{d=value?.toDate?value.toDate():value instanceof Date?value:new Date(value)}catch{return []}
+  if(!(d instanceof Date)||isNaN(d))return [];
+  const longMonth=new Intl.DateTimeFormat('en-GH',{month:'long'}).format(d).toLowerCase();
+  const shortMonth=new Intl.DateTimeFormat('en-GH',{month:'short'}).format(d).toLowerCase();
+  return [
+    d.toISOString(),
+    d.getUTCFullYear(),
+    String(d.getUTCMonth()+1).padStart(2,'0'),
+    String(d.getUTCDate()).padStart(2,'0'),
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`,
+    longMonth,shortMonth,
+    new Intl.DateTimeFormat('en-GH',{day:'numeric',month:'long',year:'numeric'}).format(d).toLowerCase(),
+    new Intl.DateTimeFormat('en-GH',{day:'numeric',month:'short',year:'numeric'}).format(d).toLowerCase()
+  ].map(String);
+}
+function orderSearchText(o={}){
+  const values=[];
+  const collect=v=>{
+    if(v===null||v===undefined)return;
+    if(v?.toDate){values.push(...searchableDateValues(v));return;}
+    if(v instanceof Date){values.push(...searchableDateValues(v));return;}
+    if(Array.isArray(v)){v.forEach(collect);return;}
+    if(typeof v==='object'){Object.entries(v).forEach(([key,val])=>{values.push(key);collect(val)});return;}
+    values.push(String(v));
+  };
+  collect(o);
+  values.push(...searchableDateValues(orderDate(o)));
+  return values.join(' ').toLowerCase();
+}
+function orderMatchesSearch(o,query=''){
+  const tokens=String(query||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!tokens.length)return true;
+  const haystack=orderSearchText(o);
+  return tokens.every(token=>haystack.includes(token));
+}
+function setOrderPaymentTab(tab='paid'){
+  const active=tab==='pending'?'pending':'paid';
+  document.querySelectorAll('[data-order-payment-tab]').forEach(btn=>{const selected=btn.dataset.orderPaymentTab===active;btn.classList.toggle('active',selected);btn.setAttribute('aria-selected',String(selected))});
+  document.querySelectorAll('[data-order-payment-panel]').forEach(panel=>{panel.hidden=panel.dataset.orderPaymentPanel!==active});
+  const paidActions=document.getElementById('paidOrderActions');if(paidActions)paidActions.hidden=active!=='paid';
+  const statusFilter=document.getElementById('orderFilter');if(statusFilter)statusFilter.hidden=active!=='paid';
+  if(active==='pending')syncBatchSelection();
+  renderOrders();renderPendingPayments();
+}
+window.setOrderPaymentTab=setOrderPaymentTab;
 
 function orderLabel(o={}){return o.displayId||o.id||'-'}
 function applyOrderStatusLocally(id,status){
@@ -1652,15 +1709,17 @@ window.onload=()=>{
 window.printOrders=printOrders;
 
 function renderOrders(){
-  const q=(document.getElementById('orderSearch')?.value||'').toLowerCase(),f=document.getElementById('orderFilter')?.value||'All';
-  const rows=DATA.orders.filter(o=>o.payment==='Paid'&&(f==='All'||o.status===f)&&(`${o.id} ${orderLabel(o)} ${o.name} ${o.email}`.toLowerCase().includes(q))).sort((a,b)=>orderDate(b)-orderDate(a));
-  document.getElementById('allOrders').innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="Select" onclick="event.stopPropagation()"><input class="order-select" type="checkbox" data-order-id="${o.id}" aria-label="Select ${orderLabel(o)}"></td><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'-'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status).toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="9">No matching paid orders.</td></tr>';
+  const search=document.getElementById('orderSearch')?.value||'',f=document.getElementById('orderFilter')?.value||'All';
+  const rows=DATA.orders.filter(o=>isPaidOrder(o)&&(f==='All'||String(o.status||'')===f)&&orderMatchesSearch(o,search)).sort((a,b)=>orderDate(b)-orderDate(a));
+  const table=document.getElementById('allOrders');if(!table)return;
+  table.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="Select" onclick="event.stopPropagation()"><input class="order-select" type="checkbox" data-order-id="${o.id}" aria-label="Select ${orderLabel(o)}"></td><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'-'}<br><small>${o.email||'No email'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt||o.lastOrderAt)}</td><td data-label="Net sales">${moneyCell(o)}</td><td data-label="Type">${o.type||'Retail'}</td><td data-label="Payment"><span class="badge paid">${o.payment||'Paid'}</span></td><td data-label="Status"><span class="badge ${String(o.status||'Preparing').toLowerCase()}">${o.status||'Preparing'}</span></td></tr>`).join('')||'<tr><td colspan="9">No matching paid orders.</td></tr>';
   document.querySelectorAll('.order-select').forEach(x=>x.onchange=syncBatchSelection);syncBatchSelection();
 }
 function renderPendingPayments(){
   const table=document.getElementById('pendingPayments');if(!table)return;
-  const rows=DATA.orders.filter(o=>o.payment!=='Paid').sort((a,b)=>orderDate(b)-orderDate(a));
-  table.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'-'}<br><small>${o.phone||o.email||'No contact saved'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt)}</td><td data-label="Total"><strong>${BF.money(orderCustomerPaid(o))}</strong></td><td data-label="Fulfilment">${o.fulfilment==='pickup'?'Pickup':'Delivery'}</td><td data-label="Payment"><span class="badge preparing">${o.payment||'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="7">No pending payments.</td></tr>';
+  const search=document.getElementById('orderSearch')?.value||'';
+  const rows=DATA.orders.filter(o=>isPendingOrder(o)&&orderMatchesSearch(o,search)).sort((a,b)=>orderDate(b)-orderDate(a));
+  table.innerHTML=rows.map(o=>`<tr onclick="openOrder('${o.id}')" style="cursor:pointer"><td data-label="#">${rowNumberBadge(orderAdminNumber(o))}</td><td data-label="Order"><strong>${orderLabel(o)}</strong></td><td data-label="Customer">${o.name||'-'}<br><small>${o.phone||o.email||'No contact saved'}</small></td><td data-label="Date">${fmtDate(o.createdAt||o.submittedAt||o.lastOrderAt)}</td><td data-label="Total"><strong>${BF.money(orderCustomerPaid(o))}</strong></td><td data-label="Fulfilment">${o.fulfilment==='pickup'?'Pickup':'Delivery'}</td><td data-label="Payment"><span class="badge preparing">${o.payment||'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="7">No matching pending orders.</td></tr>';
 }
 
 function openOrder(id){
@@ -1768,10 +1827,7 @@ function orderDate(o){
 
 function numberedOrders(paymentState='paid'){
   return DATA.orders
-    .filter(o=>paymentState==='paid'
-      ? o.payment==='Paid'
-      : o.payment!=='Paid'
-    )
+    .filter(o=>paymentState==='paid'?isPaidOrder(o):isPendingOrder(o))
     .sort((a,b)=>orderDate(b)-orderDate(a));
 }
 
@@ -2065,7 +2121,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.admin-nav button').forEach(b=>b.onclick=()=>showSection(b.dataset.section));
   document.querySelectorAll('.clickable-stat').forEach(card=>card.onclick=()=>showSection(card.dataset.go));
   document.getElementById('signOutBtn').onclick=async()=>withAdminLoading(async()=>{await BFStore.signOut();location.href='admin-login.html'},'Signing out…');
-  document.getElementById('orderSearch').oninput=renderOrders;document.getElementById('orderFilter').onchange=renderOrders;document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('updateSelectedOrders').onclick=updateSelectedOrderStatuses;document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
+  const orderSearchInput=document.getElementById('orderSearch');
+  if(orderSearchInput)orderSearchInput.oninput=()=>{renderOrders();renderPendingPayments()};
+  const orderFilterInput=document.getElementById('orderFilter');
+  if(orderFilterInput)orderFilterInput.onchange=renderOrders;
+  document.querySelectorAll('[data-order-payment-tab]').forEach(btn=>btn.addEventListener('click',()=>setOrderPaymentTab(btn.dataset.orderPaymentTab)));
+  setOrderPaymentTab('paid');
+  document.getElementById('selectAllOrders').onchange=e=>{document.querySelectorAll('.order-select').forEach(x=>x.checked=e.target.checked);syncBatchSelection()};document.getElementById('printSelectedOrders').onclick=()=>printOrders(selectedPaidOrderIds());document.getElementById('updateSelectedOrders').onclick=updateSelectedOrderStatuses;document.getElementById('analyticsRange').onchange=renderAnalytics;document.getElementById('abandonedFilter').onchange=renderAbandonedCarts;const internationalFilter=document.getElementById('internationalCountryFilter');if(internationalFilter)internationalFilter.onchange=renderInternationalPayments;
   document.getElementById('saveProductSettings').onclick=saveProducts;document.getElementById('saveTubeTopStock').onclick=saveTubeTopInventory;document.getElementById('saveWholesale').onclick=saveWholesale;document.getElementById('sendBroadcast').onclick=sendBroadcast;document.getElementById('saveDelivery').onclick=saveDelivery;document.getElementById('markAllRead').onclick=markAll;document.getElementById('saveSettings').onclick=saveSettings;document.getElementById('changeEmailForm')?.addEventListener('submit',submitAdminEmailChange);document.getElementById('changePasswordForm')?.addEventListener('submit',submitAdminPasswordChange);
 });
 
