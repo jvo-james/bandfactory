@@ -11,3 +11,19 @@ body{background:#fff}.pdp{display:grid;grid-template-columns:minmax(0,1.42fr) mi
 
 /* Quiet savings note beneath product pricing */
 .sale-saving-note{display:inline-flex;align-items:center;gap:7px;margin-top:9px;padding:7px 10px;background:#fff2f6;border:1px solid #f1d4de;color:#8f2548;font-size:10px;font-weight:600;letter-spacing:.01em}.sale-saving-note i{font-size:9px}.sale-saving-note strong{font-weight:900;color:#711c39}.sale-saving-note[hidden]{display:none}
+
+/* ===== CATALOG PRODUCT VARIANTS + PRE-ORDER ===== */
+.catalog-fulfilment-notice{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:16px 17px;margin:16px 0;border:1px solid #ead8df;background:linear-gradient(135deg,#fff7fa,#fff);color:#2a2024}
+.catalog-fulfilment-notice>i{font-size:18px;color:#a15f79;padding-top:2px}
+.catalog-fulfilment-notice div{display:grid;gap:5px}
+.catalog-fulfilment-notice strong:first-child{font-size:10px;letter-spacing:.13em;text-transform:uppercase}
+.catalog-fulfilment-notice span{font-size:12px;line-height:1.6}
+.catalog-fulfilment-notice small{font-size:10px;line-height:1.55;color:#75666d}
+.item-variant-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin:8px 0 20px}
+.item-variant-option{min-width:0;border:1px solid var(--line);background:#fff;padding:8px;text-align:left;display:grid;grid-template-columns:44px 1fr;gap:9px;align-items:center;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.item-variant-option:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(23,15,18,.07)}
+.item-variant-option.active{border-color:#111;box-shadow:inset 0 0 0 1px #111}
+.item-variant-thumb{width:44px;height:52px;display:grid;place-items:center;overflow:hidden;background:#f6eef1}
+.item-variant-thumb img{width:100%;height:100%;object-fit:cover}
+.item-variant-option>span:last-child{font-size:10px;line-height:1.25;font-weight:700}
+@media(max-width:600px){.catalog-fulfilment-notice{padding:14px}.item-variant-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.item-variant-option{grid-template-columns:38px 1fr;padding:7px}.item-variant-thumb{width:38px;height:48px}}

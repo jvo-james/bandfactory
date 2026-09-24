@@ -483,14 +483,35 @@ function renderColourMarquee() {
    HOMEPAGE PRODUCT PICKS
 ========================================================== */
 
+
+function homeEscape(v=''){return escapeHTML(String(v??''));}
+function homeCategoryImage(category){
+    if(category?.image)return category.image;
+    const first=homeCatalog.find(item=>item.category===category?.id&&item.deleted!==true);
+    if(first){const variant=BFCatalog.variants(first)[0];const direct=variant?.image||BFCatalog.image(first);if(direct&&direct!=='images/placeholder-product.svg')return direct;}
+    return BFCatalog.fallbackImage({category:category?.id},homeCatalog,homeCategories);
+}
+function renderHomeCategories(){
+    const grid=document.getElementById('homeCategoryGrid');if(!grid)return;
+    const categories=homeCategories.filter(c=>c.visible!==false&&c.deleted!==true);
+    grid.innerHTML=categories.map(category=>{const image=homeCategoryImage(category);return `<a href="${homeEscape(BFCatalog.categoryUrl(category))}" class="home-category-card"><img src="${homeEscape(image)}" alt="${homeEscape(category.name)}" loading="lazy"><div><span>${homeEscape(category.eyebrow||'Collection')}</span><h3>${homeEscape(category.name)}</h3><b>Shop ${homeEscape(category.name)} →</b></div></a>`}).join('');
+}
+function renderHomePreorders(){
+    const section=document.getElementById('homePreorderSection'),grid=document.getElementById('homePreorderGrid');if(!section||!grid)return;
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));
+    let items=BFCatalog.expandVariants(homeCatalog.filter(item=>item.deleted!==true&&item.available!==false&&visibleIds.has(item.category)&&BFCatalog.isPreorder(item)));
+    items.sort((a,b)=>String(BFCatalog.preorderDate(a)).localeCompare(String(BFCatalog.preorderDate(b)))||Number(a.featuredOrder||99)-Number(b.featuredOrder||99));
+    section.hidden=!items.length;if(!items.length){grid.innerHTML='';return;}
+    grid.innerHTML=items.slice(0,6).map(item=>{const master=homeCatalog.find(x=>x.id===(item.masterProductId||item.id))||item,url=`item.html?id=${encodeURIComponent(master.id)}${item.variantId?`&variant=${encodeURIComponent(item.variantId)}`:''}`,image=(()=>{const direct=BFCatalog.image(master,'flat',item.variantId);return direct&&direct!=='images/placeholder-product.svg'?direct:BFCatalog.fallbackImage(item,homeCatalog,homeCategories);})(),price=BFCatalog.price(master,homeSettings),compare=BFCatalog.compareAtPrice(master,homeSettings),date=window.BFFulfilment?.shortDate?.(BFCatalog.preorderDate(master))||BFCatalog.preorderDate(master);return `<a class="home-preorder-card" href="${url}"><div class="home-preorder-media"><img src="${homeEscape(image)}" alt="${homeEscape(item.name)}" loading="lazy"><span>Pre-order</span></div><div class="home-preorder-copy"><h3>${homeEscape(item.name)}</h3><p>${homeEscape(item.color||item.subtitle||'')}</p><strong>${price?BFCatalog.priceHtml(price,compare):'View product'}</strong><small>Fulfilment from ${homeEscape(date)}</small></div></a>`}).join('');
+}
+
 function renderHomeProducts() {
     const productGrid=document.getElementById('homeProducts'); if(!productGrid)return;
-    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));const smoothCandidates=(visibleIds.has('smooth')?[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']]:[]).filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`}));
-    const catalogCandidates=homeCatalog.filter(item=>item.available!==false&&visibleIds.has(item.category)).map(item=>({kind:'catalog',name:item.name,image:BFCatalog.image(item),price:BFCatalog.price(item,homeSettings),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`}));
-    const pool=[...catalogCandidates,...smoothCandidates];
-    const shuffled=[...pool].sort(()=>Math.random()-.5);
-    const picks=[];for(const item of shuffled){if(picks.length===4)break;if(!picks.some(p=>p.name===item.name))picks.push(item)}
-    productGrid.innerHTML=picks.map(item=>`<article class="home-product"><a href="${item.url}"><div class="image"><img src="${item.image}" alt="${escapeHTML(item.name)}" loading="lazy"></div></a><div class="meta"><h3>${escapeHTML(item.name)}</h3><p>${item.price?BF.money(item.price):'View product'}</p><a class="add-mini stock-link" href="${item.url}">View product</a></div></article>`).join('');
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));
+    const smoothCandidates=(visibleIds.has('smooth')?[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']]:[]).filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`,preorder:false}));
+    const catalogCandidates=BFCatalog.expandVariants(homeCatalog.filter(item=>item.available!==false&&visibleIds.has(item.category))).map(item=>({kind:'catalog',name:item.variantId&&item.color?`${item.name} · ${item.color}`:item.name,image:BFCatalog.image(item,'flat',item.variantId)||BFCatalog.fallbackImage(item,homeCatalog,homeCategories),price:BFCatalog.price(item,homeSettings),compareAt:BFCatalog.compareAtPrice(item,homeSettings),url:`item.html?id=${encodeURIComponent(item.masterProductId||item.id)}${item.variantId?`&variant=${encodeURIComponent(item.variantId)}`:''}`,preorder:BFCatalog.isPreorder(item),date:BFCatalog.preorderDate(item)}));
+    const pool=[...catalogCandidates,...smoothCandidates],shuffled=[...pool].sort(()=>Math.random()-.5),picks=[];for(const item of shuffled){if(picks.length===4)break;if(!picks.some(p=>p.name===item.name))picks.push(item)}
+    productGrid.innerHTML=picks.map(item=>`<article class="home-product"><a href="${item.url}"><div class="image"><img src="${item.image}" alt="${escapeHTML(item.name)}" loading="lazy">${item.preorder?'<span class="home-stock-chip preorder-chip">Pre-order</span>':''}</div></a><div class="meta"><h3>${escapeHTML(item.name)}</h3><p>${item.price?BFCatalog.priceHtml(item.price,item.compareAt||0):'View product'}${item.preorder&&item.date?`<small>From ${escapeHTML(window.BFFulfilment?.shortDate?.(item.date)||item.date)}</small>`:''}</p><a class="add-mini stock-link" href="${item.url}">View product</a></div></article>`).join('');
 }
 
 
@@ -791,6 +812,8 @@ async function renderHome() {
         applySocialLinks();
         const [settings,inventory,tubeTop,catalog,categories]=await Promise.all([BF.loadSettings(),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFCatalog.load(),BFCatalog.loadCategories()]);
         homeSettings=settings||{}; homeInventory=inventory||{colors:{},styles:{}}; homeTubeTop=tubeTop||{sizes:{}}; homeCatalog=catalog||[]; homeCategories=categories||[];
+        renderHomeCategories();
+        renderHomePreorders();
         renderHomepageFeature();
         renderHomeProducts();
         renderColourBoxes();

@@ -154,18 +154,18 @@ function renderFulfilmentPlan(){
   const readyDate=window.__bfDispatchDate;
   const preorderDates=cart.filter(i=>window.BFFulfilment.isPreorder(i)).map(i=>window.BFFulfilment.itemFulfilmentDate(i,readyDate));
   const firstPreorder=window.BFFulfilment.latestDate(preorderDates);
-  $('#fulfilmentPlanIntro').textContent='your bag contains items that are ready on different dates. choose whether to receive them separately or wait and receive everything together.';
+  $('#fulfilmentPlanIntro').textContent='Your bag contains items that are ready on different dates. Choose whether to receive them separately or wait and receive everything together.';
   $('#togetherPlanCopy').textContent=firstPreorder
-    ? `we’ll hold your ready items and send your complete order on ${formatDate(firstPreorder)}. one delivery fee applies.`
-    : 'we’ll hold your ready items and send your complete order on the later fulfilment date. one delivery fee applies.';
+    ? `We’ll hold your ready items and send your complete order on ${formatDate(firstPreorder)}. One delivery fee applies.`
+    : 'We’ll hold your ready items and send your complete order on the later fulfilment date. One delivery fee applies.';
   $('#separatePlanCopy').textContent=readyDate&&firstPreorder
-    ? `ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. a delivery fee applies to each delivery.`
-    : 'ready items go first and pre-order items follow on their fulfilment date. a delivery fee applies to each delivery.';
+    ? `Ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.`
+    : 'Ready items go first and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.';
   const plan=$('[name="fulfilmentPlan"]:checked')?.value||'together';
   const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
   const groupCopy=(group)=>`${formatDate(group.date)} · ${group.items.length} item${group.items.length===1?'':'s'}`;
   $('#fulfilmentPlanSummary').innerHTML=info.groups.length
-    ? `<strong>${plan==='separate'?'your delivery plan':'one delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
+    ? `<strong>${plan==='separate'?'Your delivery plan':'One delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
     : '';
 }
 
@@ -175,12 +175,12 @@ function renderDispatchNote(){
   const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
   if(mixedFulfilmentDates()){
     $('#dispatchNote').innerHTML=info.plan==='separate'
-      ? `your order is planned across ${info.groups.length} deliveries. first: <strong>${formatDate(info.groups[0].date)}</strong>.`
-      : `we’ll hold the ready items and deliver everything together on <strong>${formatDate(info.groups[0].date)}</strong>.`;
+      ? `Your order is planned across ${info.groups.length} deliveries. First: <strong>${formatDate(info.groups[0].date)}</strong>.`
+      : `We’ll hold the ready items and deliver everything together on <strong>${formatDate(info.groups[0].date)}</strong>.`;
     return;
   }
   if(info.hasPreorder&&info.groups[0]?.date){
-    $('#dispatchNote').innerHTML=`your order is scheduled for <strong>${formatDate(info.groups[0].date)}</strong>.`;
+    $('#dispatchNote').innerHTML=`Your order is scheduled for <strong>${formatDate(info.groups[0].date)}</strong>.`;
     return;
   }
   $('#dispatchNote').innerHTML=base
@@ -869,6 +869,30 @@ async function validateCartStock(){
   const catalogItems=Array.isArray(catalogData.items)?catalogData.items:[];
   const catalogRemaining=Object.fromEntries(catalogItems.map(item=>[item.id,{flat:{stock:Number(item.styles?.flat?.stock??item.stock??0),available:item.styles?.flat?.available??item.available!==false},twisted:{stock:Number(item.styles?.twisted?.stock??0),available:item.styles?.twisted?.available===true}}]));
   const catalogById=Object.fromEntries(catalogItems.map(item=>[item.id,item]));
+  const genericRemaining=new Map();
+  const genericKey=(product,variantId='',size='')=>`${product.id}::${variantId||''}::${size||''}`;
+  const genericTarget=(product,variantId='')=>variantId&&window.BFCatalog?.hasVariants?.(product)?window.BFCatalog.variant(product,variantId):product;
+  const takeGeneric=(product,variantId,size,qty,label)=>{
+    const target=genericTarget(product,variantId);
+    if(!target||target.available===false)throw new Error(`${label} is not available right now.`);
+    const sizes=target.sizes&&Object.keys(target.sizes).length?target.sizes:null;
+    const cleanSize=String(size||'');
+    if(sizes&& !sizes[cleanSize])throw new Error(`${label} is not available in size ${cleanSize}.`);
+    const key=genericKey(product,variantId,sizes?cleanSize:'');
+    const current=genericRemaining.has(key)?genericRemaining.get(key):Math.max(0,Number((sizes?sizes[cleanSize]:target)?.stock||0));
+    const need=Math.max(0,Number(qty||0));
+    if(need>current)throw new Error(current>0?`Only ${current} ${label}${current===1?' is':'s are'} available right now.`:`${label} is sold out right now.`);
+    genericRemaining.set(key,current-need);
+  };
+  const checkGenericOption=(product,variantId,size,qty,label,preorder=false)=>{
+    const target=genericTarget(product,variantId);
+    if(!target)throw new Error(`${label} is no longer available.`);
+    if(target.available===false)throw new Error(`${label} is not available right now.`);
+    const sizes=target.sizes&&Object.keys(target.sizes).length?target.sizes:null;
+    const cleanSize=String(size||'');
+    if(sizes){const data=sizes[cleanSize];if(!data||data.available===false)throw new Error(`${label} is not available in size ${cleanSize}.`);if(!preorder)takeGeneric(product,variantId,cleanSize,qty,label);}
+    else if(!preorder)takeGeneric(product,variantId,'',qty,label);
+  };
   for(const item of cart){
     const isPreorder=window.BFFulfilment?.isPreorder?.(item)||item.fulfilmentType==='preorder';
     if(item.type==='wholesale-product'){
@@ -879,13 +903,22 @@ async function validateCartStock(){
       const qty=Math.max(0,Math.floor(Number(item.qty||0))),min=w.minQty,expected=BFCatalog.wholesalePriceForQty(product,qty);
       if(qty<min)throw new Error(`${product.name||'This product'} has a minimum wholesale order of ${min} units.`);
       if(!expected||Math.abs(Number(item.price||0)-expected)>0.001)throw new Error(`The wholesale price for ${product.name||'this product'} has changed. Please remove it from your Bag and add it again.`);
-      if(product.sizes&&Object.keys(product.sizes).length){const size=String(item.size||'');const d=product.sizes[size];if(!d||d.available===false)throw new Error(`${product.name||'This product'} is not available in the selected size.`);if(!isPreorder&&Number(d.stock||0)<qty)throw new Error(`Only ${Number(d.stock||0)} ${product.name||'units'} are available in size ${size}.`);}else if(!isPreorder&&Number(product.stock||0)<qty)throw new Error(`Only ${Number(product.stock||0)} ${product.name||'units'} are available right now.`);
+      checkGenericOption(product,item.variantId||'',item.size||'',qty,item.name||product.name||'This product',isPreorder);
       continue;
     }
     if(item.type==='catalog'){
       const product=catalogById[item.productId];
-      if(product?.available===false)throw new Error(`${item.name||'This product'} is no longer available.`);
-      if(isPreorder)continue;
+      if(!product||product.deleted===true||product.available===false)throw new Error(`${item.name||'This product'} is no longer available.`);
+      if(item.category==='ribbed'){
+        if(isPreorder){
+          const style=item.style==='twisted'?'twisted':'flat',entry=catalogRemaining[item.productId]?.[style]||{stock:0,available:false};
+          if(entry.available===false)throw new Error(`${item.name||'This option'} is not available for pre-order.`);
+          continue;
+        }
+      }else{
+        checkGenericOption(product,item.variantId||'',item.size||'',Math.max(0,Number(item.qty||0)),item.name||product.name||'This product',isPreorder);
+        continue;
+      }
     }
     if(item.type==='catalog'&&item.category==='ribbed'){
       const style=item.style==='twisted'?'twisted':'flat',entry=catalogRemaining[item.productId]?.[style]||{stock:0,available:false},have=entry.available===false?0:Math.max(0,Number(entry.stock||0)),need=Math.max(0,Number(item.qty||0));

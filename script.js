@@ -81,23 +81,25 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     if(found)found.qty+=qty;else cart.push({key,type:'apparel',productId:id,name,size:cleanSize,color:'Black',qty,price:amount,image});
     this.saveCart(cart);this.toast(`${name} · ${cleanSize} added to your Bag`);this.openDrawer('bagDrawer');
   },
-  addCatalogProduct(item,size,price,image,qty=1,style='flat'){
+  addCatalogProduct(item,size,price,image,qty=1,style='flat',variantId=''){
     const amount=Number(price||0);if(amount<=0)return this.toast('This product price has not been set yet.');
-    const cleanSize=String(size||''),cleanStyle=style==='twisted'?'twisted':'flat';const cart=this.getCart();const styleKey=item.category==='ribbed'?`-${cleanStyle}`:'';const key=`catalog-${item.id}${styleKey}-${cleanSize||'one'}`;const found=cart.find(i=>i.key===key);
-    const fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
-    const line={key,type:'catalog',productId:item.id,name:item.category==='ribbed'?`${cleanStyle[0].toUpperCase()+cleanStyle.slice(1)} ${item.name}`:item.name,size:cleanSize,color:item.color||'',category:item.category,material:item.category==='ribbed'?'ribbed':undefined,style:item.category==='ribbed'?cleanStyle:undefined,qty,price:amount,image,packSize:Number(item.packSize||1),fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||''};
-    if(found){found.qty+=qty;found.price=amount;found.fulfilmentType=line.fulfilmentType;found.fulfilmentDate=line.fulfilmentDate;}else cart.push(line);this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
+    const cleanSize=String(size||''),cleanStyle=style==='twisted'?'twisted':'flat',cleanVariant=String(variantId||''),cart=this.getCart();
+    const styleKey=item.category==='ribbed'?`-${cleanStyle}`:'',variantKey=cleanVariant?`-v-${cleanVariant}`:'',key=`catalog-${item.id}${variantKey}${styleKey}-${cleanSize||'one'}`;
+    const found=cart.find(i=>i.key===key),fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''},view=cleanVariant&&window.BFCatalog?.variantView?.(item,cleanVariant)?window.BFCatalog.variantView(item,cleanVariant):item;
+    const line={key,type:'catalog',productId:item.id,variantId:cleanVariant,name:item.category==='ribbed'?`${cleanStyle[0].toUpperCase()+cleanStyle.slice(1)} ${item.name}`:(cleanVariant&&view.color?`${item.name} · ${view.color}`:item.name),size:cleanSize,color:view.color||item.color||'',category:item.category,material:item.category==='ribbed'?'ribbed':undefined,style:item.category==='ribbed'?cleanStyle:undefined,qty,price:amount,image:image||window.BFCatalog?.image?.(item,cleanStyle,cleanVariant)||'',packSize:Number(item.packSize||1),fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||''};
+    if(found){found.qty+=qty;found.price=amount;found.fulfilmentType=line.fulfilmentType;found.fulfilmentDate=line.fulfilmentDate;found.color=line.color;found.image=line.image;}else cart.push(line);
+    this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
   },
-  addWholesaleProduct(item,size='',qty=1){
-    const cleanSize=String(size||'');
+  addWholesaleProduct(item,size='',qty=1,variantId=''){
+    const cleanSize=String(size||''),cleanVariant=String(variantId||'');
     const wholesale=window.BFCatalog?.wholesale?.(item)||{enabled:false,minQty:1,tiers:[]};
     if(!wholesale.enabled)return this.toast('This product is not available for wholesale right now.');
-    const cleanQty=Math.max(wholesale.minQty,Math.floor(Number(qty||wholesale.minQty)));
-    const unitPrice=Number(window.BFCatalog?.wholesalePriceForQty?.(item,cleanQty)||0);
+    const cleanQty=Math.max(wholesale.minQty,Math.floor(Number(qty||wholesale.minQty))),unitPrice=Number(window.BFCatalog?.wholesalePriceForQty?.(item,cleanQty)||0);
     if(unitPrice<=0)return this.toast('Wholesale pricing has not been set for this product yet.');
-    if(item.sizes&&Object.keys(item.sizes).length&&!cleanSize)return this.toast('Choose a size before adding this wholesale item.');
-    const cart=this.getCart(),key=`wholesale-product-${item.id}-${cleanSize||'one'}`,found=cart.find(i=>i.key===key),fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
-    const line={key,type:'wholesale-product',productId:item.id,name:item.name,size:cleanSize,qty:cleanQty,price:unitPrice,image:window.BFCatalog?.image?.(item)||item.image||'',category:item.category||'',color:item.color||'',fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,packSize:Number(item.packSize||1)};
+    const view=cleanVariant&&window.BFCatalog?.variantView?.(item,cleanVariant)?window.BFCatalog.variantView(item,cleanVariant):item;
+    if(view.sizes&&Object.keys(view.sizes).length&&!cleanSize)return this.toast('Choose a size before adding this wholesale item.');
+    const cart=this.getCart(),key=`wholesale-product-${item.id}${cleanVariant?`-v-${cleanVariant}`:''}-${cleanSize||'one'}`,found=cart.find(i=>i.key===key),fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
+    const line={key,type:'wholesale-product',productId:item.id,variantId:cleanVariant,name:cleanVariant&&view.color?`${item.name} · ${view.color}`:item.name,size:cleanSize,qty:cleanQty,price:unitPrice,image:window.BFCatalog?.image?.(item,'flat',cleanVariant)||item.image||'',category:item.category||'',color:view.color||item.color||'',fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,packSize:Number(item.packSize||1)};
     if(found){found.qty+=cleanQty;found.price=Number(window.BFCatalog?.wholesalePriceForQty?.(item,found.qty)||unitPrice);found.wholesaleTiers=wholesale.tiers;found.wholesaleMinQty=wholesale.minQty;}else cart.push(line);
     this.saveCart(cart);this.toast(`${item.name} wholesale added to your Bag`);this.openDrawer('bagDrawer');
   },
@@ -153,7 +155,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
     if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a product you love or build a wholesale order.</p><a class="btn" href="shop.html">Shop the collection</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>{const meta=i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:i.type==='wholesale-product'?`Wholesale · ${i.size?`Size ${i.size} · `:''}${i.qty} units`:i.type==='apparel'?`Black · Size ${i.size}`:i.type==='simple'?'Band Factory collection':`${i.color||i.category||'Product'}${i.style?` · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`:''}`;const preorder=(i.fulfilmentType==='preorder'||i.preorder===true);return `<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${meta}${preorder?' · Pre-order':''}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`}).join('');
+    body.innerHTML=cart.map((i,idx)=>{const meta=i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:i.type==='wholesale-product'?`Wholesale${i.color?` · ${i.color}`:''}${i.size?` · Size ${i.size}`:''} · ${i.qty} units`:i.type==='apparel'?`Black · Size ${i.size}`:i.type==='simple'?'Band Factory collection':`${i.color||i.category||'Product'}${i.style?` · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`:''}`;const preorder=(i.fulfilmentType==='preorder'||i.preorder===true);return `<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${meta}${preorder?' · Pre-order':''}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`}).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   async managedCartStockError(cart){
@@ -211,9 +213,9 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
             const style=item.style==='twisted'?'twisted':'flat';takeStandard(style,Number(item.bundlePieces||0)*mult,`this Standard ${style} bundle`);
           }
         }else if(item.type==='catalog'){
-          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(product){const need=Math.max(0,Number(item.qty||0));let have=0;if(product.sizes){const d=product.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=product.available===false?0:Math.max(0,Number(product.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${product.name}${have===1?' is':'s are'} available right now.`:`${product.name} is sold out right now.`);}
+          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(product&&!((item.fulfilmentType==='preorder'||item.preorder===true))){const view=item.variantId&&product.variants?.length?window.BFCatalog.variantView(product,item.variantId):product;const need=Math.max(0,Number(item.qty||0));let have=0;if(view.sizes&&Object.keys(view.sizes).length){const d=view.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=view.available===false?0:Math.max(0,Number(view.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${product.name}${have===1?' is':'s are'} available right now.`:`${product.name} is sold out right now.`);}
         }else if(item.type==='wholesale-product'){
-          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(!product||product.deleted===true||product.available===false)throw new Error(`${item.name||'This product'} is not available for wholesale right now.`);const need=Math.max(0,Number(item.qty||0));let have=0;if(product.sizes&&Object.keys(product.sizes).length){const d=product.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=product.available===false?0:Math.max(0,Number(product.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${item.name} unit${have===1?' is':'s are'} available right now.`:`${item.name} is sold out right now.`);
+          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(!product||product.deleted===true||product.available===false)throw new Error(`${item.name||'This product'} is not available for wholesale right now.`);if(item.fulfilmentType==='preorder'||item.preorder===true)continue;const view=item.variantId&&product.variants?.length?window.BFCatalog.variantView(product,item.variantId):product,need=Math.max(0,Number(item.qty||0));let have=0;if(view.sizes&&Object.keys(view.sizes).length){const d=view.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=view.available===false?0:Math.max(0,Number(view.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${item.name} unit${have===1?' is':'s are'} available right now.`:`${item.name} is sold out right now.`);
         }else if(item.type==='apparel'&&item.productId==='spandex-tube-top'){
           const size=String(item.size||'').toUpperCase(),sizeData=apparelData?.sizes?.[size]||{},have=sizeData.available===false?0:Math.max(0,Number(sizeData.stock??0)),need=Math.max(0,Number(item.qty||0));
           if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} left in size ${size}.`:`Size ${size} is sold out right now.`);
@@ -937,6 +939,20 @@ function initShopNavigationDropdowns(){
   });
 }
 document.addEventListener('DOMContentLoaded',initShopNavigationDropdowns);
+function initWholesaleNavigationDropdowns(){
+  const targets=[...document.querySelectorAll('.nav-left a[href="wholesale.html"], .mobile-menu > a[href="wholesale.html"]')];
+  targets.forEach(link=>{
+    if(link.closest('.wholesale-nav-dropdown'))return;
+    const isMobile=!!link.closest('.mobile-menu'),wrap=document.createElement('div');wrap.className=`wholesale-nav-dropdown ${isMobile?'wholesale-nav-mobile':'wholesale-nav-desktop'}`;wrap.dataset.wholesaleNav='true';
+    if(isMobile){wrap.innerHTML=`<div class="wholesale-mobile-row"><a class="wholesale-main-link" href="wholesale.html">Wholesale</a><button class="wholesale-dropdown-toggle" type="button" data-wholesale-toggle aria-label="Show Wholesale options" aria-expanded="false"><span aria-hidden="true">⌄</span></button></div><div class="wholesale-dropdown-menu" role="menu"><a href="hairbands-wholesale.html" role="menuitem"><span>Hairbands Wholesale</span><i aria-hidden="true">→</i></a><a href="wholesale-products.html" role="menuitem"><span>Other Products Wholesale</span><i aria-hidden="true">→</i></a></div>`;link.replaceWith(wrap);
+    }else{wrap.innerHTML=`<div class="wholesale-nav-trigger"><a class="nav-link wholesale-main-link" href="wholesale.html">Wholesale</a><button class="wholesale-dropdown-toggle" type="button" data-wholesale-toggle aria-label="Show Wholesale options" aria-expanded="false"><span aria-hidden="true">⌄</span></button></div><div class="wholesale-dropdown-menu" role="menu"><a href="hairbands-wholesale.html" role="menuitem"><span>Hairbands Wholesale</span><i aria-hidden="true">→</i></a><a href="wholesale-products.html" role="menuitem"><span>Other Products Wholesale</span><i aria-hidden="true">→</i></a></div>`;link.replaceWith(wrap);}
+    const button=wrap.querySelector('[data-wholesale-toggle]');let pinned=false,hovered=false;const sync=()=>{const open=pinned||(!isMobile&&hovered);wrap.classList.toggle('is-open',open);button?.setAttribute('aria-expanded',String(open));};
+    if(!isMobile){wrap.addEventListener('mouseenter',()=>{hovered=true;sync()});wrap.addEventListener('mouseleave',()=>{hovered=false;sync()});}
+    button?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pinned=!pinned;sync()});document.addEventListener('click',e=>{if(pinned&&!wrap.contains(e.target)){pinned=false;sync()}});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pinned){pinned=false;sync();button?.focus()}});
+  });
+}
+document.addEventListener('DOMContentLoaded',initWholesaleNavigationDropdowns);
+
 
 async function hydrateDynamicStorefront(){
   try{

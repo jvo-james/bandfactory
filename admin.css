@@ -174,3 +174,13 @@
 .admin-fulfilment-note{display:flex;gap:7px;margin:10px 0 0;padding:10px 12px;background:#f7f1f3;color:#796b71;font-size:9px;line-height:1.5}
 .admin-fulfilment-note i{color:#a16b7e;margin-top:2px}
 @media(max-width:520px){.admin-order-fulfilment-head{display:grid}.admin-fulfilment-plan-badge{justify-self:start}.admin-fulfilment-group-head{display:grid;gap:3px}.admin-fulfilment-group-head span{text-align:left}}
+
+/* colour variant photo gallery */
+.studio-variant-photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.studio-variant-photo-item{position:relative;aspect-ratio:1;background:#f4edf0;border:1px solid #e3d7db;overflow:hidden}
+.studio-variant-photo-item img{width:100%;height:100%;object-fit:cover;display:block}
+.studio-variant-photo-item span{position:absolute;left:6px;bottom:6px;background:rgba(17,17,17,.78);color:#fff;padding:4px 6px;font-size:7px;line-height:1;letter-spacing:.06em;text-transform:uppercase}
+.studio-variant-photo-item button{position:absolute;right:5px;top:5px;width:25px;height:25px;border:0;background:#fff;color:#111;display:grid;place-items:center;border-radius:50%;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.studio-variant-empty-photos{min-height:150px;border:1px dashed #d8cbd0;background:#fbf7f8;display:grid;place-items:center;align-content:center;gap:7px;text-align:center;padding:18px;color:#8e7f85;font-size:9px}
+.studio-variant-empty-photos i{font-size:24px;color:#b4939f}
+@media(max-width:680px){.studio-variant-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.studio-variant-empty-photos{min-height:120px}}

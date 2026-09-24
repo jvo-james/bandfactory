@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Band Factory wholesale product details, pricing, minimum order quantities and fulfilment information.">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="Band Factory">
+  <meta property="og:title" content="Wholesale Product | Band Factory Ghana">
+  <meta property="og:description" content="View wholesale pricing, sizes, colours and ordering information for Band Factory products.">
+  <meta property="og:url" content="https://bandfactory.store/wholesale-product.html">
+  <meta property="og:image" content="https://bandfactory.store/images/second-skin-tee.jpg">
+  <title>Wholesale Product | Band Factory Ghana</title>
+  <link rel="icon" type="image/jpg" href="images/logo.jpg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="catalog.css">
+  <link rel="stylesheet" href="wholesale-product.css">
+  <link rel="stylesheet" href="track-order.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="nav-wrap">
+    <button class="mobile-toggle" aria-label="Open menu"><span></span></button>
+    <nav class="nav-left">
+      <div class="shop-nav-dropdown shop-nav-desktop" data-shop-dropdown>
+        <div class="shop-nav-trigger">
+          <a class="nav-link shop-main-link" href="shop.html">Shop</a>
+          <button class="shop-dropdown-toggle" type="button" data-shop-toggle aria-label="Show Shop categories" aria-expanded="false"><span aria-hidden="true">⌄</span></button>
+        </div>
+        <div class="shop-dropdown-menu" role="menu">
+          <a href="smooth.html" role="menuitem"><span>Smooth</span><i aria-hidden="true">→</i></a>
+          <a href="ribbed.html" role="menuitem"><span>Ribbed</span><i aria-hidden="true">→</i></a>
+          <a href="tops.html" role="menuitem"><span>Tops</span><i aria-hidden="true">→</i></a>
+          <a href="sets.html" role="menuitem"><span>Sets</span><i aria-hidden="true">→</i></a>
+        </div>
+      </div>
+      <a class="nav-link" href="wholesale.html" aria-current="page">Wholesale</a>
+    </nav>
+    <a class="brand brand-with-logo" href="index.html" aria-label="Band Factory home"><img src="images/brand-monogram.jpg" alt=""><span>BΛND<small>FΛCTORY</small></span></a>
+    <nav class="nav-right">
+      <button class="nav-link search-trigger" type="button" data-open-search><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+      <a class="nav-link account-label" href="contact.html">Contact</a>
+      <button class="bag-button" data-open-bag aria-label="Open Bag"><span class="bag-mark"><span class="bag-count" data-bag-count>0</span></span></button>
+    </nav>
+  </div>
+</header>
+<nav class="mobile-menu">
+  <a href="index.html">Home</a>
+  <div class="shop-nav-dropdown shop-nav-mobile" data-shop-dropdown>
+    <div class="shop-mobile-row"><a class="shop-main-link" href="shop.html">Shop</a><button class="shop-dropdown-toggle" type="button" data-shop-toggle aria-label="Show Shop categories" aria-expanded="false"><span aria-hidden="true">⌄</span></button></div>
+    <div class="shop-dropdown-menu" role="menu"><a href="smooth.html" role="menuitem"><span>Smooth</span><i aria-hidden="true">→</i></a><a href="ribbed.html" role="menuitem"><span>Ribbed</span><i aria-hidden="true">→</i></a><a href="tops.html" role="menuitem"><span>Tops</span><i aria-hidden="true">→</i></a><a href="sets.html" role="menuitem"><span>Sets</span><i aria-hidden="true">→</i></a></div>
+  </div>
+  <a href="wholesale.html">Wholesale</a>
+  <a href="index.html#reviews">Reviews</a>
+  <button type="button" data-open-search>Search</button>
+  <a href="contact.html">Contact</a>
+</nav>
+
+<main class="wholesale-product-page" id="wholesaleProductPage">
+  <div class="container">
+    <div class="wholesale-product-breadcrumb"><a href="wholesale.html">Wholesale</a><span>/</span><a href="wholesale-products.html">Other Products</a><span>/</span><span id="wholesaleProductBreadcrumb">Product</span></div>
+    <div class="wholesale-product-loading" id="wholesaleProductLoading"><span class="admin-spinner"></span><p>Loading product…</p></div>
+    <div class="wholesale-product-shell" id="wholesaleProductShell" hidden>
+      <section class="wholesale-product-gallery">
+        <div class="wholesale-product-main-media" id="wholesaleProductMainMedia"><img id="wholesaleProductMainImage" src="images/second-skin-tee.jpg" alt=""></div>
+        <div class="wholesale-product-thumbs" id="wholesaleProductThumbs" aria-label="Product images"></div>
+      </section>
+
+      <section class="wholesale-product-details">
+        <div class="wholesale-product-eyebrow"><span id="wholesaleProductCategory">Wholesale</span><span id="wholesaleProductBadge" hidden>Pre-order</span></div>
+        <h1 id="wholesaleProductName">Product</h1>
+        <p class="wholesale-product-subtitle" id="wholesaleProductSubtitle"></p>
+
+        <div class="wholesale-product-price-row" id="wholesaleProductPriceRow"></div>
+        <p class="wholesale-product-saving" id="wholesaleProductSaving"></p>
+
+        <div class="wholesale-product-preorder" id="wholesaleProductPreorder" hidden></div>
+
+        <div class="wholesale-product-copy" id="wholesaleProductDescription"></div>
+
+        <div class="wholesale-product-option" id="wholesaleProductVariantArea" hidden></div>
+        <div class="wholesale-product-option" id="wholesaleProductSizeArea" hidden></div>
+
+        <div class="wholesale-product-wholesale-card">
+          <div class="wholesale-product-wholesale-head">
+            <div><span>Wholesale pricing</span><strong id="wholesaleProductWholesaleFrom">GHS 0.00</strong></div>
+            <span class="wholesale-product-min" id="wholesaleProductMin">Minimum order: 1</span>
+          </div>
+          <p id="wholesaleProductPricingHint">The price per piece changes automatically when your quantity reaches a new price tier.</p>
+          <div class="wholesale-product-tiers" id="wholesaleProductTiers"></div>
+        </div>
+
+        <div class="wholesale-product-buy">
+          <div class="wholesale-product-qty">
+            <label for="wholesaleProductQty">Quantity</label>
+            <div class="wholesale-product-qty-control"><button type="button" id="wholesaleQtyMinus" aria-label="Decrease quantity">−</button><input id="wholesaleProductQty" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Wholesale quantity"><button type="button" id="wholesaleQtyPlus" aria-label="Increase quantity">+</button></div>
+          </div>
+          <div class="wholesale-product-total"><span>Your total</span><strong id="wholesaleProductTotal">GHS 0.00</strong><small id="wholesaleProductUnit">GHS 0.00 per piece</small></div>
+          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button"><span>Add to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        </div>
+        <p class="wholesale-product-note" id="wholesaleProductNote">Wholesale orders are reviewed with the fulfilment date saved at checkout.</p>
+        <a class="wholesale-product-back" href="wholesale-products.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Other Products Wholesale</a>
+      </section>
+    </div>
+    <div class="wholesale-product-error" id="wholesaleProductError" hidden>
+      <div class="empty-mark"><i class="fa-solid fa-box-open"></i></div>
+      <h1>This wholesale product is not available.</h1>
+      <p>It may have been removed, unpublished or turned off for wholesale.</p>
+      <a href="wholesale-products.html" class="wholesale-product-back">Back to Other Products Wholesale</a>
+    </div>
+  </div>
+</main>
+
+<footer class="footer"><div class="container"><div class="footer-grid"><div class="footer-brand-col"><div class="brand" style="text-align:left;font-size:25px">BΛND<small>FΛCTORY</small></div><p style="max-width:370px;margin-top:20px">Hairbands and everyday basics designed to make getting dressed feel effortless.</p><div class="social-row"><a data-social="whatsapp" href="#" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a><a data-social="snapchat" href="#" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a data-social="instagram" href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a data-social="tiktok" href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a></div></div><div><h4>Shop</h4><div class="footer-links"><a href="smooth.html">Smooth Hairbands</a><a href="ribbed.html">Ribbed Hairbands</a><a href="tops.html">Tops</a><a href="sets.html">Sets</a></div></div><div><h4>Help</h4><div class="footer-links"><a href="checkout.html">Delivery &amp; Pickup</a><a href="contact.html">Contact</a><a href="index.html#reviews">Reviews</a></div></div><div><h4>Wholesale</h4><div class="footer-links"><a href="wholesale.html">Wholesale Home</a><a href="hairbands-wholesale.html">Hairbands Wholesale</a><a href="wholesale-products.html">Other Products Wholesale</a></div></div></div></div><div class="footer-wordmark" aria-label="Band Factory">BΛND FΛCTORY</div><div class="container footer-bottom"><span>© 2026 Band Factory</span><span>Wear it. Sell it. Build something.</span></div></footer>
+
+<script src="images.js"></script>
+<script src="config.js"></script>
+<script src="firebase.js"></script>
+<script src="email.js"></script>
+<script src="script.js"></script>
+<script src="catalog.js"></script>
+<script src="fulfilment.js"></script>
+<script src="wholesale-product.js"></script>
+<script src="track-order.js"></script>
+</body>
+</html>

@@ -18,7 +18,7 @@
 
   function itemDescription(i){
     if(i.type==='wholesale') return i.summary || `${i.bundlePieces||''} pieces`;
-    if(i.type==='wholesale-product') return `Wholesale · ${i.size?`Size ${i.size} · `:''}Quantity ${i.qty||1}`;
+    if(i.type==='wholesale-product') return `Wholesale${i.color?` · ${i.color}`:''}${i.size?` · Size ${i.size} · `:' · '}${`Quantity ${i.qty||1}`}`;
     if(i.type==='apparel') return `Black · Size ${i.size||'-'} · Quantity ${i.qty||1}`;
     if(i.type==='simple') return `Quantity ${i.qty||1}`;
     return `${i.color||''} · Quantity ${i.qty||1}`;
@@ -29,9 +29,9 @@
     if(!groups.length)return '';
     const title=order.fulfilment==='pickup'?'Pickup schedule':info.split?'Delivery schedule':'Fulfilment schedule';
     const intro=info.split
-      ? `your order will arrive in ${groups.length} deliveries.`
-      : (info.hasPreorder&&info.plan==='together'&&order.fulfilment==='delivery' ? 'we’ll hold the ready items until the pre-order date and deliver everything together.' : 'your fulfilment details are below.');
-    const cards=groups.map((group,index)=>{const items=(group.items||[]).map(i=>`${esc(i.name)}${i.size?` · ${esc(i.size)}`:''} × ${Number(i.qty||1)}`).join('<br>');return `<div class="receipt-fulfilment-group"><div><span>${esc(group.label||`Delivery ${index+1}`)}</span><strong>${esc(date(group.date))}</strong></div><p>${items||'Item details saved with your order.'}</p></div>`}).join('');
+      ? `Your order is scheduled across ${groups.length} deliveries. Each part is listed below with its planned date.`
+      : (info.hasPreorder&&info.plan==='together'&&order.fulfilment==='delivery' ? 'We’ll hold the ready items until the pre-order date and deliver everything together.' : 'Your fulfilment details are below.');
+    const cards=groups.map((group,index)=>{const items=(group.items||[]).map(i=>`${esc(i.name)}${i.color?` · ${esc(i.color)}`:''}${i.size?` · ${esc(i.size)}`:''} × ${Number(i.qty||1)}`).join('<br>');return `<div class="receipt-fulfilment-group"><div><span>${esc(group.label||`Delivery ${index+1}`)}</span><strong>${esc(date(group.date))}</strong></div><p>${items||'Item details saved with your order.'}</p></div>`}).join('');
     return `<p class="receipt-fulfilment-intro">${esc(intro)}</p><div class="receipt-fulfilment-groups">${cards}</div>`;
   }
 
