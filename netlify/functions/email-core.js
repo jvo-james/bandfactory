@@ -123,13 +123,25 @@ function orderItems(order={}){
 function fulfilmentEmailBlock(order={}){
   const info=BFFulfilment.summary(order),groups=info.groups||[],pickup=String(order.fulfilment||'').toLowerCase()==='pickup';
   if(!groups.length)return '';
-  const heading=info.split?`Your order is scheduled across ${groups.length} deliveries.`:info.hasPreorder&&info.plan==='together'?'We’ll hold your ready items until the pre-order date.':pickup?'Your pickup plan is below.':'Your delivery plan is below.';
+
+  let heading='Your fulfilment plan is below.';
+  if(pickup){
+    heading='Your pickup plan is below.';
+  }else if(info.split){
+    heading=`You chose separate deliveries for this order. We’ll send each part on its planned date. ${order.deliveryFeeStatus||`${groups.length} delivery fees apply.`}`;
+  }else if(info.hasPreorder&&info.plan==='together'){
+    heading='You chose to receive everything together. We’ll hold the ready items until the pre-order date and send the complete order then.';
+  }else if(info.hasPreorder){
+    heading='This order includes a pre-order item. The planned fulfilment date is shown below.';
+  }
+
   const intro=paragraph(heading);
   const cards=groups.map((group,index)=>{
-    const itemNames=(group.items||[]).map(item=>`${esc(item.name||'Band Factory item')}${item.size?` · ${esc(item.size)}`:''} × ${Number(item.qty||1)}`).join('<br>')||'Items saved with your order';
+    const itemNames=(group.items||[]).map(item=>`${esc(item.name||'Band Factory item')}${item.color?` · ${esc(item.color)}`:''}${item.size?` · ${esc(item.size)}`:''} × ${Number(item.qty||1)}`).join('<br>')||'Items saved with your order';
     const label=pickup?'Pickup':(info.split?`Delivery ${index+1}`:'Delivery');
     return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:10px 0 0;background:#FFF7FA;border:1px solid #EBDDE3"><tr><td style="padding:14px 16px"><div style="font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A7280">${label}</div><div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;font-weight:700;color:#111111">${esc(BFFulfilment.formatDate(group.date))}</div><div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#756A6E">${itemNames}</div></td></tr></table>`;
   }).join('');
+
   return `${intro}<div style="margin-top:16px"><div style="margin-bottom:7px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E6A78">Fulfilment</div>${cards}</div>`;
 }
 
