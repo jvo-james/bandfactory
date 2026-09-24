@@ -856,7 +856,20 @@ function bfApplyDeliveryDayCopy(settings={}){
 }
 window.BFDispatch={days:bfDispatchDays,text:bfDispatchDaysText,apply:bfApplyDeliveryDayCopy};
 
-document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{bfApplyDeliveryDayCopy(st);const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');if(toggle&&menu)toggle.onclick=()=>{menu.classList.toggle('open');document.body.classList.toggle('menu-open')};document.querySelectorAll('.mobile-menu a').forEach(a=>a.onclick=()=>{menu?.classList.remove('open');document.body.classList.remove('menu-open')})});
+document.addEventListener('DOMContentLoaded',()=>{if(!document.body.classList.contains('admin-body'))sharedShell();BF.loadSettings().then(async st=>{bfApplyDeliveryDayCopy(st);const socials={...BF_CONFIG.socials,instagram:st.instagramUrl||BF_CONFIG.socials.instagram,tiktok:st.tiktokUrl||BF_CONFIG.socials.tiktok};document.querySelectorAll('[data-social]').forEach(a=>{const k=a.dataset.social;if(k==='whatsapp')a.href=`https://wa.me/${socials.whatsapp}`;else if(k==='snapchat')a.href=`https://www.snapchat.com/add/${socials.snapchat}`;else if(socials[k])a.href=socials[k]})});const header=document.querySelector('.site-header');if(document.body.classList.contains('home-page')&&header){const update=()=>header.classList.toggle('scrolled',scrollY>30);update();addEventListener('scroll',update,{passive:true})}
+  const toggle=document.querySelector('.mobile-toggle'),menu=document.querySelector('.mobile-menu');
+  if(toggle&&menu){
+    if(!menu.querySelector('.mobile-menu-head'))menu.insertAdjacentHTML('afterbegin',`<div class="mobile-menu-head"><div class="mobile-menu-brand"><strong>BΛND FACTORY</strong><span>Menu</span></div><button class="mobile-menu-close" type="button" aria-label="Close menu">×</button></div>`);
+    const closeMenu=()=>{menu.classList.remove('open');document.body.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');};
+    const openMenu=()=>{menu.classList.add('open');document.body.classList.add('menu-open');toggle.setAttribute('aria-expanded','true');};
+    toggle.setAttribute('aria-expanded','false');
+    toggle.onclick=()=>menu.classList.contains('open')?closeMenu():openMenu();
+    menu.querySelector('.mobile-menu-close')?.addEventListener('click',closeMenu);
+    document.querySelectorAll('.mobile-menu a').forEach(a=>a.addEventListener('click',closeMenu));
+    menu.querySelectorAll('button[data-open-search]').forEach(b=>b.addEventListener('click',closeMenu));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&menu.classList.contains('open'))closeMenu();});
+  }
+});
 
 
 

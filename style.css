@@ -218,3 +218,94 @@ input[type="checkbox"] {
   .mobile-menu{position:fixed!important;top:var(--header-h)!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:calc(100vh - var(--header-h))!important;height:calc(100dvh - var(--header-h))!important;max-height:none!important;background:#fff!important;z-index:999!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch}
   .mobile-menu.open{z-index:999!important}
 }
+
+
+/* ===== MOBILE NAV HEADER + BAG CHECKOUT ===== */
+@media(max-width:900px){
+  .mobile-menu{
+    padding:0 18px calc(36px + env(safe-area-inset-bottom))!important;
+    background:#fff!important;
+  }
+  .mobile-menu-head{
+    position:sticky;
+    top:0;
+    z-index:20;
+    min-height:72px;
+    margin:0 -18px 10px;
+    padding:0 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:rgba(255,255,255,.98);
+    border-bottom:1px solid var(--line);
+    box-shadow:0 8px 24px rgba(17,17,17,.05);
+  }
+  .mobile-menu-brand{
+    display:grid;
+    gap:3px;
+  }
+  .mobile-menu-brand strong{
+    font-family:var(--brand-font);
+    font-size:18px;
+    line-height:.9;
+    letter-spacing:.16em;
+    font-weight:400;
+  }
+  .mobile-menu-brand span{
+    color:#86777d;
+    font-size:7px;
+    font-weight:800;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+  }
+  .mobile-menu-close{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    border:1px solid #d8ced2;
+    background:#fff;
+    color:#111;
+    display:grid;
+    place-items:center;
+    font-size:24px;
+    line-height:1;
+    transition:background .18s ease,border-color .18s ease,transform .18s ease;
+  }
+  .mobile-menu-close:hover{background:#f7e2e9;border-color:#e7b2c4;transform:rotate(4deg)}
+  .mobile-menu > a,
+  .mobile-menu > button[data-open-search],
+  .mobile-menu .shop-mobile-row>a,
+  .mobile-menu .wholesale-mobile-row>a{
+    font-size:34px!important;
+    line-height:1.05;
+    padding:13px 0!important;
+  }
+  .bag-drawer .drawer-footer .btn,
+  .bag-drawer .drawer-footer .btn.wide{
+    background:#111!important;
+    border-color:#111!important;
+    color:#fff!important;
+  }
+  .bag-drawer .drawer-footer .btn:hover,
+  .bag-drawer .drawer-footer .btn.wide:hover{
+    background:var(--pink-strong)!important;
+    border-color:var(--pink-strong)!important;
+    color:#111!important;
+  }
+}
+
+
+/* ===== BAG CHECKOUT CONTRAST ===== */
+.bag-drawer .drawer-footer .btn,
+.bag-drawer .drawer-footer .btn.wide{
+  background:#111!important;
+  border-color:#111!important;
+  color:#fff!important;
+}
+.bag-drawer .drawer-footer .btn:hover,
+.bag-drawer .drawer-footer .btn.wide:hover{
+  background:var(--pink-strong)!important;
+  border-color:var(--pink-strong)!important;
+  color:#111!important;
+}

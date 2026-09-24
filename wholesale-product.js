@@ -23,10 +23,12 @@
     const view=currentView(),seen=new Set(),gallery=[];const add=x=>{if(x&&!seen.has(x)){seen.add(x);gallery.push(x)}};
     add(view.image);(view.images||[]).forEach(add);(master?.images||[]).forEach(add);if(!gallery.length)add(BFCatalog.fallbackImage(master,items,categories));
     galleryImages=gallery;galleryIndex=0;
-    const main=qs('#wholesaleProductMainImage'),thumbs=qs('#wholesaleProductThumbs');if(!main||!thumbs)return;
+    const main=qs('#wholesaleProductMainImage'),thumbs=qs('#wholesaleProductThumbs'),media=qs('#wholesaleProductMainMedia');if(!main||!media)return;
     main.src=gallery[0]||'images/second-skin-tee.jpg';main.alt=`${master?.name||'Product'}${view.color?` in ${view.color}`:''}`;
-    thumbs.innerHTML=gallery.map((img,i)=>`<button class="wholesale-product-thumb${i===0?' is-active':''}" type="button" data-thumb="${i}" aria-label="Show product image ${i+1}"><img src="${esc(img)}" alt=""></button>`).join('');
-    thumbs.querySelectorAll('[data-thumb]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.thumb||0);galleryIndex=i;main.src=gallery[i]||main.src;thumbs.querySelectorAll('[data-thumb]').forEach(x=>x.classList.toggle('is-active',x===btn));if(window.innerWidth<=760)qs('#wholesaleProductMainMedia')?.scrollIntoView({behavior:'smooth',block:'start'});});
+    if(thumbs){thumbs.innerHTML='';thumbs.hidden=true;}
+    media.setAttribute('role','button');media.setAttribute('tabindex','0');media.setAttribute('aria-label','Open product image');
+    media.onclick=()=>openWholesaleLightbox(galleryIndex);
+    media.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openWholesaleLightbox(galleryIndex);}};
   }
 
   function renderColourPicker(){
@@ -39,13 +41,13 @@
 
   function renderSelection(){
     const v=selectedVariant()||{},sizes=sizeOptions(),pillRoot=qs('#wholesaleSizePills'),label=qs('#wholesaleCurrentColourLabel'),summary=qs('#wholesaleSelectionSummary'),input=qs('#wholesaleQtyInput'),add=qs('#wholesaleAddSelection');
-    if(label)label.textContent=v.color||master?.color||'Choose a colour';
+    if(label)label.textContent=v.color||master?.color||'Choose one below';
     if(!sizes.length){if(pillRoot)pillRoot.innerHTML='<span class="wholesale-empty-inline">No sizes are available for this product.</span>';if(input){input.value='';input.disabled=true;}if(add)add.disabled=true;return;}
     if(!sizes.includes(selectedSize))selectedSize=sizes[0]||'';
     if(pillRoot)pillRoot.innerHTML=sizes.map(size=>`<button class="wholesale-size-pill ${size===selectedSize?'is-selected':''}" type="button" data-size="${esc(size)}" aria-pressed="${size===selectedSize?'true':'false'}">${esc(size)}</button>`).join('');
-    if(summary)summary.textContent=`${v.color||master?.color||'Colour'} · ${selectedSize||'Choose a size'}`;
+    if(summary)summary.textContent=selectedSize?`${v.color||master?.color||'Selected colour'} • ${selectedSize}`:'Pick a size, then enter how many you want.';
     if(input){input.disabled=false;input.value=selectedQty||'';input.oninput=()=>{input.value=numericValue(input.value);selectedQty=input.value;};}
-    pillRoot?.querySelectorAll('[data-size]').forEach(btn=>btn.onclick=()=>{selectedSize=btn.dataset.size||'';selectedQty='';if(input)input.value='';pillRoot.querySelectorAll('[data-size]').forEach(x=>{const active=x===btn;x.classList.toggle('is-selected',active);x.setAttribute('aria-pressed',active?'true':'false')});if(summary)summary.textContent=`${v.color||master?.color||'Colour'} · ${selectedSize}`;});
+    pillRoot?.querySelectorAll('[data-size]').forEach(btn=>btn.onclick=()=>{selectedSize=btn.dataset.size||'';selectedQty='';if(input)input.value='';pillRoot.querySelectorAll('[data-size]').forEach(x=>{const active=x===btn;x.classList.toggle('is-selected',active);x.setAttribute('aria-pressed',active?'true':'false')});if(summary)summary.textContent=`${v.color||master?.color||'Selected colour'} • ${selectedSize}`;});
     if(add)add.disabled=!selectedSize;
   }
 
@@ -73,6 +75,52 @@
     const variant=selectedVariant(),size=String(selectedSize||''),qty=Math.max(0,Math.floor(Number(numericValue(selectedQty)||0)));if(!variant||!size)return BF.toast('Choose a colour and size first.');if(qty<=0)return BF.toast('Enter a quantity first.');
     const max=maxForSize(variant,size);if(Number.isFinite(max)&&qty>max)return BF.toast(`Only ${max} available in ${variant.color||'this colour'}, size ${size}.`);
     const found=mix.find(row=>row.variantId===variant.id&&row.size===size);if(found)found.qty+=qty;else mix.push({variantId:variant.id,color:variant.color||'',size,qty});selectedQty='';const input=qs('#wholesaleQtyInput');if(input)input.value='';renderMix();renderOrderSummary();
+  }
+
+
+  function ensureWholesaleLightbox(){
+    let box=qs('#bfWholesaleLightbox');
+    if(box)return box;
+    box=document.createElement('div');
+    box.id='bfWholesaleLightbox';
+    box.className='bf-wholesale-lightbox';
+    box.hidden=true;
+    box.setAttribute('aria-hidden','true');
+    box.innerHTML=`<div class="bf-wholesale-lightbox-backdrop" data-wholesale-lightbox-close></div><div class="bf-wholesale-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Product image"><button type="button" class="bf-wholesale-lightbox-close" data-wholesale-lightbox-close aria-label="Close image">×</button><div class="bf-wholesale-lightbox-image-wrap"><img id="bfWholesaleLightboxImage" src="" alt=""></div><div class="bf-wholesale-lightbox-controls"><button type="button" id="bfWholesaleLightboxPrev" aria-label="Previous image">← Previous</button><span id="bfWholesaleLightboxCount">1 / 1</span><button type="button" id="bfWholesaleLightboxNext" aria-label="Next image">Next →</button></div></div>`;
+    document.body.appendChild(box);
+    box.querySelectorAll('[data-wholesale-lightbox-close]').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)closeWholesaleLightbox();}));
+    qs('#bfWholesaleLightboxPrev').onclick=()=>openWholesaleLightbox(galleryIndex-1);
+    qs('#bfWholesaleLightboxNext').onclick=()=>openWholesaleLightbox(galleryIndex+1);
+    document.addEventListener('keydown',e=>{
+      if(box.hidden)return;
+      if(e.key==='Escape')closeWholesaleLightbox();
+      if(e.key==='ArrowLeft')openWholesaleLightbox(galleryIndex-1);
+      if(e.key==='ArrowRight')openWholesaleLightbox(galleryIndex+1);
+    });
+    return box;
+  }
+
+  function openWholesaleLightbox(index=0){
+    if(!galleryImages.length)return;
+    const box=ensureWholesaleLightbox();
+    galleryIndex=((index%galleryImages.length)+galleryImages.length)%galleryImages.length;
+    const img=qs('#bfWholesaleLightboxImage');
+    if(img){img.src=galleryImages[galleryIndex];img.alt=master?.name||'Product';}
+    const count=qs('#bfWholesaleLightboxCount');
+    if(count)count.textContent=`${galleryIndex+1} / ${galleryImages.length}`;
+    const prev=qs('#bfWholesaleLightboxPrev'),next=qs('#bfWholesaleLightboxNext');
+    const multi=galleryImages.length>1;
+    if(prev)prev.hidden=!multi;
+    if(next)next.hidden=!multi;
+    box.hidden=false;box.setAttribute('aria-hidden','false');document.body.classList.add('wholesale-lightbox-open');
+    requestAnimationFrame(()=>box.classList.add('is-open'));
+  }
+
+  function closeWholesaleLightbox(){
+    const box=qs('#bfWholesaleLightbox');
+    if(!box)return;
+    box.classList.remove('is-open');box.setAttribute('aria-hidden','true');document.body.classList.remove('wholesale-lightbox-open');
+    setTimeout(()=>{box.hidden=true;},180);
   }
 
   function renderProductCopy(){

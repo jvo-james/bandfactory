@@ -80,21 +80,21 @@
 
         <section class="wholesale-builder" aria-labelledby="wholesaleBuilderTitle">
           <div class="wholesale-builder-head">
-            <div><span class="eyebrow">Wholesale order</span><h2 id="wholesaleBuilderTitle">Build your mix.</h2><p>Choose a colour, choose a size and type the quantity you want. Add as many colour and size combinations as you need.</p></div>
+            <div><span class="eyebrow">Wholesale order</span><h2 id="wholesaleBuilderTitle">Build your order.</h2><p>Choose a colour, choose a size, type how many you want, then add it. Repeat for the other colours or sizes you need.</p></div>
             <div class="wholesale-min-badge"><small>Minimum</small><strong><span id="wholesaleTargetCount">30</span> pieces</strong></div>
           </div>
 
           <div class="wholesale-step wholesale-step-colours">
-            <div class="wholesale-step-label"><span>1</span><div><strong>Colour</strong><small id="wholesaleCurrentColourLabel">Choose a colour</small></div></div>
+            <div class="wholesale-step-label"><span class="wholesale-step-number">1</span><div class="wholesale-step-copy"><strong>Pick a colour</strong><small id="wholesaleCurrentColourLabel">Choose one below</small></div></div>
             <div class="wholesale-colour-picker" id="wholesaleColourPicker" aria-label="Choose a colour"></div>
           </div>
 
           <div class="wholesale-selection-card">
-            <div class="wholesale-step-label"><span>2</span><div><strong>Size and quantity</strong><small id="wholesaleSelectionSummary">Choose a size and type the quantity.</small></div></div>
+            <div class="wholesale-step-label"><span class="wholesale-step-number">2</span><div class="wholesale-step-copy"><strong>Pick a size and quantity</strong><small id="wholesaleSelectionSummary">Pick a size, then enter how many you want.</small></div></div>
             <div class="wholesale-size-pills" id="wholesaleSizePills" role="group" aria-label="Choose a size"></div>
             <div class="wholesale-entry-row">
-              <label class="wholesale-qty-label"><span>Quantity</span><input id="wholesaleQtyInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="" placeholder="0" aria-label="Quantity"></label>
-              <button type="button" class="wholesale-add-selection" id="wholesaleAddSelection"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>Add selection</span></button>
+              <label class="wholesale-qty-label"><span>How many?</span><input id="wholesaleQtyInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="" placeholder="0" aria-label="Quantity"></label>
+              <button type="button" class="wholesale-add-selection" id="wholesaleAddSelection"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>Add this selection</span></button>
             </div>
           </div>
 

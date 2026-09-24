@@ -694,3 +694,191 @@
   .wholesale-size-pill{flex-basis:calc(33.333% - 6px)}
   .wholesale-mix-item{grid-template-columns:minmax(0,1fr) 62px 26px}
 }
+
+
+/* ===== WHOLESALE PRODUCT CLEANUP ===== */
+.wholesale-product-main-media{
+  cursor:zoom-in;
+  display:grid;
+  place-items:center;
+  aspect-ratio:4/5.25;
+  background:#f7f0f3;
+}
+.wholesale-product-main-media img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+  padding:0;
+}
+.wholesale-product-thumbs{display:none!important}
+.wholesale-product-main-media::after{content:'View image';}
+.wholesale-step-label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.wholesale-step-number{
+  flex:0 0 30px;
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:1px solid #d8cdd2;
+  background:#fff;
+  color:#111;
+  font-size:9px;
+  font-weight:800;
+}
+.wholesale-step-copy{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+.wholesale-step-copy strong{
+  display:block;
+  color:#1a1718;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.2;
+}
+.wholesale-step-copy small{
+  display:block;
+  color:#807277;
+  font-size:9px;
+  line-height:1.35;
+}
+.wholesale-selection-card .wholesale-step-label{margin-bottom:4px}
+.wholesale-size-pills{margin-top:14px}
+.wholesale-qty-label > span{display:block}
+.wholesale-add-selection{letter-spacing:.08em}
+.wholesale-product-note{max-width:520px;margin-left:auto;margin-right:auto}
+
+/* A simpler visual rhythm for the order builder */
+.wholesale-builder{
+  border-color:rgba(21,19,20,.13);
+  box-shadow:0 18px 50px rgba(52,23,31,.045);
+}
+.wholesale-step-colours{
+  padding:18px 0 18px;
+  border-bottom:1px solid var(--wp-line);
+}
+.wholesale-selection-card{
+  margin-top:18px;
+  padding:16px;
+  border:1px solid var(--wp-line);
+  background:#fcf8fa;
+}
+.wholesale-colour-picker{margin:16px 0 0}
+.wholesale-colour-swatch strong{font-size:8px;color:#3f3539}
+.wholesale-colour-swatch span{width:38px;height:38px}
+.wholesale-colour-swatch.is-selected span{box-shadow:inset 0 0 0 2px rgba(255,255,255,.95),0 0 0 2px #111,0 0 0 5px rgba(17,17,17,.05)}
+.wholesale-selection-card .wholesale-size-pills{margin-top:12px}
+.wholesale-size-pill{height:39px}
+.wholesale-entry-row{margin-top:15px}
+.wholesale-qty-label input{height:48px}
+.wholesale-add-selection{height:48px}
+.wholesale-mix{background:#fbf8fa}
+.wholesale-mix-item{background:#fff;padding:12px 0}
+
+/* ===== WHOLESALE IMAGE LIGHTBOX ===== */
+.wholesale-lightbox-open{overflow:hidden!important}
+.bf-wholesale-lightbox{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:grid;
+  place-items:center;
+  padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .18s ease,visibility .18s ease;
+}
+.bf-wholesale-lightbox[hidden]{display:none}
+.bf-wholesale-lightbox.is-open{opacity:1;visibility:visible}
+.bf-wholesale-lightbox-backdrop{position:absolute;inset:0;background:rgba(10,9,10,.88);backdrop-filter:blur(8px)}
+.bf-wholesale-lightbox-dialog{
+  position:relative;
+  z-index:1;
+  width:min(96vw,1100px);
+  height:min(96dvh,900px);
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  justify-items:center;
+  gap:12px;
+}
+.bf-wholesale-lightbox-image-wrap{
+  min-width:0;
+  min-height:0;
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.bf-wholesale-lightbox-image-wrap img{
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  background:#fff;
+  box-shadow:0 26px 80px rgba(0,0,0,.34);
+}
+.bf-wholesale-lightbox-close{
+  position:fixed;
+  top:max(14px,env(safe-area-inset-top));
+  right:max(14px,env(safe-area-inset-right));
+  z-index:3;
+  width:42px;
+  height:42px;
+  border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.97);
+  color:#111;
+  border-radius:50%;
+  font-size:24px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+}
+.bf-wholesale-lightbox-close:hover{background:var(--wp-pink);border-color:var(--wp-pink)}
+.bf-wholesale-lightbox-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.bf-wholesale-lightbox-controls button{
+  min-height:38px;
+  padding:0 15px;
+  border:1px solid rgba(255,255,255,.8);
+  background:rgba(17,17,17,.78);
+  color:#fff;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.bf-wholesale-lightbox-controls button:hover{background:#fff;color:#111}
+.bf-wholesale-lightbox-controls button[hidden]{display:none}
+.bf-wholesale-lightbox-controls span{min-width:52px;color:rgba(255,255,255,.84);font-size:8px;text-align:center;letter-spacing:.08em}
+
+@media(max-width:600px){
+  .wholesale-product-main-media{aspect-ratio:1/1.2}
+  .wholesale-product-main-media img{object-fit:contain}
+  .wholesale-builder{padding:15px}
+  .wholesale-selection-card{padding:14px}
+  .wholesale-step-number{flex-basis:28px;width:28px;height:28px}
+  .wholesale-step-copy strong{font-size:10px}
+  .wholesale-step-copy small{font-size:8px}
+  .wholesale-colour-picker{gap:9px}
+  .wholesale-colour-swatch{min-width:50px}
+  .wholesale-colour-swatch span{width:31px;height:31px}
+  .wholesale-colour-swatch strong{font-size:7px;max-width:70px}
+  .bf-wholesale-lightbox{padding:10px}
+  .bf-wholesale-lightbox-dialog{width:100%;height:min(92dvh,780px)}
+  .bf-wholesale-lightbox-image-wrap img{max-width:94vw;max-height:78dvh}
+  .bf-wholesale-lightbox-controls{gap:7px}
+  .bf-wholesale-lightbox-controls button{min-height:36px;padding:0 11px;font-size:7px}
+}
