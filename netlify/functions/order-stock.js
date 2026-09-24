@@ -120,6 +120,12 @@ function selectedCatalogOptionAvailable(product = {}, variantId = '', size = '')
 function validateWholesaleItems(order = {}, catalogProduct = {}) {
   const catalog = Array.isArray(catalogProduct.items) ? catalogProduct.items : [];
   const errors = [];
+  const mixTotals = new Map(), checkedMinimums = new Set();
+  for (const item of order.items || []) {
+    if (item?.type !== 'wholesale-product' || !item.wholesaleMixId) continue;
+    const key = `${item.wholesaleMixId}::${item.productId}`;
+    mixTotals.set(key, (mixTotals.get(key) || 0) + Math.max(0, Math.floor(number(item.qty))));
+  }
 
   for (const item of order.items || []) {
     if (item.type !== 'wholesale-product') continue;
@@ -133,17 +139,22 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
     const w = normalizeWholesale(product);
     const qty = Math.max(0, Math.floor(number(item.qty)));
     const preorder = isPreorder(item) || isPreorder(product);
+    const mixKey = item.wholesaleMixId ? `${item.wholesaleMixId}::${item.productId}` : `line::${item.key || item.productId}`;
+    const basisQty = item.wholesaleMixId ? (mixTotals.get(mixKey) || 0) : qty;
 
     if (!w.enabled || !w.tiers.length) {
       errors.push(`${product.name || item.name || 'This product'} is not currently available for wholesale.`);
       continue;
     }
-    if (qty < w.minQty) {
-      errors.push(`${product.name || item.name || 'This product'} has a minimum wholesale order of ${w.minQty} units.`);
-      continue;
+    if (!checkedMinimums.has(mixKey)) {
+      checkedMinimums.add(mixKey);
+      if (basisQty < w.minQty) {
+        errors.push(`${product.name || item.name || 'This product'} has a minimum wholesale order of ${w.minQty} units.`);
+        continue;
+      }
     }
 
-    const expected = wholesalePrice(product, qty);
+    const expected = wholesalePrice(product, basisQty);
     if (!expected || Math.abs(number(item.price) - expected) > 0.001) {
       errors.push(`The wholesale price for ${product.name || item.name || 'this product'} has changed. Please add it to your Bag again.`);
       continue;
@@ -177,6 +188,7 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
       }
       continue;
     }
+
     const variant = catalogVariant(product, item.variantId);
     if (Array.isArray(product.variants) && product.variants.length) {
       if (!variant) { errors.push(`${product.name || item.name || 'This product'} is no longer available in that colour.`); continue; }
