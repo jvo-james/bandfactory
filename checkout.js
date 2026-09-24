@@ -155,43 +155,69 @@ function fulfilmentDateForItem(item){
   }
 }
 
-function mixedFulfilmentDates(){
-  if(!window.BFFulfilment||!cart.length)return false;
+function isPreorderCartItem(item){
   try{
-    const hasPreorder=Boolean(window.BFFulfilment.cartHasPreorder?.(cart));
-    if(!hasPreorder)return false;
-
-    // A fulfilment choice is useful whenever the cart has more than one delivery date.
-    // This covers the common ready-item + preorder case and also future cases where
-    // two preorder products have different fulfilment dates.
-    const dates=cart
-      .map(item=>fulfilmentDateForItem(item))
-      .filter(Boolean)
-      .map(date=>window.BFFulfilment.dateKey?.(date)||new Intl.DateTimeFormat('en-CA').format(date));
-
-    return new Set(dates).size>1;
-  }catch(error){
-    console.warn('[Band Factory] Could not compare fulfilment dates.',error);
-    return false;
+    return Boolean(
+      window.BFFulfilment?.isPreorder?.(item) ||
+      window.BFCatalog?.isPreorder?.(item) ||
+      item?.fulfilmentType === 'preorder' ||
+      item?.preorder === true ||
+      String(item?.fulfilment?.type || '').toLowerCase() === 'preorder'
+    );
+  }catch{
+    return item?.fulfilmentType === 'preorder' || item?.preorder === true;
   }
+}
+
+function cartHasPreorderItems(){
+  return cart.some(isPreorderCartItem);
+}
+
+function cartHasReadyItems(){
+  return cart.some(item=>!isPreorderCartItem(item));
+}
+
+function preorderFulfilmentDate(){
+  const dates=cart
+    .filter(isPreorderCartItem)
+    .map(item=>{
+      try{
+        return window.BFFulfilment?.itemFulfilmentDate?.(item,null) || null;
+      }catch{
+        return item?.fulfilmentDate || item?.preorderDate || item?.fulfilment?.date || null;
+      }
+    })
+    .filter(Boolean)
+  try{
+    return window.BFFulfilment?.latestDate?.(dates) || dates.sort((a,b)=>a.getTime()-b.getTime()).pop() || null;
+  }catch{
+    return dates.sort((a,b)=>a.getTime()-b.getTime()).pop() || null;
+  }
+}
+
+// The checkout states are intentionally simple:
+// 1. No preorder items = normal dispatch message only.
+// 2. Preorder only = show the preorder fulfilment date, not the normal dispatch day.
+// 3. Preorder + ready items = show the customer's delivery choice, not the normal dispatch card.
+function hasMixedPreorderDelivery(){
+  return selectedFulfilment()==='delivery' && cartHasPreorderItems() && cartHasReadyItems();
 }
 
 function renderFulfilmentPlan(){
   const card=$('#preorderFulfilmentCard');
   if(!card)return;
 
-  const delivery=selectedFulfilment()==='delivery';
-  const show=delivery && mixedFulfilmentDates();
+  const show=hasMixedPreorderDelivery();
   card.hidden=!show;
   card.style.display=show?'':'none';
-  if(!show)return;
+  if(!show){
+    const summary=$('#fulfilmentPlanSummary');
+    if(summary)summary.innerHTML='';
+    return;
+  }
 
   const readyDate=currentDispatchDate();
-  const preorderDates=cart
-    .filter(i=>window.BFFulfilment?.isPreorder?.(i))
-    .map(i=>fulfilmentDateForItem(i))
-    .filter(Boolean);
-  const latestPreorder=window.BFFulfilment?.latestDate?.(preorderDates)||null;
+  const latestPreorder=preorderFulfilmentDate();
 
   $('#fulfilmentPlanIntro').textContent='Your bag contains items that are ready on different dates. Choose whether to receive them separately or wait and receive everything together.';
   $('#togetherPlanCopy').textContent=latestPreorder
@@ -213,32 +239,42 @@ function renderFulfilmentPlan(){
 
 function renderDispatchNote(){
   const note=$('#dispatchNote');
-  if(!note)return;
-  if(selectedFulfilment()!=='delivery'){
+  const dispatchCard=$('#dispatchCard');
+  if(!note||!dispatchCard)return;
+
+  const delivery=selectedFulfilment()==='delivery';
+  const hasPreorder=cartHasPreorderItems();
+  const hasReady=cartHasReadyItems();
+
+  if(!delivery){
+    dispatchCard.style.display='none';
     note.textContent='';
     return;
   }
-  const base=currentDispatchDate();
-  if(!base){
-    note.textContent='The next dispatch date will appear here.';
+
+  // Mixed carts use the fulfilment choice card instead. Do not also show a normal dispatch card.
+  if(hasPreorder&&hasReady){
+    dispatchCard.style.display='none';
+    note.textContent='';
     return;
   }
-  try{
-    const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
-    if(mixedFulfilmentDates()){
-      note.innerHTML=info.plan==='separate'
-        ? `Your order is planned across ${info.groups.length} deliveries. First: <strong>${formatDate(info.groups[0].date)}</strong>.`
-        : `We’ll hold the ready items and deliver everything together on <strong>${formatDate(info.groups[0].date)}</strong>.`;
-      return;
-    }
-    if(info.hasPreorder&&info.groups[0]?.date){
-      note.innerHTML=`Your order is scheduled for <strong>${formatDate(info.groups[0].date)}</strong>.`;
-      return;
-    }
-  }catch(error){
-    console.warn('[Band Factory] Could not build the full dispatch note yet.',error);
+
+  // A preorder-only cart needs its preorder date, not the regular next dispatch date.
+  if(hasPreorder&&!hasReady){
+    const preorderDate=preorderFulfilmentDate();
+    dispatchCard.style.display='grid';
+    note.innerHTML=preorderDate
+      ? `This pre-order will be fulfilled from <strong>${formatDate(preorderDate)}</strong>.`
+      : 'This item is a pre-order. Its fulfilment date will be confirmed by Band Factory.';
+    return;
   }
-  note.innerHTML=`Your next dispatch is <strong>${formatDate(base)}</strong>.`;
+
+  // No preorder items: keep the normal dispatch message.
+  dispatchCard.style.display='grid';
+  const base=currentDispatchDate();
+  note.innerHTML=base
+    ? `Your next dispatch is <strong>${formatDate(base)}</strong>.`
+    : 'The next dispatch date will appear here.';
 }
 
 function deliveryFeeStatus(info){
