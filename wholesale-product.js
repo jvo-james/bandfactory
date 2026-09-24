@@ -1,103 +1,58 @@
 (function(){
-  const qs=s=>document.querySelector(s);
-  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const qs=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const money=v=>window.BF?.money?BF.money(v):`GHS ${Number(v||0).toLocaleString('en-GH',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const params=new URLSearchParams(location.search);
-  const productId=params.get('id')||'';
-  let master=null,items=[],categories=[],settings={};
-  let selectedVariantId=params.get('variant')||'';
-  let selectedSize='';
-  let galleryImages=[];
-
-  function variants(){return master&&BFCatalog.hasVariants(master)?BFCatalog.variants(master):[];}
-  function selectedVariant(){return selectedVariantId?BFCatalog.variant(master,selectedVariantId):variants()[0]||null;}
-  function currentView(){return master&&selectedVariant()?.id?BFCatalog.variantView(master,selectedVariant().id):master;}
-  function wholesale(){return BFCatalog.wholesale(master||{});}
-  function quantity(){return Math.max(wholesale().minQty||1,Math.floor(Number(qs('#wholesaleProductQty')?.value||1))||1);}
-  function unitPrice(qty){return Number(BFCatalog.wholesalePriceForQty(master,qty)||0);}
-  function currentStock(){
-    const view=currentView()||{};
-    if(BFCatalog.isPreorder(master))return Infinity;
-    if(view.sizes&&Object.keys(view.sizes).length){const d=view.sizes[selectedSize]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
-    return view.available===false?0:Math.max(0,Number(view.stock||master?.stock||0));
+  const params=new URLSearchParams(location.search),productId=params.get('id')||'';
+  let master=null,items=[],categories=[],settings={},selectedVariantId=params.get('variant')||'',allocationDraft=[];
+  const variants=()=>master&&BFCatalog.hasVariants(master)?BFCatalog.variants(master):[];
+  const selectedVariant=()=>selectedVariantId?BFCatalog.variant(master,selectedVariantId):BFCatalog.featuredVariant(master)||variants()[0]||null;
+  const currentView=()=>selectedVariant()?.id?BFCatalog.variantView(master,selectedVariant().id):master||{};
+  const wholesale=()=>BFCatalog.wholesale(master||{});
+  const isPreorder=()=>BFCatalog.isPreorder(master);
+  const allSizesForVariant=v=>Object.entries(v?.sizes||{});
+  const visibleVariantList=()=>{const list=variants();if(list.length)return list.filter(v=>v.available!==false);const sizes=master?.sizes&&typeof master.sizes==='object'?master.sizes:{};return [{id:'',color:master?.color||master?.subtitle||'Product',hex:master?.colorHex||'#d9d9d9',image:master?.image||'',images:master?.images||[],sizes:Object.keys(sizes).length?sizes:{'':{stock:Number(master?.stock||0),available:master?.available!==false}},available:master?.available!==false,stock:Number(master?.stock||0)}];};
+  const maxForAllocation=(variant,size)=>{if(isPreorder())return Infinity;const d=variant?.sizes?.[size];return d?Math.max(0,Number(d.stock||0)):0;};
+  const allocationKey=(variantId,size)=>`${variantId}::${size}`;
+  function defaultAllocations(){
+    const first=visibleVariantList()[0]||selectedVariant();const size=Object.keys(first?.sizes||{}).find(s=>first.sizes[s]?.available!==false)||Object.keys(first?.sizes||{})[0]||'';
+    return first&&size?[{variantId:first.id,size,qty:0}]:[];
   }
-  function productAvailable(){
-    if(!master||master.deleted===true||master.available===false)return false;
-    const w=wholesale();if(!w.enabled||!w.tiers.length)return false;
-    const view=currentView()||{};
-    if(view.sizes&&Object.keys(view.sizes).length){return !!selectedSize&&view.sizes[selectedSize]?.available!==false;}
-    return view.available!==false;
+  function normaliseAllocations(list){
+    const out=[];const seen=new Set();(Array.isArray(list)?list:[]).forEach(x=>{const variantId=String(x?.variantId||'');const size=String(x?.size||'');const qty=Math.max(0,Math.floor(Number(x?.qty||0)));if(qty<=0)return;const key=allocationKey(variantId,size);if(seen.has(key))return;seen.add(key);out.push({variantId,size,qty});});return out;
   }
+  function readAllocations(){
+    const out=[];document.querySelectorAll('[data-alloc-input]').forEach(input=>{const qty=Math.max(0,Math.floor(Number(String(input.value||'').replace(/\D/g,'')||0)));if(qty>0)out.push({variantId:input.dataset.variantId||'',size:input.dataset.size||'',qty});});return normaliseAllocations(out);
+  }
+  function draftQty(variantId,size){return allocationDraft.find(x=>x.variantId===variantId&&x.size===size)?.qty||0;}
+  function totalAllocated(){return allocationDraft.reduce((sum,x)=>sum+Number(x.qty||0),0);}
+  function targetWholesaleQty(){return Math.max(1,Number(wholesale().minQty||1));}
   function renderGallery(){
-    const view=currentView()||master||{};
-    const seen=new Set();galleryImages=[];
-    const add=img=>{if(!img||seen.has(img))return;seen.add(img);galleryImages.push(img)};
-    add(view.image);(view.images||[]).forEach(add);(master?.images||[]).forEach(add);
-    if(!galleryImages.length)add(BFCatalog.fallbackImage(master,items,categories));
-    const main=qs('#wholesaleProductMainImage');main.src=galleryImages[0]||'images/second-skin-tee.jpg';main.alt=master?.name||'Band Factory wholesale product';
-    qs('#wholesaleProductThumbs').innerHTML=galleryImages.map((img,index)=>`<button class="wholesale-product-thumb ${index===0?'is-active':''}" type="button" data-thumb="${index}" aria-label="Show product image ${index+1}"><img src="${esc(img)}" alt=""></button>`).join('');
-    qs('#wholesaleProductThumbs').querySelectorAll('[data-thumb]').forEach(btn=>btn.addEventListener('click',()=>{const index=Number(btn.dataset.thumb||0);main.src=galleryImages[index]||main.src;qs('#wholesaleProductThumbs').querySelectorAll('[data-thumb]').forEach(x=>x.classList.toggle('is-active',x===btn));}));
+    const view=currentView(),seen=new Set(),gallery=[];const add=x=>{if(x&&!seen.has(x)){seen.add(x);gallery.push(x)}};add(view.image);(view.images||[]).forEach(add);(master?.images||[]).forEach(add);if(!gallery.length)add(BFCatalog.fallbackImage(master,items,categories));
+    const main=qs('#wholesaleProductMainImage'),thumbs=qs('#wholesaleProductThumbs');main.src=gallery[0]||'images/second-skin-tee.jpg';main.alt=`${master?.name||'Product'}${view.color?' in '+view.color:''}`;thumbs.innerHTML=gallery.map((img,i)=>`<button class="wholesale-product-thumb${i===0?' is-active':''}" type="button" data-thumb="${i}" aria-label="Show product image ${i+1}"><img src="${esc(img)}" alt=""></button>`).join('');thumbs.querySelectorAll('[data-thumb]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.thumb||0);main.src=gallery[i]||main.src;thumbs.querySelectorAll('[data-thumb]').forEach(x=>x.classList.toggle('is-active',x===btn));if(window.innerWidth<=760)qs('#wholesaleProductMainMedia')?.scrollIntoView({behavior:'smooth',block:'start'});});
   }
-  function renderVariantPicker(){
-    const area=qs('#wholesaleProductVariantArea'),list=variants();
-    if(!list.length){area.hidden=true;return;}
-    if(!selectedVariantId||!list.some(v=>v.id===selectedVariantId))selectedVariantId=list[0].id;
-    area.hidden=false;area.innerHTML=`<span>Colour</span><div class="wholesale-variant-grid">${list.map(v=>`<button class="wholesale-variant-button ${v.id===selectedVariantId?'is-active':''}" type="button" data-variant="${esc(v.id)}"><strong>${esc(v.color)}</strong><small>${v.available===false?'Currently unavailable':'Available'}</small></button>`).join('')}</div>`;
-    area.querySelectorAll('[data-variant]').forEach(btn=>btn.addEventListener('click',()=>{selectedVariantId=btn.dataset.variant||'';selectedSize='';const url=new URL(location.href);url.searchParams.set('variant',selectedVariantId);history.replaceState(null,'',url.toString());renderAll();}));
-  }
-  function renderSizePicker(){
-    const area=qs('#wholesaleProductSizeArea'),view=currentView()||master||{},entries=Object.entries(view.sizes||{});
-    if(!entries.length){selectedSize='';area.hidden=true;return;}
-    if(!selectedSize||!entries.some(([s])=>s===selectedSize))selectedSize=entries.find(([,d])=>d?.available!==false)?.[0]||entries[0][0];
-    area.hidden=false;area.innerHTML=`<span>Size</span><div class="wholesale-size-grid">${entries.map(([size,d])=>`<button class="wholesale-size-button ${size===selectedSize?'is-active':''}" type="button" data-size="${esc(size)}" ${d?.available===false?'disabled':''}>${esc(size)}</button>`).join('')}</div>`;
-    area.querySelectorAll('[data-size]').forEach(btn=>btn.addEventListener('click',()=>{selectedSize=btn.dataset.size||'';renderSizePicker();renderBuyBox();}));
+  function renderVariantSummary(){
+    const root=qs('#wholesaleProductVariantArea'),list=variants();if(!list.length){root.hidden=true;return;}if(!selectedVariantId||!list.some(v=>v.id===selectedVariantId))selectedVariantId=BFCatalog.featuredVariant(master)?.id||list[0].id;root.hidden=false;root.innerHTML=`<span>Featured colour</span><div class="wholesale-featured-colour"><span class="wholesale-featured-dot" style="--swatch:${esc(selectedVariant()?.hex||'#ddd')}"></span><strong>${esc(selectedVariant()?.color||'Choose a colour')}</strong><small>The storefront colour can be changed while you build your order below.</small></div>`;
   }
   function renderPricing(){
-    const w=wholesale(),tiers=w.tiers,from=tiers[0]?.price||0;
-    qs('#wholesaleProductWholesaleFrom').textContent=from?`From ${money(from)}`:'Pricing not set';
-    qs('#wholesaleProductMin').textContent=`Minimum order: ${w.minQty} ${w.minQty===1?'unit':'units'}`;
-    qs('#wholesaleProductTiers').innerHTML=tiers.map((tier,index)=>{const next=tiers[index+1]?.minQty;const range=next?`${tier.minQty}–${Math.max(tier.minQty,next-1)} units`:`${tier.minQty}+ units`;return `<div class="wholesale-tier-row" data-tier-min="${tier.minQty}"><span>${range}</span><strong>${money(tier.price)} each</strong></div>`}).join('');
+    const w=wholesale(),tiers=w.tiers||[],from=tiers[0]?.price||0,price30=BFCatalog.wholesalePriceForQty(master,30);qs('#wholesaleProductWholesaleFrom').textContent=from?`From ${money(from)}`:'Pricing not set';qs('#wholesaleProductMin').textContent=`Minimum order: ${w.minQty} ${w.minQty===1?'unit':'units'}`;qs('#wholesaleProductPricingHint').textContent=price30&&30>=w.minQty?`Build your order by colour and size. The price per piece updates automatically when your total reaches another price tier.`:'Build your order by colour and size. Your total updates as you type.';qs('#wholesaleProductTiers').innerHTML=tiers.map((tier,index)=>{const next=tiers[index+1]?.minQty,range=next?`${tier.minQty}–${Math.max(tier.minQty,next-1)} pieces`:`${tier.minQty}+ pieces`;return `<div class="wholesale-tier-row" data-tier-min="${tier.minQty}"><span>${range}</span><strong>${money(tier.price)} each</strong></div>`}).join('');
   }
-  function renderBuyBox(){
-    const w=wholesale(),min=w.minQty||1,input=qs('#wholesaleProductQty');
-    let value=Math.max(min,Math.floor(Number(input.value||min))||min);
-    const max=currentStock();if(Number.isFinite(max))value=Math.min(value,Math.max(min,max));
-    input.min=String(min);input.value=String(value);input.setAttribute('aria-label',`Wholesale quantity, minimum ${min}`);
-    const price=unitPrice(value),total=price*value;
-    qs('#wholesaleProductTotal').textContent=price?money(total):'Pricing not set';
-    qs('#wholesaleProductUnit').textContent=price?`${money(price)} per piece`:'Set wholesale pricing in admin';
-    qs('#wholesaleProductAdd').disabled=!productAvailable()||price<=0||(Number.isFinite(max)&&value>max);
-    qs('#wholesaleProductTiers').querySelectorAll('[data-tier-min]').forEach(row=>row.classList.toggle('is-active',Number(row.dataset.tierMin||0)<=value&&[...qs('#wholesaleProductTiers').querySelectorAll('[data-tier-min]')].filter(x=>Number(x.dataset.tierMin||0)<=value).at(-1)===row));
+  function renderAllocationBuilder(){
+    const root=qs('#wholesaleAllocationBuilder'),list=visibleVariantList();if(!root)return;if(!list.length){root.innerHTML='<p class="wholesale-builder-empty">No colours are available for wholesale right now.</p>';return;}
+    const sizes=[...new Set(list.flatMap(v=>Object.keys(v.sizes||{})))];
+    root.innerHTML=list.map((v,vi)=>{const entries=Object.entries(v.sizes||{});const availableSizes=entries.length?entries:sizes.map(size=>[size,{}]);const chosen=availableSizes.reduce((sum,[size])=>sum+draftQty(v.id,size),0),colourPre=isPreorder();return `<section class="wholesale-colour-card${v.id===selectedVariantId?' is-current':''}" data-colour-card="${esc(v.id)}"><header><div class="wholesale-colour-heading"><span class="wholesale-colour-swatch" style="--swatch:${esc(v.hex||'#ddd')}"></span><div><strong>${esc(v.color)}</strong><small>${chosen} piece${chosen===1?'':'s'} selected</small></div></div><button type="button" class="wholesale-colour-focus" data-focus-variant="${esc(v.id)}">View colour</button></header><div class="wholesale-size-matrix">${availableSizes.map(([size,d])=>{const enabled=d?.available!==false,max=maxForAllocation(v,size),value=draftQty(v.id,size),disabled=(!colourPre&&(!d||d.available===false||max<=0))||v.available===false,displaySize=size||'All sizes';return `<label class="wholesale-size-cell${disabled?' is-disabled':''}"><span>${esc(displaySize)}</span><input data-alloc-input data-variant-id="${esc(v.id)}" data-size="${esc(size)}" type="number" min="0" step="1" inputmode="numeric" pattern="[0-9]*" value="${value||''}" ${disabled?'disabled':''} ${Number.isFinite(max)?`max="${max}"`:''} aria-label="${esc(v.color)} size ${esc(size)} quantity" placeholder="0"><small>${colourPre?'Pre-order':disabled?'Unavailable':`${max} left`}</small></label>`}).join('')}</div></section>`}).join('');
+    root.querySelectorAll('[data-alloc-input]').forEach(input=>input.addEventListener('input',()=>{input.value=String(input.value||'').replace(/\D/g,'');const max=input.max?Number(input.max):Infinity;if(Number.isFinite(max)&&Number(input.value||0)>max)input.value=String(max);allocationDraft=readAllocations();updateOrderSummary();}));
+    root.querySelectorAll('[data-focus-variant]').forEach(btn=>btn.onclick=()=>{selectedVariantId=btn.dataset.focusVariant||selectedVariantId;const url=new URL(location.href);url.searchParams.set('variant',selectedVariantId);history.replaceState(null,'',url.toString());renderGallery();renderVariantSummary();renderAllocationBuilder();qs(`[data-colour-card="${CSS.escape(selectedVariantId)}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});});
   }
-  function renderProductCopy(){
-    const view=currentView()||master||{},pre=BFCatalog.isPreorder(master),preDate=BFCatalog.preorderDate(master);
-    qs('#wholesaleProductName').textContent=master.name||'Product';
-    qs('#wholesaleProductBreadcrumb').textContent=master.name||'Product';
-    qs('#wholesaleProductCategory').textContent=categories.find(c=>c.id===master.category)?.name||master.category||'Wholesale';
-    qs('#wholesaleProductSubtitle').textContent=view.color||master.subtitle||'';
-    const retail=BFCatalog.price(master,settings),compare=BFCatalog.compareAtPrice(master,settings),priceRow=qs('#wholesaleProductPriceRow');
-    priceRow.innerHTML=compare>retail?`<del>${money(compare)}</del><span class="retail-current">${money(retail)}</span><span class="sale-pill">Sale</span>`:`<span class="retail-current">${retail?money(retail):'Price available soon'}</span>`;
-    const wholesaleFrom=wholesale().tiers[0]?.price||0,pct=BFCatalog.discountPercent?BFCatalog.discountPercent(retail,wholesaleFrom):BFCatalog.wholesaleCompare(master,wholesale().minQty||1);
-    qs('#wholesaleProductSaving').textContent=pct?`Wholesale is ${pct}% below the current retail price at the starting tier.`:'';
-    const desc=String(master.description||master.shortDescription||'').trim();qs('#wholesaleProductDescription').innerHTML=desc?desc.split(/\n\s*\n|\n/).filter(Boolean).map(p=>`<p>${esc(p)}</p>`).join(''):`<p>View the product details, choose the colour and size you need, then add your wholesale quantity to the Bag.</p>`;
-    const badge=qs('#wholesaleProductBadge');badge.hidden=!pre;
-    const preBox=qs('#wholesaleProductPreorder');preBox.hidden=!pre;
-    if(pre){const dateText=BFFulfilment.formatDate(preDate);preBox.innerHTML=`<div><strong>Pre-order</strong><p>This item is available to order now even though it is not part of the current ready stock. Payment is made at checkout and this product is planned for fulfilment from <strong>${esc(dateText)}</strong>. If you add ready products to the same Bag, checkout will let you choose whether to receive everything together or use separate deliveries.</p></div>`;}
-    renderGallery();
+  function updateOrderSummary(){
+    allocationDraft=normaliseAllocations(allocationDraft);const total=totalAllocated(),min=targetWholesaleQty(),price=BFCatalog.wholesalePriceForQty(master,total||min),unit=price||0,grand=unit*total,remaining=Math.max(0,min-total);qs('#wholesaleSelectedCount').textContent=String(total);qs('#wholesaleTargetCount').textContent=String(min);qs('#wholesalePiecesRemaining').textContent=remaining?`${remaining} more ${remaining===1?'piece':'pieces'} to reach the minimum`:'Minimum reached';qs('#wholesaleProductTotal').textContent=grand?money(grand):'GHS 0.00';qs('#wholesaleProductUnit').textContent=unit?`${money(unit)} per piece`:'Add pieces to see your price';const add=qs('#wholesaleProductAdd');add.disabled=total<min||!unit;add.classList.toggle('is-ready',total>=min&&!!unit);document.querySelectorAll('[data-tier-min]').forEach(row=>row.classList.toggle('is-active',Number(row.dataset.tierMin||0)<=total&&[...document.querySelectorAll('[data-tier-min]')].filter(x=>Number(x.dataset.tierMin||0)<=total).at(-1)===row));
   }
-  function renderAll(){renderProductCopy();renderVariantPicker();renderSizePicker();renderPricing();renderBuyBox();}
-  function updateQty(delta){const input=qs('#wholesaleProductQty'),w=wholesale(),min=w.minQty||1,max=currentStock();let next=Math.max(min,Math.floor(Number(input.value||min))+delta);if(Number.isFinite(max))next=Math.min(next,max);input.value=String(next);renderBuyBox();}
+  function renderCopy(){
+    const view=currentView()||{},pre=isPreorder(),preDate=BFCatalog.preorderDate(master),retail=BFCatalog.price(master,settings),compare=BFCatalog.compareAtPrice(master,settings),w=wholesale();qs('#wholesaleProductName').textContent=master.name||'Product';qs('#wholesaleProductBreadcrumb').textContent=master.name||'Product';qs('#wholesaleProductCategory').textContent=categories.find(c=>c.id===master.category)?.name||master.category||'Wholesale';qs('#wholesaleProductSubtitle').textContent=view.color||master.subtitle||'';const priceRow=qs('#wholesaleProductPriceRow');priceRow.innerHTML=compare>retail?`<del>${money(compare)}</del><span class="retail-current">${money(retail)}</span><span class="sale-pill">Sale</span>`:`<span class="retail-current">${retail?money(retail):'Price available soon'}</span>`;const desc=String(master.description||master.shortDescription||'').trim();qs('#wholesaleProductDescription').innerHTML=desc?desc.split(/\n\s*\n|\n/).filter(Boolean).map(p=>`<p>${esc(p)}</p>`).join(''):'<p>Choose the colours and sizes you need. You can split your wholesale quantity across as many colour and size combinations as you need.</p>';const badge=qs('#wholesaleProductBadge');badge.hidden=!pre;const box=qs('#wholesaleProductPreorder');box.hidden=!pre;if(pre){const dateText=BFFulfilment.formatDate(preDate);box.innerHTML=`<div><strong>Pre-order</strong><p>This item is available to order before it arrives. You will pay at checkout and it is planned for fulfilment from <strong>${esc(dateText)}</strong>.</p><small>If you add ready-to-ship items to the same Bag, checkout will give you the choice to receive them first or wait and receive everything together.</small></div>`;}qs('#wholesaleProductNote').textContent=`Minimum ${w.minQty} pieces. You can mix colours and sizes to reach the minimum.`;renderGallery();
+  }
+  function renderAll(){renderCopy();renderVariantSummary();renderPricing();renderAllocationBuilder();updateOrderSummary();}
   async function init(){
-    try{
-      [items,settings,categories]=await Promise.all([BFCatalog.load(),BFStore.getDoc('settings/store',{}),BFCatalog.loadCategories()]);
-      master=items.find(item=>item.id===productId)||null;
-      if(!master||master.deleted===true||!BFCatalog.isWholesale(master)){qs('#wholesaleProductLoading').hidden=true;qs('#wholesaleProductError').hidden=false;return;}
-      qs('#wholesaleProductLoading').hidden=true;qs('#wholesaleProductShell').hidden=false;renderAll();document.title=`${master.name} Wholesale | Band Factory Ghana`;
-    }catch(error){console.error(error);qs('#wholesaleProductLoading').hidden=true;qs('#wholesaleProductError').hidden=false;}
+    const loader=qs('#wholesaleProductLoading'),shell=qs('#wholesaleProductShell'),error=qs('#wholesaleProductError');try{loader?.removeAttribute('hidden');if(loader)loader.style.display='grid';shell?.setAttribute('hidden','');if(shell)shell.style.display='none';[items,settings,categories]=await Promise.all([BFCatalog.load(),BFStore.getDoc('settings/store',{}),BFCatalog.loadCategories()]);master=items.find(item=>item.id===productId)||null;if(!master||master.deleted===true||!BFCatalog.isWholesale(master)){loader?.setAttribute('hidden','');if(loader)loader.style.display='none';error?.removeAttribute('hidden');return;}selectedVariantId=selectedVariantId&&variants().some(v=>v.id===selectedVariantId)?selectedVariantId:BFCatalog.featuredVariant(master)?.id||variants()[0]?.id||'';allocationDraft=[];renderAll();document.title=`${master.name} Wholesale | Band Factory Ghana`;loader?.setAttribute('hidden','');if(loader)loader.style.display='none';shell?.removeAttribute('hidden');if(shell)shell.style.display='';
+    }catch(err){console.error('[Band Factory] wholesale product load failed',err);loader?.setAttribute('hidden','');if(loader)loader.style.display='none';error?.removeAttribute('hidden');if(shell)shell.style.display='none';}
   }
-  qs('#wholesaleProductQty')?.addEventListener('input',()=>{qs('#wholesaleProductQty').value=qs('#wholesaleProductQty').value.replace(/[^0-9]/g,'');renderBuyBox();});
-  qs('#wholesaleQtyMinus')?.addEventListener('click',()=>updateQty(-1));
-  qs('#wholesaleQtyPlus')?.addEventListener('click',()=>updateQty(1));
-  qs('#wholesaleProductAdd')?.addEventListener('click',()=>{const qty=quantity();if(!productAvailable()){BF.toast('Choose an available option before adding this product.');return;}if(Number.isFinite(currentStock())&&qty>currentStock()){BF.toast(`Only ${currentStock()} are available for this option.`);return;}BF.addWholesaleProduct(master,selectedSize,qty,selectedVariantId);});
+  qs('#wholesaleProductAdd')?.addEventListener('click',()=>{allocationDraft=readAllocations();const min=targetWholesaleQty(),total=totalAllocated(),price=BFCatalog.wholesalePriceForQty(master,total);if(total<min){BF.toast(`Choose at least ${min} pieces.`);return;}if(!price){BF.toast('Wholesale pricing is not available for this quantity.');return;}const invalid=allocationDraft.some(x=>{const v=BFCatalog.variant(master,x.variantId),max=maxForAllocation(v,x.size);return Number.isFinite(max)&&x.qty>max;});if(invalid){BF.toast('One of your size quantities is higher than the available stock.');renderAllocationBuilder();return;}BF.addWholesaleProductMix(master,total,price,allocationDraft);});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

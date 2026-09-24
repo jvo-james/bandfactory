@@ -78,27 +78,29 @@
 
         <div class="wholesale-product-copy" id="wholesaleProductDescription"></div>
 
-        <div class="wholesale-product-option" id="wholesaleProductVariantArea" hidden></div>
-        <div class="wholesale-product-option" id="wholesaleProductSizeArea" hidden></div>
+        <div class="wholesale-product-option wholesale-product-featured" id="wholesaleProductVariantArea" hidden></div>
+
+        <div class="wholesale-builder-intro">
+          <div><span class="wholesale-builder-kicker">Build your wholesale order</span><h2>Mix the colours and sizes you need.</h2><p>Type the quantity beside each size. The numbers below all count toward one wholesale minimum.</p></div>
+          <div class="wholesale-builder-progress"><strong><span id="wholesaleSelectedCount">0</span> / <span id="wholesaleTargetCount">0</span></strong><small id="wholesalePiecesRemaining">Minimum not reached</small></div>
+        </div>
 
         <div class="wholesale-product-wholesale-card">
           <div class="wholesale-product-wholesale-head">
             <div><span>Wholesale pricing</span><strong id="wholesaleProductWholesaleFrom">GHS 0.00</strong></div>
             <span class="wholesale-product-min" id="wholesaleProductMin">Minimum order: 1</span>
           </div>
-          <p id="wholesaleProductPricingHint">The price per piece changes automatically when your quantity reaches a new price tier.</p>
+          <p id="wholesaleProductPricingHint">Build your order by colour and size.</p>
           <div class="wholesale-product-tiers" id="wholesaleProductTiers"></div>
         </div>
 
+        <div class="wholesale-allocation-builder" id="wholesaleAllocationBuilder"></div>
+
         <div class="wholesale-product-buy">
-          <div class="wholesale-product-qty">
-            <label for="wholesaleProductQty">Quantity</label>
-            <div class="wholesale-product-qty-control"><button type="button" id="wholesaleQtyMinus" aria-label="Decrease quantity">−</button><input id="wholesaleProductQty" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Wholesale quantity"><button type="button" id="wholesaleQtyPlus" aria-label="Increase quantity">+</button></div>
-          </div>
-          <div class="wholesale-product-total"><span>Your total</span><strong id="wholesaleProductTotal">GHS 0.00</strong><small id="wholesaleProductUnit">GHS 0.00 per piece</small></div>
-          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button"><span>Add to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+          <div class="wholesale-product-total"><span>Your wholesale total</span><strong id="wholesaleProductTotal">GHS 0.00</strong><small id="wholesaleProductUnit">Add pieces to see your price</small></div>
+          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button"><span>Add wholesale order to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
         </div>
-        <p class="wholesale-product-note" id="wholesaleProductNote">Wholesale orders are reviewed with the fulfilment date saved at checkout.</p>
+        <p class="wholesale-product-note" id="wholesaleProductNote">Your colour and size breakdown will be saved with the order.</p>
         <a class="wholesale-product-back" href="wholesale-products.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Other Products Wholesale</a>
       </section>
     </div>

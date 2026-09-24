@@ -202,3 +202,9 @@ input[type="checkbox"] {
   .mobile-menu .wholesale-nav-mobile .wholesale-dropdown-menu a:last-child{border-bottom:0}
   .wholesale-nav-mobile .wholesale-dropdown-menu i{font-style:normal;opacity:.45}
 }
+
+@media(max-width:900px){.mobile-menu{max-height:calc(100dvh - 74px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.mobile-menu a,.mobile-menu button{flex-shrink:0}.mobile-menu .shop-dropdown-menu{max-height:none;overflow:visible}}
+
+/* Mixed generic wholesale cart lines */
+.bag-fixed-qty{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid #e8dfe2;background:#fbf7f8;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5f5156}
+.bag-edit-wholesale{display:inline-block;margin-top:7px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#8d6172}
