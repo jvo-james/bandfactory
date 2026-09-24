@@ -496,37 +496,80 @@ function renderHomeCategories(){
     const categories=homeCategories.filter(c=>c.visible!==false&&c.deleted!==true);
     grid.innerHTML=categories.map(category=>{const image=homeCategoryImage(category);return `<a href="${homeEscape(BFCatalog.categoryUrl(category))}" class="home-category-card"><img src="${homeEscape(image)}" alt="${homeEscape(category.name)}" loading="lazy"><div><span>${homeEscape(category.eyebrow||'Collection')}</span><h3>${homeEscape(category.name)}</h3><b>Shop ${homeEscape(category.name)} →</b></div></a>`}).join('');
 }
-function homeVariantSwatches(product){
-    const variants=BFCatalog.variants(product);
-    if(variants.length<2)return '';
-    const active=product.featuredVariantId||BFCatalog.featuredVariant(product)?.id||variants[0]?.id||'';
-    return `<div class="bf-card-swatches home-product-swatches" aria-label="Available colours">${
-        variants.map(v=>{
-            const fallback=(BF.colors||[]).find(([name])=>String(name).toLowerCase()===String(v.color||'').toLowerCase())?.[1]||'#ddd';
-            const swatch=v.hex||fallback||'#ddd';
-            return `<button class="bf-card-swatch${v.id===active?' is-active':''}" type="button" data-card-variant="${escapeHTML(v.id)}" title="${escapeHTML(v.color)}" aria-label="Choose ${escapeHTML(v.color)}" aria-pressed="${v.id===active?'true':'false'}"><span style="--swatch:${escapeHTML(swatch)}"></span><small>${escapeHTML(v.color)}</small></button>`;
-        }).join('')
-    }</div>`;
+function homeVariantSwatch(v){
+    const name=String(v?.color||'').trim().toLowerCase();
+    const known=Object.fromEntries((BF.colors||[]).map(([label,hex])=>[String(label).trim().toLowerCase(),hex]));
+    if(v?.hex)return v.hex;
+    if(known[name])return known[name];
+    const exact=Object.keys(known).find(k=>name.includes(k));
+    return exact?known[exact]:'#d8cbd0';
 }
-function homeMasterCards(products,cls='home-product-card',limit=6){
-    const list=products.slice(0,limit);return list.map(product=>{const v=BFCatalog.featuredVariant(product),pre=BFCatalog.isPreorder(product),available=BFCatalog.purchasable(product,v?.id||''),price=BFCatalog.price(product,homeSettings),compare=BFCatalog.compareAtPrice(product,homeSettings),wh30=BFCatalog.wholesalePriceForQty(product,30),retailUrl=`item.html?id=${encodeURIComponent(product.id)}${v?.id?`&variant=${encodeURIComponent(v.id)}`:''}`,whUrl=`wholesale-product.html?id=${encodeURIComponent(product.id)}${v?.id?`&variant=${encodeURIComponent(v.id)}`:''}`,image=BFCatalog.variantImage(product,v?.id||'',homeCatalog,homeCategories),date=BFCatalog.preorderDate(product);const bothPrices=BFCatalog.isWholesale(product)&&wh30&&30>=BFCatalog.wholesale(product).minQty;return `<article class="${cls} bf-variant-card" data-bf-variant-card data-product-id="${escapeHTML(product.id)}"><a href="${retailUrl}" data-card-link><div class="image"><img data-card-image src="${homeEscape(image)}" alt="${homeEscape(product.name)}${v?.color?' in '+homeEscape(v.color):''}" loading="lazy">${pre?'<span class="home-stock-chip preorder-chip">Pre-order</span>':''}</div></a><div class="meta"><h3>${homeEscape(product.name)}</h3><p data-card-colour>${homeEscape(v?.color||product.subtitle||'')}</p>${homeVariantSwatches(product)}<div class="home-price-links">${price?`<a href="${retailUrl}" data-card-retail-link><span>Shop retail</span><strong>${BFCatalog.priceHtml(price,compare)}</strong><em>Open retail page →</em></a>`:''}${bothPrices?`<a href="${whUrl}" data-card-wholesale-link><span>Shop wholesale · 30 pieces</span><strong>${homeEscape(BF.money(wh30))}</strong><em>Open wholesale page →</em></a>`:''}</div>${pre&&date?`<small>Fulfilment from ${homeEscape(window.BFFulfilment?.shortDate?.(date)||date)}</small>`:''}<a class="add-mini stock-link" href="${retailUrl}">View product</a></div></article>`;}).join('');
+function homeFeaturedVariant(item){
+    return BFCatalog.featuredVariant?.(item)||BFCatalog.variants(item)[0]||null;
 }
 function renderHomePreorders(){
-    const section=document.getElementById('homePreorderSection'),grid=document.getElementById('homePreorderGrid');if(!section||!grid)return;
-    const visible=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));let items=homeCatalog.filter(item=>item.deleted!==true&&item.available!==false&&visible.has(item.category)&&BFCatalog.isPreorder(item));items.sort((a,b)=>String(BFCatalog.preorderDate(a)).localeCompare(String(BFCatalog.preorderDate(b)))||Number(a.featuredOrder||99)-Number(b.featuredOrder||99));section.hidden=!items.length;grid.innerHTML=items.length?homeMasterCards(items,'home-preorder-card',6):'';if(items.length)BFCatalog.bindVariantCards(grid,id=>items.find(x=>x.id===id));
+    const section=document.getElementById('homePreorderSection'),grid=document.getElementById('homePreorderGrid');
+    if(!section||!grid)return;
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));
+    let products=homeCatalog.filter(item=>item.deleted!==true&&item.available!==false&&visibleIds.has(item.category)&&BFCatalog.isPreorder(item));
+    products.sort((a,b)=>String(BFCatalog.preorderDate(a)).localeCompare(String(BFCatalog.preorderDate(b)))||Number(a.featuredOrder||99)-Number(b.featuredOrder||99));
+    section.hidden=!products.length;
+    if(!products.length){grid.innerHTML='';return;}
+    grid.innerHTML=products.slice(0,6).map(item=>{
+        const variants=BFCatalog.variants(item).filter(v=>v.available!==false),featured=homeFeaturedVariant(item)||variants[0],selectedId=featured?.id||'',price=BFCatalog.price(item,homeSettings),compare=BFCatalog.compareAtPrice(item,homeSettings),w=BFCatalog.wholesale(item),wholesaleQty=30>=Number(w.minQty||1)?30:Number(w.minQty||1),wholesalePrice=BFCatalog.wholesalePriceForQty(item,wholesaleQty),date=window.BFFulfilment?.shortDate?.(BFCatalog.preorderDate(item))||BFCatalog.preorderDate(item),fallback=BFCatalog.storefrontImage?.(item,homeCatalog,homeCategories)||BFCatalog.fallbackImage(item,homeCatalog,homeCategories);
+        const swatches=variants.map(v=>`<button type="button" class="home-preorder-swatch ${v.id===selectedId?'is-selected':''}" data-preorder-variant="${homeEscape(v.id)}" aria-label="${homeEscape(v.color||'Choose colour')}" aria-pressed="${v.id===selectedId?'true':'false'}" title="${homeEscape(v.color||'')}" style="--swatch:${homeEscape(homeVariantSwatch(v))}"><span></span></button>`).join('');
+        const retailUrl=`item.html?id=${encodeURIComponent(item.id)}${selectedId?`&variant=${encodeURIComponent(selectedId)}`:''}`;
+        const wholesaleUrl=`wholesale-product.html?id=${encodeURIComponent(item.id)}${selectedId?`&variant=${encodeURIComponent(selectedId)}`:''}`;
+        return `<article class="home-preorder-card" data-preorder-card data-product-id="${homeEscape(item.id)}" data-default-variant="${homeEscape(selectedId)}">
+            <a class="home-preorder-media" data-preorder-retail-link href="${retailUrl}">
+                <img data-preorder-image src="${homeEscape(featured?.image||fallback)}" alt="${homeEscape(item.name)}${featured?.color?` in ${homeEscape(featured.color)}`:''}" loading="lazy">
+                <span class="home-preorder-badge">Pre-order</span>
+            </a>
+            <div class="home-preorder-copy">
+                <div class="home-preorder-title-row">
+                    <div><h3>${homeEscape(item.name)}</h3><p data-preorder-colour>${homeEscape(featured?.color||item.subtitle||'')}</p></div>
+                </div>
+                ${swatches?`<div class="home-preorder-colour-line"><small>Colours</small><div class="home-preorder-swatches" role="group" aria-label="Available colours">${swatches}</div></div>`:''}
+                <div class="home-preorder-prices">
+                    <a href="${retailUrl}" data-preorder-retail-link><span>Retail</span><strong>${price?BFCatalog.priceHtml(price,compare):'View product'}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></strong></a>
+                    ${w.enabled&&wholesalePrice>0?`<a href="${wholesaleUrl}" data-preorder-wholesale-link><span>Wholesale · ${wholesaleQty} pcs</span><strong>${BF.money(wholesalePrice)}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></strong></a>`:''}
+                </div>
+                <div class="home-preorder-foot"><span>Fulfilment from ${homeEscape(date)}</span><a href="${retailUrl}" data-preorder-retail-link>View product</a></div>
+            </div>
+        </article>`;
+    }).join('');
+    grid.querySelectorAll('[data-preorder-card]').forEach(card=>{
+        const product=homeCatalog.find(p=>p.id===card.dataset.productId);if(!product)return;
+        const variants=BFCatalog.variants(product),defaultId=card.dataset.defaultVariant||variants[0]?.id||'',image=card.querySelector('[data-preorder-image]'),colour=card.querySelector('[data-preorder-colour]'),retailLinks=[...card.querySelectorAll('[data-preorder-retail-link]')],wholesaleLink=card.querySelector('[data-preorder-wholesale-link]');
+        let selected=defaultId;
+        const setVariant=(id)=>{
+            const v=BFCatalog.variant(product,id)||variants[0];if(!v)return;selected=v.id||id;
+            const src=v.image||BFCatalog.storefrontImage?.(product,homeCatalog,homeCategories)||BFCatalog.fallbackImage(product,homeCatalog,homeCategories);
+            if(image){image.src=src;image.alt=`${product.name||'Product'}${v.color?` in ${v.color}`:''}`;}
+            if(colour)colour.textContent=v.color||product.subtitle||'';
+            card.querySelectorAll('[data-preorder-variant]').forEach(btn=>{const active=btn.dataset.preorderVariant===selected;btn.classList.toggle('is-selected',active);btn.setAttribute('aria-pressed',active?'true':'false');});
+            const retail=`item.html?id=${encodeURIComponent(product.id)}${selected?`&variant=${encodeURIComponent(selected)}`:''}`;
+            retailLinks.forEach(a=>a.href=retail);
+            if(wholesaleLink)wholesaleLink.href=`wholesale-product.html?id=${encodeURIComponent(product.id)}${selected?`&variant=${encodeURIComponent(selected)}`:''}`;
+        };
+        setVariant(selected);
+        card.querySelectorAll('[data-preorder-variant]').forEach(btn=>{
+            const choose=()=>setVariant(btn.dataset.preorderVariant||selected);
+            btn.addEventListener('mouseenter',choose);
+            btn.addEventListener('focus',choose);
+            btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose();});
+        });
+    });
 }
-function renderHomeProducts(){
-    const productGrid=document.getElementById('homeProducts');if(!productGrid)return;const visible=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));
-    const catalogCandidates=homeCatalog.filter(item=>item.deleted!==true&&item.available!==false&&visible.has(item.category)&&!BFCatalog.isPreorder(item)).sort((a,b)=>Number(a.featuredOrder||99)-Number(b.featuredOrder||99));
-    const preorder=homeCatalog.filter(item=>item.deleted!==true&&item.available!==false&&visible.has(item.category)&&BFCatalog.isPreorder(item)).sort((a,b)=>String(BFCatalog.preorderDate(a)).localeCompare(String(BFCatalog.preorderDate(b)))||Number(a.featuredOrder||99)-Number(b.featuredOrder||99));
-    const smoothCandidates=(visible.has('smooth')?[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']]:[]).filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`}));
-    const picks=[];const addCatalog=item=>{if(item&&picks.filter(x=>x.kind==='catalog').length<4&&!picks.some(x=>x.kind==='catalog'&&x.id===item.id))picks.push({kind:'catalog',id:item.id,product:item});};
-    catalogCandidates.forEach(addCatalog);preorder.forEach(addCatalog);
-    smoothCandidates.slice(0,2).forEach(item=>picks.push({kind:'smooth',...item}));
-    if(picks.length<6){[...catalogCandidates,...preorder].forEach(item=>{if(picks.length<6)addCatalog(item);});smoothCandidates.slice(2).forEach(item=>{if(picks.length<6)picks.push({kind:'smooth',...item});});}
-    productGrid.innerHTML=picks.slice(0,6).map(item=>item.kind==='catalog'?homeMasterCards([item.product],'home-product',1):`<article class="home-product"><a href="${item.url}"><div class="image"><img src="${homeEscape(item.image)}" alt="${homeEscape(item.name)}" loading="lazy"></div></a><div class="meta"><h3>${homeEscape(item.name)}</h3><p>${item.price?BF.money(item.price):'View product'}</p><a class="add-mini stock-link" href="${item.url}">View product</a></div></article>`).join('');
-    BFCatalog.bindVariantCards(productGrid,id=>picks.find(x=>x.kind==='catalog'&&x.id===id)?.product||null);
+function renderHomeProducts() {
+    const productGrid=document.getElementById('homeProducts'); if(!productGrid)return;
+    const visibleIds=new Set(homeCategories.filter(c=>c.visible!==false).map(c=>c.id));
+    const smoothCandidates=(visibleIds.has('smooth')?[['Black','flat'],['Pink','twisted'],['Burgundy','flat'],['Royal Blue','twisted'],['Nude','flat']]:[]).filter(([colour,style])=>BF.variantAvailable(homeInventory,homeSettings,style,colour)).map(([colour,style])=>({kind:'smooth',name:`Smooth ${style[0].toUpperCase()+style.slice(1)} · ${colour}`,image:BF.imageForProduct(style,colour),price:BF.retailPrice(style),url:`product.html?color=${encodeURIComponent(colour)}&style=${style}`,preorder:false}));
+    const catalogCandidates=BFCatalog.expandVariants(homeCatalog.filter(item=>item.available!==false&&visibleIds.has(item.category))).map(item=>({kind:'catalog',name:item.variantId&&item.color?`${item.name} · ${item.color}`:item.name,image:BFCatalog.image(item,'flat',item.variantId)||BFCatalog.fallbackImage(item,homeCatalog,homeCategories),price:BFCatalog.price(item,homeSettings),compareAt:BFCatalog.compareAtPrice(item,homeSettings),url:`item.html?id=${encodeURIComponent(item.masterProductId||item.id)}${item.variantId?`&variant=${encodeURIComponent(item.variantId)}`:''}`,preorder:BFCatalog.isPreorder(item),date:BFCatalog.preorderDate(item)}));
+    const pool=[...catalogCandidates,...smoothCandidates],shuffled=[...pool].sort(()=>Math.random()-.5),picks=[];for(const item of shuffled){if(picks.length===4)break;if(!picks.some(p=>p.name===item.name))picks.push(item)}
+    productGrid.innerHTML=picks.map(item=>`<article class="home-product"><a href="${item.url}"><div class="image"><img src="${item.image}" alt="${escapeHTML(item.name)}" loading="lazy">${item.preorder?'<span class="home-stock-chip preorder-chip">Pre-order</span>':''}</div></a><div class="meta"><h3>${escapeHTML(item.name)}</h3><p>${item.price?BFCatalog.priceHtml(item.price,item.compareAt||0):'View product'}${item.preorder&&item.date?`<small>From ${escapeHTML(window.BFFulfilment?.shortDate?.(item.date)||item.date)}</small>`:''}</p><a class="add-mini stock-link" href="${item.url}">View product</a></div></article>`).join('');
 }
+
 
 /* ==========================================================
    SHOP BY COLOUR

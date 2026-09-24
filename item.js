@@ -1,4 +1,4 @@
-let currentItem=null,currentView=null,currentSettings={},selectedSize='',selectedRibbedStyle='flat',selectedVariantId='',qty=1,allItems=[],allCategories=[];
+let currentItem=null,currentView=null,currentSettings={},selectedSize='',selectedRibbedStyle='flat',selectedVariantId='',qty=1,allItems=[],allCategories=[],itemGalleryImages=[],itemGalleryIndex=0;
 const $id=id=>document.getElementById(id);
 const apparelSizeOrder=['2XS','XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
 function esc(v=''){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
@@ -15,36 +15,29 @@ function itemTitle(){if(currentItem?.category==='ribbed'&&!hasColorVariants()){c
 function renderVariantPicker(){const box=$id('itemVariantArea');if(!box)return;if(!hasColorVariants()){box.hidden=true;box.innerHTML='';return;}const variants=BFCatalog.variants(currentItem);box.hidden=false;box.innerHTML=`<div class="option-label"><span>Select a colour</span><small id="selectedVariantLabel">${esc(activeProduct().color||'Choose one to continue')}</small></div><div class="item-variant-grid" role="group" aria-label="Product colours">${variants.map(v=>`<button type="button" class="item-variant-option ${v.id===selectedVariantId?'active':''}" data-variant-id="${esc(v.id)}"><span class="item-variant-thumb">${v.image?`<img src="${esc(v.image)}" alt="">`:'<i class="fa-regular fa-image"></i>'}</span><span>${esc(v.color)}</span></button>`).join('')}</div>`;box.querySelectorAll('[data-variant-id]').forEach(btn=>btn.onclick=()=>{selectedVariantId=btn.dataset.variantId||'';selectedSize='';qty=1;renderItemView();if(window.innerWidth<=700)requestAnimationFrame(()=>document.querySelector('.catalog-pdp-image')?.scrollIntoView({behavior:'smooth',block:'start'}));});}
 function renderSizePicker(){const area=$id('itemSizeArea'),box=$id('itemSizes');if(!area||!box)return;const entries=BFCatalog.sizeEntries(currentItem,hasColorVariants()?selectedVariantId:''),sizes=Object.fromEntries(entries),preorder=itemIsPreorder();if(!entries.length){area.hidden=true;box.innerHTML='';return;}area.hidden=false;box.innerHTML=sortedSizes(sizes).map(([size,d])=>{const disabled=!preorder&&(d.available===false||Number(d.stock||0)<=0);return `<button class="tube-size-btn ${size===selectedSize?'active':''}" data-size="${esc(size)}" ${disabled?'disabled':''}>${esc(size)}</button>`}).join('');box.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=b.dataset.size||'';qty=1;showError();$id('selectedSizeLabel').textContent=`Selected: ${selectedSize}`;box.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));updateBuy();});}
 function renderFulfilmentNotice(){const box=$id('itemFulfilmentNotice');if(!box)return;const preorder=itemIsPreorder();if(!preorder){box.hidden=true;box.innerHTML='';return;}const date=window.BFFulfilment?.formatDate?.(BFCatalog.preorderDate(currentItem))||BFCatalog.preorderDate(currentItem)||'the announced date';box.hidden=false;box.innerHTML=`<i class="fa-regular fa-calendar" aria-hidden="true"></i><div><strong>Pre-order</strong><span>This item is not ready for immediate delivery yet. You can pay for it now and we will prepare it for fulfilment from <strong>${esc(date)}</strong>.</span><small>When you add ready-to-ship items to the same bag, checkout will let you choose whether to receive those items first or have everything delivered together.</small></div>`;}
-function renderItemWholesaleLink(){
-  const link=$id('itemWholesaleLink');
-  if(!link)return;
-  const eligible=BFCatalog.isWholesale(currentItem);
-  if(!eligible){link.hidden=true;return;}
-  let url='';
-  if(currentItem.category==='ribbed') url=`hairbands-wholesale.html?material=ribbed&style=${encodeURIComponent(selectedRibbedStyle)}`;
-  else url=`wholesale-product.html?id=${encodeURIComponent(currentItem.id)}${hasColorVariants()&&selectedVariantId?`&variant=${encodeURIComponent(selectedVariantId)}`:''}`;
-  link.href=url;
-  link.hidden=false;
-}
-function renderItemRelated(){
-  const swatchHex=x=>(x?.hex||((BF.colors||[]).find(([name])=>String(name).toLowerCase()===String(x?.color||'').toLowerCase())||[])[1]||'#ddd');
-  const grid=$id('itemRelated');
-  if(!grid||!currentItem)return;
-  const sameCategory=allItems.filter(x=>x.id!==currentItem.id&&x.deleted!==true&&x.available!==false&&x.category===currentItem.category);
-  const other=allItems.filter(x=>x.id!==currentItem.id&&x.deleted!==true&&x.available!==false&&x.category!==currentItem.category);
-  const related=[...sameCategory,...other].filter((item,i,list)=>list.findIndex(x=>x.id===item.id)===i).slice(0,4);
-  if(!related.length){grid.innerHTML='';return;}
-  grid.innerHTML=related.map(product=>{
-    const v=BFCatalog.featuredVariant(product),pre=BFCatalog.isPreorder(product);
-    const image=BFCatalog.variantImage(product,v?.id||'',allItems,allCategories);
-    const url=`item.html?id=${encodeURIComponent(product.id)}${v?.id?`&variant=${encodeURIComponent(v.id)}`:''}`;
-    const price=BFCatalog.price(product,currentSettings),compare=BFCatalog.compareAtPrice(product,currentSettings);
-    const swatches=BFCatalog.variants(product).length>1?`<div class="bf-card-swatches" aria-label="Available colours">${BFCatalog.variants(product).map(x=>`<button class="bf-card-swatch${x.id===v?.id?' is-active':''}" type="button" data-card-variant="${esc(x.id)}" title="${esc(x.color)}" aria-label="Choose ${esc(x.color)}" aria-pressed="${x.id===v?.id?'true':'false'}"><span style="--swatch:${esc(swatchHex(x))}"></span><small>${esc(x.color)}</small></button>`).join('')}</div>`:'';
-    return `<article class="catalog-tile bf-variant-card pdp-related-card" data-bf-variant-card data-product-id="${esc(product.id)}"><a class="catalog-tile-link" href="${url}" data-card-link><div class="catalog-tile-media"><img data-card-image src="${esc(image)}" alt="${esc(product.name)}${v?.color?' in '+esc(v.color):''}" loading="lazy">${pre?'<span class="catalog-tile-badge preorder">Pre-order</span>':''}</div><div class="catalog-tile-copy"><h3>${esc(product.name)}</h3><p class="bf-card-colour" data-card-colour>${esc(v?.color||product.subtitle||'')}</p>${swatches}<strong>${price?BFCatalog.priceHtml(price,compare):'View product'}</strong>${pre&&BFCatalog.preorderDate(product)?`<small class="catalog-fulfilment-date">Fulfilment from ${esc(window.BFFulfilment?.shortDate?.(BFCatalog.preorderDate(product))||BFCatalog.preorderDate(product))}</small>`:''}</div></a></article>`;
-  }).join('');
-  BFCatalog.bindVariantCards(grid,id=>related.find(x=>x.id===id)||null);
-}
 function updateRibbedStyleUI(){if(currentItem?.category!=='ribbed'||hasColorVariants())return;const styleName=selectedRibbedStyle==='twisted'?'Twisted':'Flat',d=currentVariant();$id('itemStyles')?.querySelectorAll('[data-item-style]').forEach(b=>b.classList.toggle('active',b.dataset.itemStyle===selectedRibbedStyle));if($id('selectedStyleLabel'))$id('selectedStyleLabel').textContent=`Selected: ${styleName}`;if($id('itemImage')){$id('itemImage').src=BFCatalog.image(currentItem,selectedRibbedStyle);$id('itemImage').alt=`${styleName} ${currentItem.name}`;}history.replaceState(null,'',`item.html?id=${encodeURIComponent(currentItem.id)}&style=${selectedRibbedStyle}`);if(d.available===false||Number(d.stock??0)<=0)showError(`${styleName} is currently sold out in this colour.`);else showError();}
+function setItemGalleryImage(index,openLightbox=false,scrollToImage=false){
+  if(!itemGalleryImages.length)return;
+  itemGalleryIndex=Math.max(0,Math.min(index,itemGalleryImages.length-1));const src=itemGalleryImages[itemGalleryIndex],image=$id('itemImage');if(image){image.src=src;image.alt=itemTitle();}
+  $id('itemGallery')?.querySelectorAll('[data-gallery-index]').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.galleryIndex||0)===itemGalleryIndex));
+  if(scrollToImage&&window.innerWidth<=700)requestAnimationFrame(()=>document.querySelector('.catalog-pdp-image')?.scrollIntoView({behavior:'smooth',block:'start'}));
+  if(openLightbox)openItemLightbox(itemGalleryIndex);
+}
+function ensureItemLightbox(){
+  let box=$id('bfItemLightbox');
+  if(box)return box;
+  box=document.createElement('div');box.id='bfItemLightbox';box.className='bf-item-lightbox';box.hidden=true;box.setAttribute('aria-hidden','true');box.innerHTML=`<div class="bf-item-lightbox-backdrop" data-lightbox-close></div><div class="bf-item-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Product image"><button type="button" class="bf-item-lightbox-close" data-lightbox-close aria-label="Close image">×</button><div class="bf-item-lightbox-image-wrap"><img id="bfItemLightboxImage" src="" alt=""></div><div class="bf-item-lightbox-controls"><button type="button" id="bfItemLightboxPrev" aria-label="Previous image">← Previous</button><span id="bfItemLightboxCount">1 / 1</span><button type="button" id="bfItemLightboxNext" aria-label="Next image">Next →</button></div></div>`;
+  document.body.appendChild(box);
+  box.querySelectorAll('[data-lightbox-close]').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)closeItemLightbox();}));
+  $id('bfItemLightboxPrev').onclick=()=>openItemLightbox(itemGalleryIndex-1);
+  $id('bfItemLightboxNext').onclick=()=>openItemLightbox(itemGalleryIndex+1);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)closeItemLightbox();if(!box.hidden&&e.key==='ArrowLeft')openItemLightbox(itemGalleryIndex-1);if(!box.hidden&&e.key==='ArrowRight')openItemLightbox(itemGalleryIndex+1);});
+  return box;
+}
+function openItemLightbox(index=0){
+  const box=ensureItemLightbox();if(!itemGalleryImages.length)return;itemGalleryIndex=((index%itemGalleryImages.length)+itemGalleryImages.length)%itemGalleryImages.length;const img=$id('bfItemLightboxImage');if(img){img.src=itemGalleryImages[itemGalleryIndex];img.alt=itemTitle();}const count=$id('bfItemLightboxCount');if(count)count.textContent=`${itemGalleryIndex+1} / ${itemGalleryImages.length}`;const prev=$id('bfItemLightboxPrev'),next=$id('bfItemLightboxNext');if(prev){prev.disabled=itemGalleryImages.length<2;prev.hidden=itemGalleryImages.length<2;}if(next){next.disabled=itemGalleryImages.length<2;next.hidden=itemGalleryImages.length<2;}box.hidden=false;box.setAttribute('aria-hidden','false');document.body.classList.add('product-lightbox-open');requestAnimationFrame(()=>box.classList.add('is-open'));}
+function closeItemLightbox(){const box=$id('bfItemLightbox');if(!box)return;box.classList.remove('is-open');box.setAttribute('aria-hidden','true');document.body.classList.remove('product-lightbox-open');setTimeout(()=>{box.hidden=true;},180);}
+function bindMainImageLightbox(){const image=$id('itemImage');if(!image)return;image.onclick=()=>openItemLightbox(itemGalleryIndex);image.setAttribute('role','button');image.setAttribute('tabindex','0');image.setAttribute('aria-label','Open product image');image.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!$id('bfItemLightbox'))return; if(e.key==='Enter'||e.key===' '){e.preventDefault();openItemLightbox(itemGalleryIndex);}};}
 function renderItemView(){
   currentView=activeProduct();
   const title=itemTitle(),img=currentImage(),preorder=itemIsPreorder(),categoryInfo=allCategories.find(c=>c.id===currentItem.category),p=BFCatalog.price(currentItem,currentSettings),compareAt=BFCatalog.compareAtPrice(currentItem,currentSettings);
@@ -54,12 +47,12 @@ function renderItemView(){
   $id('itemName').textContent=title;$id('itemCrumb').textContent=title;$id('itemDescription').textContent=currentItem.description||'';$id('itemDetailsAccordion').textContent=currentItem.description||'';$id('itemImage').src=img;$id('itemImage').alt=title;$id('itemShadeTab').textContent=currentView.color||currentItem.subtitle||currentItem.name;$id('itemCategory').textContent=currentItem.category==='ribbed'?'Ribbed Hairband':(categoryInfo?.name||'Band Factory Collection');
   const saving=$id('itemSavingNote');if(saving){saving.innerHTML=p?BFCatalog.savingsHtml(p,compareAt):'';saving.hidden=!saving.innerHTML;}$id('itemPrice').innerHTML=p?BFCatalog.priceHtml(p,compareAt,'pdp-sale-price'):'Price available soon';
   const features=(currentView.subtitle||currentView.color||'').split('·').map(x=>x.trim()).filter(Boolean).slice(0,4);$id('itemFeatureRow').innerHTML=features.map(x=>`<span>${esc(x)}</span>`).join('');$id('itemPackNote').innerHTML=currentItem.packSize?`<i class="fa-solid fa-layer-group"></i> ${currentItem.packSize}-piece purchase.`:'';
-  renderVariantPicker();renderFulfilmentNotice();renderItemWholesaleLink();renderSizePicker();
-  const gallery=[img,...(currentView.images||[]),...(currentItem.images||[])].filter((x,i,a)=>x&&a.indexOf(x)===i),galleryBox=$id('itemGallery');if(galleryBox){galleryBox.hidden=gallery.length<=1;if(gallery.length>1)galleryBox.innerHTML=gallery.map((url,i)=>`<button type="button" class="${i===0?'active':''}" data-gallery-image="${esc(url)}"><img src="${esc(url)}" alt="${esc(title)}"></button>`).join('');galleryBox.querySelectorAll('[data-gallery-image]').forEach(btn=>btn.onclick=()=>{const image=$id('itemImage');image.src=btn.dataset.galleryImage;galleryBox.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===btn));if(window.innerWidth<=700){document.querySelector('.catalog-pdp-image')?.scrollIntoView({behavior:'smooth',block:'start'});}});}
+  renderVariantPicker();renderFulfilmentNotice();renderSizePicker();
+  const gallery=[img,...(currentView.images||[]),...(currentItem.images||[])].filter((x,i,a)=>x&&a.indexOf(x)===i);itemGalleryImages=gallery;itemGalleryIndex=0;const galleryBox=$id('itemGallery');if(galleryBox){galleryBox.hidden=gallery.length<=1;if(gallery.length>1)galleryBox.innerHTML=gallery.map((url,i)=>`<button type="button" class="${i===0?'active':''}" data-gallery-index="${i}"><img src="${esc(url)}" alt="${esc(title)}"></button>`).join('');galleryBox.querySelectorAll('[data-gallery-index]').forEach(btn=>btn.onclick=()=>{const i=Number(btn.dataset.galleryIndex||0);setItemGalleryImage(i,false,true);});}ensureItemLightbox();
+  bindMainImageLightbox();
   if(currentItem.category==='ribbed'&&!hasColorVariants()){$id('itemStyleArea').hidden=false;$id('itemStyles').querySelectorAll('[data-item-style]').forEach(b=>b.onclick=()=>{selectedRibbedStyle=b.dataset.itemStyle==='twisted'?'twisted':'flat';qty=1;renderItemView();});updateRibbedStyleUI();}else $id('itemStyleArea').hidden=true;
   const back=$id('itemBackLink');if(back){back.href=currentItem.category==='ribbed'?`ribbed.html?style=${selectedRibbedStyle}`:currentItem.category==='tops'?'tops.html':currentItem.category==='sets'?'sets.html':BFCatalog.categoryUrl(categoryInfo);back.innerHTML=`<i class="fa-solid fa-arrow-left"></i> Back to ${esc(categoryInfo?.name||'collection')}`;}
   updateBuy();
-  renderItemRelated();
 }
 function updateBuy(){const price=BFCatalog.price(currentItem,currentSettings),btn=$id('itemAdd');$id('qtyValue').textContent=qty;if(!btn)return;const preorder=itemIsPreorder(),p=activeProduct(),noStock=!preorder&&BFCatalog.stock(currentItem,selectedSize,hasColorVariants()?selectedVariantId:'')<=0;btn.textContent=itemHasSizes()&&!selectedSize?'Choose a size':price?`Add to Bag · ${BF.money(price*qty)}`:'Add to Bag';btn.disabled=p.available===false||(!preorder&&noStock)||(itemHasSizes()&&!selectedSize);}
 async function initItem(){

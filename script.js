@@ -90,25 +90,6 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     if(found){found.qty+=qty;found.price=amount;found.fulfilmentType=line.fulfilmentType;found.fulfilmentDate=line.fulfilmentDate;found.color=line.color;found.image=line.image;}else cart.push(line);
     this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
   },
-  addWholesaleProductMix(item,total,unitPrice,allocations=[]){
-    const wholesale=window.BFCatalog?.wholesale?.(item)||{enabled:false,minQty:1,tiers:[]};
-    const qty=Math.max(0,Math.floor(Number(total||0))),price=Number(unitPrice||0);
-    const clean=Array.isArray(allocations)?allocations.map(x=>({variantId:String(x?.variantId||''),size:String(x?.size||''),qty:Math.max(0,Math.floor(Number(x?.qty||0)))})).filter(x=>x.qty>0):[];
-    if(!wholesale.enabled)return this.toast('This product is not available for wholesale right now.');
-    if(qty<wholesale.minQty)return this.toast(`Choose at least ${wholesale.minQty} pieces.`);
-    if(!price)return this.toast('Wholesale pricing has not been set for this quantity yet.');
-    if(clean.reduce((sum,x)=>sum+x.qty,0)!==qty)return this.toast('Please make sure your colour and size quantities add up correctly.');
-    const fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
-    const featured=window.BFCatalog?.featuredVariant?.(item);
-    const firstImage=featured?.image||item.image||window.BFCatalog?.image?.(item,'flat',featured?.id)||'';
-    const line={key:`wholesale-product-mix-${item.id}`,type:'wholesale-product',productId:item.id,variantId:'',name:item.name||'Wholesale product',size:'',qty,price,image:firstImage,category:item.category||'',color:'',fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,packSize:Number(item.packSize||1),variants:clean};
-    const cart=this.getCart();
-    const found=cart.find(i=>i.key===line.key);
-    if(found)Object.assign(found,line);else cart.push(line);
-    this.saveCart(cart);
-    this.toast(`${item.name||'Product'} wholesale order added to your Bag`);
-    this.openDrawer('bagDrawer');
-  },
   addWholesaleProduct(item,size='',qty=1,variantId=''){
     const cleanSize=String(size||''),cleanVariant=String(variantId||'');
     const wholesale=window.BFCatalog?.wholesale?.(item)||{enabled:false,minQty:1,tiers:[]};
@@ -121,6 +102,23 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const line={key,type:'wholesale-product',productId:item.id,variantId:cleanVariant,name:cleanVariant&&view.color?`${item.name} · ${view.color}`:item.name,size:cleanSize,qty:cleanQty,price:unitPrice,image:window.BFCatalog?.image?.(item,'flat',cleanVariant)||item.image||'',category:item.category||'',color:view.color||item.color||'',fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,packSize:Number(item.packSize||1)};
     if(found){found.qty+=cleanQty;found.price=Number(window.BFCatalog?.wholesalePriceForQty?.(item,found.qty)||unitPrice);found.wholesaleTiers=wholesale.tiers;found.wholesaleMinQty=wholesale.minQty;}else cart.push(line);
     this.saveCart(cart);this.toast(`${item.name} wholesale added to your Bag`);this.openDrawer('bagDrawer');
+  },
+  addWholesaleProductMix(item,totalQty=0,unitPrice=0,selections=[]){
+    const wholesale=window.BFCatalog?.wholesale?.(item)||{enabled:false,minQty:1,tiers:[]};
+    const cleanTotal=Math.max(0,Math.floor(Number(totalQty||0))),cleanSelections=Array.isArray(selections)?selections.map(sel=>({variantId:String(sel?.variantId||''),size:String(sel?.size||''),qty:Math.max(0,Math.floor(Number(sel?.qty||0)))})).filter(sel=>sel.qty>0):[];
+    if(!wholesale.enabled)return this.toast('This product is not available for wholesale right now.');
+    if(cleanTotal<wholesale.minQty)return this.toast(`Choose at least ${wholesale.minQty} pieces.`);
+    const calculatedTotal=cleanSelections.reduce((sum,sel)=>sum+sel.qty,0);if(calculatedTotal!==cleanTotal)return this.toast('Please review your colour and size quantities.');
+    const price=Number(unitPrice||window.BFCatalog?.wholesalePriceForQty?.(item,cleanTotal)||0);if(price<=0)return this.toast('Wholesale pricing has not been set for this quantity yet.');
+    const fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
+    const mixId=`wpmix-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
+    const cart=this.getCart();
+    cleanSelections.forEach(sel=>{
+      const view=sel.variantId&&window.BFCatalog?.variantView?.(item,sel.variantId)?window.BFCatalog.variantView(item,sel.variantId):item;
+      const colour=view?.color||item.color||'';
+      cart.push({key:`wholesale-product-${item.id}-mix-${mixId}-${sel.variantId||'default'}-${sel.size||'one'}`,type:'wholesale-product',productId:item.id,variantId:sel.variantId,name:colour?`${item.name} · ${colour}`:item.name,size:sel.size,qty:sel.qty,price,image:view?.image||window.BFCatalog?.image?.(item,'flat',sel.variantId)||item.image||'',category:item.category||'',color:colour,fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,wholesaleMixId:mixId,wholesaleMixProductId:item.id,wholesaleMixTotalQty:cleanTotal,packSize:Number(item.packSize||1)});
+    });
+    this.saveCart(cart);this.toast(`${cleanTotal} wholesale pieces added to your Bag`);this.openDrawer('bagDrawer');
   },
   addWholesale(bundle,allocations,mode='custom',style='flat',material='smooth',styleAllocations=null){
     const cart=this.getCart();
@@ -174,7 +172,7 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
     if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a product you love or build a wholesale order.</p><a class="btn" href="shop.html">Shop the collection</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>{const mix=Array.isArray(i.variants)&&i.variants.length;const mixText=mix?i.variants.map(v=>`${Number(v.qty||0)} × ${v.color||'Colour'}${v.size?` · ${v.size}`:''}`).join(', '):'';const meta=i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:i.type==='wholesale-product'?(mix?`Wholesale · ${mixText}`:`Wholesale${i.color?` · ${i.color}`:''}${i.size?` · Size ${i.size}`:''} · ${i.qty} units`):i.type==='apparel'?`Black · Size ${i.size}`:i.type==='simple'?'Band Factory collection':`${i.color||i.category||'Product'}${i.style?` · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`:''}`;const preorder=(i.fulfilmentType==='preorder'||i.preorder===true);const edit=mix?`<a class="remove-link bag-edit-wholesale" href="wholesale-product.html?id=${encodeURIComponent(i.productId)}${i.variants[0]?.variantId?`&variant=${encodeURIComponent(i.variants[0].variantId)}`:''}">Edit wholesale mix</a>`:'';const controls=mix?`<span class="bag-fixed-qty">${i.qty} pieces</span>`:`<div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div>`;return `<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${meta}${preorder?' · Pre-order':''}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong>${controls}</div>${edit}<button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`}).join('');
+    body.innerHTML=cart.map((i,idx)=>{const meta=i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:i.type==='wholesale-product'?`Wholesale${i.color?` · ${i.color}`:''}${i.size?` · Size ${i.size}`:''} · ${i.qty} units`:i.type==='apparel'?`Black · Size ${i.size}`:i.type==='simple'?'Band Factory collection':`${i.color||i.category||'Product'}${i.style?` · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`:''}`;const preorder=(i.fulfilmentType==='preorder'||i.preorder===true);return `<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${meta}${preorder?' · Pre-order':''}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`}).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   async managedCartStockError(cart){

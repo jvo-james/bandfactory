@@ -1,76 +1,140 @@
-.wholesale-product-page{padding:28px 0 90px;background:linear-gradient(180deg,#fff 0,#fff8fa 48%,#fff 100%);min-height:72vh}.wholesale-product-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:22px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8c7e84}.wholesale-product-breadcrumb a{color:#2b2226;text-decoration:none}.wholesale-product-breadcrumb a:hover{text-decoration:underline}.wholesale-product-loading[hidden],.wholesale-product-shell[hidden],.wholesale-product-error[hidden]{display:none!important}.wholesale-product-loading{min-height:55vh;display:grid;place-items:center;text-align:center;align-content:center;gap:11px;color:#806f76}.wholesale-product-loading .admin-spinner{display:block;width:28px;height:28px;border:2px solid #eadde2;border-top-color:#a9667d;border-radius:50%;animation:wholesaleProductSpin .8s linear infinite}@keyframes wholesaleProductSpin{to{transform:rotate(360deg)}}
-.wholesale-product-shell{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(420px,.94fr);gap:54px;align-items:start}.wholesale-product-gallery{position:sticky;top:28px}.wholesale-product-main-media{aspect-ratio:4/5;background:#f7f1f3;overflow:hidden;border:1px solid #eee1e6}.wholesale-product-main-media img{width:100%;height:100%;object-fit:cover;display:block}.wholesale-product-thumbs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:10px}.wholesale-product-thumb{border:1px solid #eadde2;background:#fff;padding:0;aspect-ratio:1;overflow:hidden;cursor:pointer}.wholesale-product-thumb.is-active{border-color:#241b1f;box-shadow:0 0 0 1px #241b1f}.wholesale-product-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.wholesale-product-details{min-width:0;padding:6px 0}.wholesale-product-eyebrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:#88777e;font-weight:800}.wholesale-product-eyebrow #wholesaleProductBadge{display:inline-flex;padding:5px 7px;border:1px solid #e5bccb;background:#fff1f6;color:#963c61}.wholesale-product-details h1{font-family:var(--serif);font-size:clamp(46px,5.8vw,78px);line-height:.92;letter-spacing:-.05em;font-weight:400;margin:12px 0;color:#1b1518}.wholesale-product-subtitle{font-size:13px;line-height:1.65;color:#71646a;margin:0}.wholesale-product-price-row{margin-top:22px;display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}.wholesale-product-price-row .retail-current{font-size:20px;font-weight:800}.wholesale-product-price-row del{color:#a09197;font-size:14px}.wholesale-product-price-row .sale-pill{display:inline-flex;padding:4px 7px;background:#20191c;color:#fff;font-size:8px;text-transform:uppercase;letter-spacing:.11em;font-weight:800}.wholesale-product-saving{font-size:10px;color:#8c586b;margin:8px 0 0;min-height:8px}.wholesale-product-preorder{margin-top:20px;padding:15px 16px;border:1px solid #e9c2d0;background:#fff1f6}.wholesale-product-preorder:before{content:'PRE-ORDER';display:block;font-size:8px;letter-spacing:.15em;font-weight:900;color:#8b5168;margin-bottom:8px}.wholesale-product-preorder strong{display:none}.wholesale-product-preorder p,.wholesale-product-preorder small{margin:0;color:#66585e;font-size:11px;line-height:1.65}.wholesale-product-preorder small{display:block;margin-top:7px}.wholesale-product-copy{margin-top:20px;font-size:13px;line-height:1.8;color:#5f555a}.wholesale-product-copy p{margin:0 0 10px}
-.wholesale-product-option{margin-top:24px;padding-top:19px;border-top:1px solid #eee2e7}.wholesale-product-option>span{display:block;margin-bottom:10px;font-size:9px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:#6c5f64}.wholesale-featured-colour{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #ded2d6;background:#fff}.wholesale-featured-dot,.wholesale-colour-swatch{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--swatch,#ddd);border:1px solid rgba(0,0,0,.12);box-shadow:0 0 0 3px #fff,0 0 0 4px #e7dadd}.wholesale-featured-colour strong{font-size:12px}.wholesale-featured-colour small{display:block;color:#8b7c82;font-size:9px;margin-left:auto}
-.wholesale-builder-intro{display:flex;justify-content:space-between;gap:18px;align-items:end;margin-top:28px}.wholesale-builder-kicker{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.15em;color:#8f6174;font-weight:900}.wholesale-builder-intro h2{font-family:var(--serif);font-size:clamp(32px,4vw,48px);line-height:.95;font-weight:500;margin:7px 0 9px;letter-spacing:-.035em}.wholesale-builder-intro p{font-size:11px;line-height:1.6;color:#7c6c73;margin:0;max-width:580px}.wholesale-builder-progress{min-width:140px;padding:13px 14px;border:1px solid #e6d9de;background:#fff;text-align:right}.wholesale-builder-progress strong{display:block;font-size:22px;letter-spacing:-.02em}.wholesale-builder-progress small{display:block;font-size:8px;color:#8b7c82;margin-top:4px;line-height:1.4}
-.wholesale-product-wholesale-card{margin-top:18px;padding:16px;border:1px solid #dfd2d8;background:#fff}.wholesale-product-wholesale-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}.wholesale-product-wholesale-head>div span{display:block;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#8d7d84;font-weight:800}.wholesale-product-wholesale-head strong{display:block;margin-top:5px;font-size:20px}.wholesale-product-min{font-size:9px;color:#7d7075;text-align:right}.wholesale-product-wholesale-card>p{font-size:9px;line-height:1.55;color:#877980;margin:8px 0 11px}.wholesale-product-tiers{display:flex;gap:6px;flex-wrap:wrap}.wholesale-tier-row{flex:1 1 150px;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 10px;background:#fbf6f8;border:1px solid #eee3e7;font-size:9px;color:#4a3f44}.wholesale-tier-row strong{font-size:10px}.wholesale-tier-row.is-active{background:#f4e7ec;border-color:#d6abbc}
-.wholesale-allocation-builder{margin-top:16px;display:grid;gap:10px}.wholesale-colour-card{border:1px solid #e3d7dc;background:#fff}.wholesale-colour-card.is-current{border-color:#c8a2b0;box-shadow:0 10px 32px rgba(53,20,35,.05)}.wholesale-colour-card header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 13px;border-bottom:1px solid #eee4e8}.wholesale-colour-heading{display:flex;align-items:center;gap:10px;min-width:0}.wholesale-colour-heading>div{min-width:0}.wholesale-colour-heading strong{display:block;font-size:11px}.wholesale-colour-heading small{display:block;color:#8a7b82;font-size:8px;margin-top:3px}.wholesale-colour-focus{border:1px solid #ddd1d6;background:#fff;padding:7px 9px;font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;cursor:pointer}.wholesale-colour-focus:hover{border-color:#2b2226}.wholesale-size-matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;padding:11px 13px 14px}.wholesale-size-cell{display:grid;grid-template-columns:1fr;gap:5px}.wholesale-size-cell>span{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#5d5056}.wholesale-size-cell input{height:42px;border:1px solid #ddd2d7;background:#fff;padding:0 10px;font-size:13px;font-weight:800;outline:0}.wholesale-size-cell input:focus{border-color:#9d7483;box-shadow:0 0 0 3px rgba(157,116,131,.1)}.wholesale-size-cell input:disabled{background:#f5f0f2;color:#b0a4a9;cursor:not-allowed}.wholesale-size-cell small{font-size:7px;color:#94858b}.wholesale-size-cell.is-disabled{opacity:.58}.wholesale-builder-empty{padding:24px;border:1px dashed #d8cbd1;background:#fff;color:#7c6e74;font-size:10px}
-.wholesale-product-buy{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:15px;background:#171316;color:#fff}.wholesale-product-total span{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.12em;opacity:.68;font-weight:800}.wholesale-product-total strong{display:block;font-size:24px;line-height:1;margin-top:4px}.wholesale-product-total small{display:block;margin-top:5px;font-size:8px;color:#d0c4c8}.wholesale-product-add{min-height:48px;border:1px solid #fff;background:#fff;color:#171316;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:15px;cursor:pointer;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:900}.wholesale-product-add:hover{background:#f5e9ed}.wholesale-product-add:disabled{opacity:.35;cursor:not-allowed}.wholesale-product-add.is-ready{opacity:1}.wholesale-product-note{margin:9px 0 0;font-size:9px;line-height:1.5;color:#8d7e84}.wholesale-product-back{display:inline-flex;align-items:center;gap:8px;margin-top:22px;color:#3a2f34;text-decoration:none;font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.wholesale-product-back:hover{text-decoration:underline}.wholesale-product-error{padding:100px 20px;text-align:center;max-width:560px;margin:0 auto}.wholesale-product-error h1{font-family:var(--serif);font-size:46px;font-weight:400;line-height:.98;margin:12px 0}.wholesale-product-error p{font-size:12px;line-height:1.7;color:#786b71}
-@media(max-width:1050px){.wholesale-product-shell{grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);gap:34px}.wholesale-product-details h1{font-size:60px}}
-@media(max-width:760px){.wholesale-product-page{padding-top:18px}.wholesale-product-shell{display:block}.wholesale-product-gallery{position:static}.wholesale-product-main-media{aspect-ratio:1/1.13}.wholesale-product-thumbs{grid-template-columns:repeat(5,minmax(0,1fr))}.wholesale-product-details{padding-top:26px}.wholesale-product-details h1{font-size:52px}.wholesale-builder-intro{display:grid;grid-template-columns:1fr;gap:12px}.wholesale-builder-progress{text-align:left;min-width:0}.wholesale-size-matrix{grid-template-columns:repeat(3,minmax(0,1fr));padding:10px}.wholesale-product-buy{grid-template-columns:1fr}.wholesale-product-add{width:100%}.wholesale-product-wholesale-head{display:grid;gap:7px}.wholesale-product-min{text-align:left}.wholesale-featured-colour small{margin-left:auto}}
-@media(max-width:520px){.wholesale-product-page{padding-bottom:55px}.wholesale-product-breadcrumb{font-size:8px}.wholesale-product-details h1{font-size:44px}.wholesale-product-main-media{aspect-ratio:1/1.22}.wholesale-size-matrix{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.wholesale-colour-card header{padding:11px}.wholesale-colour-focus{padding:6px 7px}.wholesale-builder-intro h2{font-size:38px}.wholesale-product-buy{padding:13px}.wholesale-product-add{font-size:8px}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Band Factory wholesale product details, pricing, minimum order quantities and fulfilment information.">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="Band Factory">
+  <meta property="og:title" content="Wholesale Product | Band Factory Ghana">
+  <meta property="og:description" content="View wholesale pricing, sizes, colours and ordering information for Band Factory products.">
+  <meta property="og:url" content="https://bandfactory.store/wholesale-product.html">
+  <meta property="og:image" content="https://bandfactory.store/images/second-skin-tee.jpg">
+  <title>Wholesale Product | Band Factory Ghana</title>
+  <link rel="icon" type="image/jpg" href="images/logo.jpg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="catalog.css">
+  <link rel="stylesheet" href="wholesale-product.css">
+  <link rel="stylesheet" href="track-order.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="nav-wrap">
+    <button class="mobile-toggle" aria-label="Open menu"><span></span></button>
+    <nav class="nav-left">
+      <div class="shop-nav-dropdown shop-nav-desktop" data-shop-dropdown>
+        <div class="shop-nav-trigger">
+          <a class="nav-link shop-main-link" href="shop.html">Shop</a>
+          <button class="shop-dropdown-toggle" type="button" data-shop-toggle aria-label="Show Shop categories" aria-expanded="false"><span aria-hidden="true">⌄</span></button>
+        </div>
+        <div class="shop-dropdown-menu" role="menu">
+          <a href="smooth.html" role="menuitem"><span>Smooth</span><i aria-hidden="true">→</i></a>
+          <a href="ribbed.html" role="menuitem"><span>Ribbed</span><i aria-hidden="true">→</i></a>
+          <a href="tops.html" role="menuitem"><span>Tops</span><i aria-hidden="true">→</i></a>
+          <a href="sets.html" role="menuitem"><span>Sets</span><i aria-hidden="true">→</i></a>
+        </div>
+      </div>
+      <a class="nav-link" href="wholesale.html" aria-current="page">Wholesale</a>
+    </nav>
+    <a class="brand brand-with-logo" href="index.html" aria-label="Band Factory home"><img src="images/brand-monogram.jpg" alt=""><span>BΛND<small>FΛCTORY</small></span></a>
+    <nav class="nav-right">
+      <button class="nav-link search-trigger" type="button" data-open-search><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+      <a class="nav-link account-label" href="contact.html">Contact</a>
+      <button class="bag-button" data-open-bag aria-label="Open Bag"><span class="bag-mark"><span class="bag-count" data-bag-count>0</span></span></button>
+    </nav>
+  </div>
+</header>
+<nav class="mobile-menu">
+  <a href="index.html">Home</a>
+  <div class="shop-nav-dropdown shop-nav-mobile" data-shop-dropdown>
+    <div class="shop-mobile-row"><a class="shop-main-link" href="shop.html">Shop</a><button class="shop-dropdown-toggle" type="button" data-shop-toggle aria-label="Show Shop categories" aria-expanded="false"><span aria-hidden="true">⌄</span></button></div>
+    <div class="shop-dropdown-menu" role="menu"><a href="smooth.html" role="menuitem"><span>Smooth</span><i aria-hidden="true">→</i></a><a href="ribbed.html" role="menuitem"><span>Ribbed</span><i aria-hidden="true">→</i></a><a href="tops.html" role="menuitem"><span>Tops</span><i aria-hidden="true">→</i></a><a href="sets.html" role="menuitem"><span>Sets</span><i aria-hidden="true">→</i></a></div>
+  </div>
+  <a href="wholesale.html">Wholesale</a>
+  <a href="index.html#reviews">Reviews</a>
+  <button type="button" data-open-search>Search</button>
+  <a href="contact.html">Contact</a>
+</nav>
 
-/* ===== WHOLESALE PDP IMAGE + RELATED PRODUCTS ===== */
-.wholesale-product-gallery{
-    position:sticky;
-    top:calc(var(--header-h) + 18px);
-}
-.wholesale-product-main-media{
-    scroll-margin-top:calc(var(--header-h) + 18px);
-    aspect-ratio:4/5;
-    background:#f4edf0;
-}
-.wholesale-product-main-media img{
-    object-fit:contain!important;
-    object-position:center!important;
-    padding:4%;
-    background:#f4edf0;
-}
-.wholesale-product-related{
-    margin-top:84px;
-    padding-top:68px;
-    border-top:1px solid #e8dde2;
-}
-.wholesale-product-related-head{
-    display:flex;
-    align-items:flex-end;
-    justify-content:space-between;
-    gap:30px;
-    margin-bottom:28px;
-}
-.wholesale-product-related-head h2{
-    font-family:var(--serif);
-    font-weight:500;
-    font-size:clamp(42px,5vw,70px);
-    line-height:.92;
-    letter-spacing:-.045em;
-    margin:7px 0 0;
-}
-.wholesale-product-related-head>a{
-    flex:0 0 auto;
-    font-size:9px;
-    font-weight:800;
-    letter-spacing:.11em;
-    text-transform:uppercase;
-    border-bottom:1px solid #111;
-    padding-bottom:5px;
-}
-.wholesale-product-related-grid{
-    display:grid;
-    grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:12px;
-}
-.wholesale-product-related-grid .wholesale-product-card{
-    height:100%;
-}
-@media(max-width:900px){
-    .wholesale-product-gallery{position:static}
-    .wholesale-product-related-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-}
-@media(max-width:600px){
-    .wholesale-product-main-media{aspect-ratio:1/1.15}
-    .wholesale-product-main-media img{padding:5%}
-    .wholesale-product-related{margin-top:60px;padding-top:52px}
-    .wholesale-product-related-head{display:grid;gap:15px;align-items:start}
-    .wholesale-product-related-head h2{font-size:44px}
-}
+<main class="wholesale-product-page" id="wholesaleProductPage">
+  <div class="container">
+    <div class="wholesale-product-breadcrumb"><a href="wholesale.html">Wholesale</a><span>/</span><a href="wholesale-products.html">Other Products</a><span>/</span><span id="wholesaleProductBreadcrumb">Product</span></div>
+
+    <div class="wholesale-product-loading" id="wholesaleProductLoading" aria-live="polite">
+      <span class="admin-spinner" aria-hidden="true"></span><p>Loading product...</p>
+    </div>
+
+    <div class="wholesale-product-shell" id="wholesaleProductShell" hidden>
+      <section class="wholesale-product-gallery" aria-label="Product photos">
+        <div class="wholesale-product-main-media" id="wholesaleProductMainMedia"><img id="wholesaleProductMainImage" src="images/second-skin-tee.jpg" alt=""></div>
+        <div class="wholesale-product-thumbs" id="wholesaleProductThumbs"></div>
+      </section>
+
+      <section class="wholesale-product-details">
+        <div class="wholesale-product-eyebrow"><span id="wholesaleProductCategory">Other Products Wholesale</span><span id="wholesaleProductBadge" hidden>Pre-order</span></div>
+        <h1 id="wholesaleProductName">Product</h1>
+        <p class="wholesale-product-subtitle" id="wholesaleProductSubtitle"></p>
+        <div class="wholesale-product-price-row" id="wholesaleProductPriceRow"></div>
+        <div class="wholesale-product-preorder" id="wholesaleProductPreorder" hidden></div>
+        <div class="wholesale-product-copy" id="wholesaleProductDescription"></div>
+
+        <section class="wholesale-builder" aria-labelledby="wholesaleBuilderTitle">
+          <div class="wholesale-builder-head">
+            <div><span class="eyebrow">Build your order</span><h2 id="wholesaleBuilderTitle">Pick your colours and sizes.</h2><p>Choose how many pieces you want in each colour and size. You can mix them together to reach the minimum.</p></div>
+            <div class="wholesale-min-badge"><small>Minimum</small><strong><span id="wholesaleTargetCount">30</span> pieces</strong></div>
+          </div>
+
+          <div class="wholesale-colour-picker" id="wholesaleColourPicker" aria-label="Choose a colour"></div>
+
+          <div class="wholesale-current-colour" id="wholesaleCurrentColour"></div>
+          <div class="wholesale-size-panel" id="wholesaleSizePanel"></div>
+          <div class="wholesale-builder-actions"><button type="button" class="wholesale-add-colour" id="wholesaleAddColour"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>Add this colour</span></button><small id="wholesaleColourHint">Type the quantity you want for each size.</small></div>
+
+          <div class="wholesale-mix" id="wholesaleMix" hidden></div>
+
+          <div class="wholesale-price-summary">
+            <div><span><span id="wholesaleSelectedCount">0</span> pieces selected</span><strong id="wholesalePiecesRemaining">Minimum not reached</strong></div>
+            <div class="wholesale-price-main"><span>Price per piece</span><strong id="wholesaleProductUnit">Add pieces to see your price</strong></div>
+            <div class="wholesale-price-total"><span>Total</span><strong id="wholesaleProductTotal">GHS 0.00</strong></div>
+          </div>
+
+          <details class="wholesale-pricing-details"><summary>View wholesale pricing</summary><div id="wholesaleProductTiers"></div></details>
+
+          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button" disabled><span>Add wholesale order to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+          <p class="wholesale-product-note" id="wholesaleProductNote">You can mix colours and sizes in the same wholesale order.</p>
+        </section>
+
+        <a class="wholesale-product-back" href="wholesale-products.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Other Products Wholesale</a>
+      </section>
+    </div>
+
+    <div class="wholesale-product-error" id="wholesaleProductError" hidden>
+      <div class="empty-mark"><i class="fa-solid fa-box-open"></i></div>
+      <h1>This wholesale product is not available.</h1>
+      <p>It may have been removed, unpublished or turned off for wholesale.</p>
+      <a href="wholesale-products.html" class="wholesale-product-back">Back to Other Products Wholesale</a>
+    </div>
+  </div>
+</main>
+
+<footer class="footer"><div class="container"><div class="footer-grid"><div class="footer-brand-col"><div class="brand" style="text-align:left;font-size:25px">BΛND<small>FΛCTORY</small></div><p style="max-width:370px;margin-top:20px">Hairbands and everyday basics designed to make getting dressed feel effortless.</p><div class="social-row"><a data-social="whatsapp" href="#" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a><a data-social="snapchat" href="#" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a data-social="instagram" href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a data-social="tiktok" href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a></div></div><div><h4>Shop</h4><div class="footer-links"><a href="smooth.html">Smooth Hairbands</a><a href="ribbed.html">Ribbed Hairbands</a><a href="tops.html">Tops</a><a href="sets.html">Sets</a></div></div><div><h4>Help</h4><div class="footer-links"><a href="checkout.html">Delivery &amp; Pickup</a><a href="contact.html">Contact</a><a href="index.html#reviews">Reviews</a></div></div><div><h4>Wholesale</h4><div class="footer-links"><a href="wholesale.html">Wholesale Home</a><a href="hairbands-wholesale.html">Hairbands Wholesale</a><a href="wholesale-products.html">Other Products Wholesale</a></div></div></div></div><div class="footer-wordmark" aria-label="Band Factory">BΛND FΛCTORY</div><div class="container footer-bottom"><span>© 2026 Band Factory</span><span>Wear it. Sell it. Build something.</span></div></footer>
+
+<script src="images.js"></script>
+<script src="config.js"></script>
+<script src="firebase.js"></script>
+<script src="email.js"></script>
+<script src="script.js"></script>
+<script src="catalog.js"></script>
+<script src="fulfilment.js"></script>
+<script src="wholesale-product.js"></script>
+<script src="track-order.js"></script>
+</body>
+</html>
+
+
+/* ===== FINAL CLEAN WHOLESALE BUILDER ===== */
+
+.wholesale-builder{border-top:1px solid var(--line);padding-top:24px}.wholesale-builder-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start}.wholesale-builder-head .eyebrow{font-size:9px;color:#8c707a}.wholesale-builder-head h2{font-family:var(--serif);font-size:clamp(34px,4vw,54px);font-weight:500;letter-spacing:-.04em;line-height:.98;margin:7px 0 8px}.wholesale-builder-head p{max-width:540px;font-size:12px;line-height:1.6;color:var(--muted);margin:0}.wholesale-min-badge{min-width:112px;padding:12px 13px;background:#111;color:#fff;display:grid;gap:3px;text-align:right}.wholesale-min-badge small{font-size:8px;letter-spacing:.12em;text-transform:uppercase;opacity:.66}.wholesale-min-badge strong{font-size:13px}.wholesale-step{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}.wholesale-step-label{display:flex;align-items:center;gap:10px}.wholesale-step-label>span{width:24px;height:24px;display:grid;place-items:center;background:#111;color:#fff;font-size:9px;border-radius:50%}.wholesale-step-label>div{display:grid;gap:2px}.wholesale-step-label strong{font-size:11px}.wholesale-step-label small{font-size:9px;color:var(--muted)}.wholesale-colour-picker{display:flex;flex-wrap:wrap;gap:10px;padding:14px 0 3px}.wholesale-colour-swatch{display:grid;gap:5px;justify-items:center;min-width:48px;padding:0;background:none;border:0}.wholesale-colour-swatch span{width:30px;height:30px;border-radius:50%;background:var(--swatch);border:1px solid rgba(17,17,17,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 0 0 transparent;transition:transform .15s ease,box-shadow .15s ease}.wholesale-colour-swatch:hover span{transform:scale(1.06)}.wholesale-colour-swatch.is-selected span{box-shadow:0 0 0 2px #fff,0 0 0 4px #111}.wholesale-colour-swatch strong{font-size:8px;line-height:1.15;font-weight:700;max-width:72px;text-align:center}.wholesale-selection-card{margin-top:10px;padding:16px;background:#fbf6f8;border:1px solid #e6dce1}.wholesale-size-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}.wholesale-size-pill{min-width:47px;height:35px;padding:0 9px;border:1px solid #ded4d8;background:#fff;font-size:9px;font-weight:800;letter-spacing:.06em}.wholesale-size-pill:hover{border-color:#111}.wholesale-size-pill.is-selected{background:#111;color:#fff;border-color:#111}.wholesale-entry-row{display:grid;grid-template-columns:145px 1fr;gap:10px;margin-top:13px}.wholesale-qty-label{display:grid;gap:5px}.wholesale-qty-label>span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:800}.wholesale-qty-label input{width:100%;height:43px;border:1px solid #d8cdd1;background:#fff;text-align:center;font-size:15px;font-weight:800;outline:none}.wholesale-qty-label input:focus{border-color:#111;box-shadow:0 0 0 3px rgba(244,182,202,.24)}.wholesale-qty-label input::-webkit-outer-spin-button,.wholesale-qty-label input::-webkit-inner-spin-button{appearance:none;margin:0}.wholesale-add-selection{height:43px;margin-top:15px;border:1px solid #111;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.wholesale-add-selection:hover{background:var(--pink-strong);color:#111;border-color:var(--pink-strong)}.wholesale-mix{margin-top:12px;padding:13px;background:#fff;border:1px solid #e2d8dc}.wholesale-mix-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:9px}.wholesale-mix-head div{display:grid;gap:2px}.wholesale-mix-head span{font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:#8d7780}.wholesale-mix-head strong{font-size:14px}.wholesale-mix-head small{font-size:8px;color:var(--muted)}.wholesale-mix-list{display:grid;border-top:1px solid #ece7e9}.wholesale-mix-item{display:grid;grid-template-columns:1fr 85px 28px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #ece7e9}.wholesale-mix-colour{display:flex;align-items:center;gap:8px;min-width:0}.wholesale-mix-colour>div{display:grid;gap:2px}.wholesale-mix-colour strong{font-size:9px}.wholesale-mix-colour small{font-size:8px;color:#8c7d82}.wholesale-mix-dot{width:16px;height:16px;border-radius:50%;background:var(--swatch);border:1px solid rgba(17,17,17,.17);flex:0 0 16px}.wholesale-mix-item label{display:grid;grid-template-columns:1fr;gap:3px}.wholesale-mix-item label span{font-size:7px;text-transform:uppercase;letter-spacing:.08em;color:#8c7b81}.wholesale-mix-item input{height:32px;width:100%;border:1px solid #ddd4d7;text-align:center;font-size:11px;font-weight:800;outline:none}.wholesale-mix-item input:focus{border-color:#111}.wholesale-mix-item button{width:28px;height:28px;border:1px solid #e0d7da;background:#fff;font-size:17px;line-height:1}.wholesale-mix-item button:hover{background:#111;color:#fff;border-color:#111}.wholesale-price-summary{display:grid;gap:0;border-top:1px solid #111;border-bottom:1px solid var(--line);margin-top:14px}.wholesale-price-summary>div{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid var(--line)}.wholesale-price-summary>div:last-child{border-bottom:0}.wholesale-price-summary span{font-size:9px;color:#7f7177}.wholesale-price-summary strong{font-size:11px}.wholesale-price-summary>div:first-child strong{font-size:9px;color:#8b6c76}.wholesale-price-main strong{font-family:var(--serif);font-size:20px}.wholesale-price-total strong{font-family:var(--serif);font-size:24px}.wholesale-pricing-details{margin-top:7px;border-bottom:1px solid var(--line)}.wholesale-pricing-details summary{list-style:none;display:flex;justify-content:space-between;padding:11px 0;font-size:8px;text-transform:uppercase;letter-spacing:.11em;font-weight:800;cursor:pointer}.wholesale-pricing-details summary::-webkit-details-marker{display:none}.wholesale-pricing-details summary:after{content:'+';font-size:13px;font-weight:400}.wholesale-pricing-details[open] summary:after{content:'−'}.wholesale-tier-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(17,17,17,.06);font-size:8px}.wholesale-tier-row strong{font-size:8px}.wholesale-product-add{width:100%;min-height:52px;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:10px;background:#111;color:#fff;border:1px solid #111;font-size:9px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;transition:.2s ease}.wholesale-product-add:hover:not(:disabled){background:var(--pink-strong);border-color:var(--pink-strong);color:#111}.wholesale-product-add:disabled{opacity:.35;cursor:not-allowed}.wholesale-product-note{font-size:8px;color:#85777c;text-align:center;margin:8px 0 0}.wholesale-empty-inline{display:block;padding:12px 0;font-size:9px;color:var(--muted)}
+@media(max-width:980px){.wholesale-product-shell{grid-template-columns:1fr;gap:28px}.wholesale-product-gallery{position:relative;top:auto}.wholesale-product-details{padding-top:0}.wholesale-product-main-media{aspect-ratio:4/4.7}}
+@media(max-width:650px){.wholesale-product-page{padding:20px 0 55px}.wholesale-builder-head{grid-template-columns:1fr;gap:13px}.wholesale-min-badge{justify-self:start;text-align:left}.wholesale-colour-picker{gap:9px}.wholesale-selection-card{padding:13px}.wholesale-entry-row{grid-template-columns:105px 1fr}.wholesale-mix-item{grid-template-columns:1fr 72px 28px}.wholesale-price-total strong{font-size:22px}}
+@media(max-width:430px){.wholesale-colour-swatch{min-width:44px}.wholesale-colour-swatch span{width:28px;height:28px}.wholesale-size-pill{min-width:44px}.wholesale-entry-row{grid-template-columns:1fr;gap:8px}.wholesale-add-selection{margin-top:0}.wholesale-mix-item{grid-template-columns:1fr 65px 26px}}

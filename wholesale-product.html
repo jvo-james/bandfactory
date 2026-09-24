@@ -59,52 +59,63 @@
 <main class="wholesale-product-page" id="wholesaleProductPage">
   <div class="container">
     <div class="wholesale-product-breadcrumb"><a href="wholesale.html">Wholesale</a><span>/</span><a href="wholesale-products.html">Other Products</a><span>/</span><span id="wholesaleProductBreadcrumb">Product</span></div>
-    <div class="wholesale-product-loading" id="wholesaleProductLoading"><span class="admin-spinner"></span><p>Loading product…</p></div>
+
+    <div class="wholesale-product-loading" id="wholesaleProductLoading" aria-live="polite">
+      <span class="admin-spinner" aria-hidden="true"></span><p>Loading product...</p>
+    </div>
+
     <div class="wholesale-product-shell" id="wholesaleProductShell" hidden>
-      <section class="wholesale-product-gallery">
+      <section class="wholesale-product-gallery" aria-label="Product photos">
         <div class="wholesale-product-main-media" id="wholesaleProductMainMedia"><img id="wholesaleProductMainImage" src="images/second-skin-tee.jpg" alt=""></div>
-        <div class="wholesale-product-thumbs" id="wholesaleProductThumbs" aria-label="Product images"></div>
+        <div class="wholesale-product-thumbs" id="wholesaleProductThumbs"></div>
       </section>
 
       <section class="wholesale-product-details">
-        <div class="wholesale-product-eyebrow"><span id="wholesaleProductCategory">Wholesale</span><span id="wholesaleProductBadge" hidden>Pre-order</span></div>
+        <div class="wholesale-product-eyebrow"><span id="wholesaleProductCategory">Other Products Wholesale</span><span id="wholesaleProductBadge" hidden>Pre-order</span></div>
         <h1 id="wholesaleProductName">Product</h1>
         <p class="wholesale-product-subtitle" id="wholesaleProductSubtitle"></p>
-
         <div class="wholesale-product-price-row" id="wholesaleProductPriceRow"></div>
-        <p class="wholesale-product-saving" id="wholesaleProductSaving"></p>
-
         <div class="wholesale-product-preorder" id="wholesaleProductPreorder" hidden></div>
-
         <div class="wholesale-product-copy" id="wholesaleProductDescription"></div>
 
-        <div class="wholesale-product-option wholesale-product-featured" id="wholesaleProductVariantArea" hidden></div>
-
-        <div class="wholesale-builder-intro">
-          <div><span class="wholesale-builder-kicker">Build your wholesale order</span><h2>Mix the colours and sizes you need.</h2><p>Type the quantity beside each size. The numbers below all count toward one wholesale minimum.</p></div>
-          <div class="wholesale-builder-progress"><strong><span id="wholesaleSelectedCount">0</span> / <span id="wholesaleTargetCount">0</span></strong><small id="wholesalePiecesRemaining">Minimum not reached</small></div>
-        </div>
-
-        <div class="wholesale-product-wholesale-card">
-          <div class="wholesale-product-wholesale-head">
-            <div><span>Wholesale pricing</span><strong id="wholesaleProductWholesaleFrom">GHS 0.00</strong></div>
-            <span class="wholesale-product-min" id="wholesaleProductMin">Minimum order: 1</span>
+        <section class="wholesale-builder" aria-labelledby="wholesaleBuilderTitle">
+          <div class="wholesale-builder-head">
+            <div><span class="eyebrow">Wholesale order</span><h2 id="wholesaleBuilderTitle">Build your mix.</h2><p>Choose a colour, choose a size and type the quantity you want. Add as many colour and size combinations as you need.</p></div>
+            <div class="wholesale-min-badge"><small>Minimum</small><strong><span id="wholesaleTargetCount">30</span> pieces</strong></div>
           </div>
-          <p id="wholesaleProductPricingHint">Build your order by colour and size.</p>
-          <div class="wholesale-product-tiers" id="wholesaleProductTiers"></div>
-        </div>
 
-        <div class="wholesale-allocation-builder" id="wholesaleAllocationBuilder"></div>
+          <div class="wholesale-step wholesale-step-colours">
+            <div class="wholesale-step-label"><span>1</span><div><strong>Colour</strong><small id="wholesaleCurrentColourLabel">Choose a colour</small></div></div>
+            <div class="wholesale-colour-picker" id="wholesaleColourPicker" aria-label="Choose a colour"></div>
+          </div>
 
-        <div class="wholesale-product-buy">
-          <div class="wholesale-product-total"><span>Your wholesale total</span><strong id="wholesaleProductTotal">GHS 0.00</strong><small id="wholesaleProductUnit">Add pieces to see your price</small></div>
-          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button"><span>Add wholesale order to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
-        </div>
-        <p class="wholesale-product-note" id="wholesaleProductNote">Your colour and size breakdown will be saved with the order.</p>
+          <div class="wholesale-selection-card">
+            <div class="wholesale-step-label"><span>2</span><div><strong>Size and quantity</strong><small id="wholesaleSelectionSummary">Choose a size and type the quantity.</small></div></div>
+            <div class="wholesale-size-pills" id="wholesaleSizePills" role="group" aria-label="Choose a size"></div>
+            <div class="wholesale-entry-row">
+              <label class="wholesale-qty-label"><span>Quantity</span><input id="wholesaleQtyInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="" placeholder="0" aria-label="Quantity"></label>
+              <button type="button" class="wholesale-add-selection" id="wholesaleAddSelection"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>Add selection</span></button>
+            </div>
+          </div>
+
+          <div class="wholesale-mix" id="wholesaleMix" hidden></div>
+
+          <div class="wholesale-price-summary">
+            <div><span><span id="wholesaleSelectedCount">0</span> pieces selected</span><strong id="wholesalePiecesRemaining">Add pieces to reach the minimum</strong></div>
+            <div class="wholesale-price-main"><span>Price per piece</span><strong id="wholesaleProductUnit">Add pieces to see your price</strong></div>
+            <div class="wholesale-price-total"><span>Total</span><strong id="wholesaleProductTotal">GHS 0.00</strong></div>
+          </div>
+
+          <details class="wholesale-pricing-details"><summary>View wholesale pricing</summary><div id="wholesaleProductTiers"></div></details>
+
+          <button class="wholesale-product-add" id="wholesaleProductAdd" type="button" disabled><span>Add wholesale order to Bag</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+          <p class="wholesale-product-note" id="wholesaleProductNote">Mix colours and sizes in one wholesale order.</p>
+        </section>
+
         <a class="wholesale-product-back" href="wholesale-products.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Other Products Wholesale</a>
       </section>
     </div>
-    <section class="wholesale-product-related" id="wholesaleProductRelatedSection" hidden aria-labelledby="wholesaleProductRelatedTitle"><div class="wholesale-product-related-head"><div><span class="wholesale-builder-kicker">Keep browsing</span><h2 id="wholesaleProductRelatedTitle">You may also like.</h2></div><a href="wholesale-products.html">View all wholesale products <i class="fa-solid fa-arrow-right"></i></a></div><div class="wholesale-product-related-grid" id="wholesaleProductRelated"></div></section>
+
     <div class="wholesale-product-error" id="wholesaleProductError" hidden>
       <div class="empty-mark"><i class="fa-solid fa-box-open"></i></div>
       <h1>This wholesale product is not available.</h1>
