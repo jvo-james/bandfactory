@@ -84,8 +84,22 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   addCatalogProduct(item,size,price,image,qty=1,style='flat'){
     const amount=Number(price||0);if(amount<=0)return this.toast('This product price has not been set yet.');
     const cleanSize=String(size||''),cleanStyle=style==='twisted'?'twisted':'flat';const cart=this.getCart();const styleKey=item.category==='ribbed'?`-${cleanStyle}`:'';const key=`catalog-${item.id}${styleKey}-${cleanSize||'one'}`;const found=cart.find(i=>i.key===key);
-    const line={key,type:'catalog',productId:item.id,name:item.category==='ribbed'?`${cleanStyle[0].toUpperCase()+cleanStyle.slice(1)} ${item.name}`:item.name,size:cleanSize,color:item.color||'',category:item.category,material:item.category==='ribbed'?'ribbed':undefined,style:item.category==='ribbed'?cleanStyle:undefined,qty,price:amount,image,packSize:Number(item.packSize||1)};
-    if(found)found.qty+=qty;else cart.push(line);this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
+    const fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
+    const line={key,type:'catalog',productId:item.id,name:item.category==='ribbed'?`${cleanStyle[0].toUpperCase()+cleanStyle.slice(1)} ${item.name}`:item.name,size:cleanSize,color:item.color||'',category:item.category,material:item.category==='ribbed'?'ribbed':undefined,style:item.category==='ribbed'?cleanStyle:undefined,qty,price:amount,image,packSize:Number(item.packSize||1),fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||''};
+    if(found){found.qty+=qty;found.price=amount;found.fulfilmentType=line.fulfilmentType;found.fulfilmentDate=line.fulfilmentDate;}else cart.push(line);this.saveCart(cart);this.toast(`${item.name} added to your Bag`);this.openDrawer('bagDrawer');
+  },
+  addWholesaleProduct(item,size='',qty=1){
+    const cleanSize=String(size||'');
+    const wholesale=window.BFCatalog?.wholesale?.(item)||{enabled:false,minQty:1,tiers:[]};
+    if(!wholesale.enabled)return this.toast('This product is not available for wholesale right now.');
+    const cleanQty=Math.max(wholesale.minQty,Math.floor(Number(qty||wholesale.minQty)));
+    const unitPrice=Number(window.BFCatalog?.wholesalePriceForQty?.(item,cleanQty)||0);
+    if(unitPrice<=0)return this.toast('Wholesale pricing has not been set for this product yet.');
+    if(item.sizes&&Object.keys(item.sizes).length&&!cleanSize)return this.toast('Choose a size before adding this wholesale item.');
+    const cart=this.getCart(),key=`wholesale-product-${item.id}-${cleanSize||'one'}`,found=cart.find(i=>i.key===key),fulfilment=window.BFCatalog?.fulfilment?.(item)||{type:'standard',date:''};
+    const line={key,type:'wholesale-product',productId:item.id,name:item.name,size:cleanSize,qty:cleanQty,price:unitPrice,image:window.BFCatalog?.image?.(item)||item.image||'',category:item.category||'',color:item.color||'',fulfilmentType:fulfilment.type,fulfilmentDate:fulfilment.date||'',wholesaleMinQty:wholesale.minQty,wholesaleTiers:wholesale.tiers,packSize:Number(item.packSize||1)};
+    if(found){found.qty+=cleanQty;found.price=Number(window.BFCatalog?.wholesalePriceForQty?.(item,found.qty)||unitPrice);found.wholesaleTiers=wholesale.tiers;found.wholesaleMinQty=wholesale.minQty;}else cart.push(line);
+    this.saveCart(cart);this.toast(`${item.name} wholesale added to your Bag`);this.openDrawer('bagDrawer');
   },
   addWholesale(bundle,allocations,mode='custom',style='flat',material='smooth',styleAllocations=null){
     const cart=this.getCart();
@@ -138,8 +152,8 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
     const body=document.querySelector('[data-bag-body]'); if(!body)return; const cart=this.getCart();
     const totalEl=document.querySelector('[data-bag-total]'); if(totalEl) totalEl.textContent=this.money(this.cartSubtotal());
     const countText=document.querySelector('[data-bag-items-text]'); if(countText) countText.textContent=`${this.cartCount()} ${this.cartCount()===1?'item':'items'}`;
-    if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a colour you love or build a wholesale bundle.</p><a class="btn" href="shop.html">Shop hairbands</a></div>`;return}
-    body.innerHTML=cart.map((i,idx)=>`<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:(i.type==='apparel'?`Black · Size ${i.size}`:(i.type==='simple'?'Band Factory collection':`${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`))}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`).join('');
+    if(!cart.length){body.innerHTML=`<div class="empty-state"><h3>Your Bag is waiting.</h3><p>Choose a product you love or build a wholesale order.</p><a class="btn" href="shop.html">Shop the collection</a></div>`;return}
+    body.innerHTML=cart.map((i,idx)=>{const meta=i.type==='wholesale'?`${(i.material||'smooth')[0].toUpperCase()+(i.material||'smooth').slice(1)} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} · ${i.summary}`:i.type==='wholesale-product'?`Wholesale · ${i.size?`Size ${i.size} · `:''}${i.qty} units`:i.type==='apparel'?`Black · Size ${i.size}`:i.type==='simple'?'Band Factory collection':`${i.color||i.category||'Product'}${i.style?` · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)}`:''}`;const preorder=(i.fulfilmentType==='preorder'||i.preorder===true);return `<div class="bag-row"><div class="bag-thumb"><img src="${i.image}" alt="${i.name}"></div><div><p class="bag-name">${i.name}</p><p class="bag-meta">${meta}${preorder?' · Pre-order':''}</p><div class="bag-line"><strong>${this.money(i.price*i.qty)}</strong><div class="qty-control"><button data-cart-minus="${idx}" aria-label="Decrease quantity">−</button><span>${i.qty}</span><button data-cart-plus="${idx}" aria-label="Increase quantity">+</button></div></div><button class="remove-link" data-cart-remove="${idx}">Remove</button></div></div>`}).join('');
     body.querySelectorAll('[data-cart-plus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartPlus,1));body.querySelectorAll('[data-cart-minus]').forEach(b=>b.onclick=()=>this.changeQty(+b.dataset.cartMinus,-1));body.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>this.remove(+b.dataset.cartRemove));
   },
   async managedCartStockError(cart){
@@ -169,6 +183,8 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
       const takeRibbedProduct=(product,style,qty,label)=>{style=style==='twisted'?'twisted':'flat';qty=Math.max(0,Number(qty||0));const d=ribbedVariant(product,style),have=d.available===false?0:Math.max(0,Number(d.stock||0));if(qty>have)throw new Error(have>0?`Only ${have} ${label} ${have===1?'is':'are'} available right now.`:`${label} is sold out right now.`);product.styles[style]={...d,stock:have-qty};if(style==='flat')product.stock=have-qty;};
       const takeRibbedStandard=(style,qty,label)=>{let need=Math.max(0,Number(qty||0));const choices=ribbedItems.filter(x=>x.category==='ribbed'&&!printIds.has(x.id)).map(product=>({product,d:ribbedVariant(product,style)})).filter(x=>x.d.available!==false&&Number(x.d.stock)>0).sort((a,b)=>Number(b.d.stock)-Number(a.d.stock));const total=choices.reduce((sum,x)=>sum+Number(x.d.stock||0),0);if(total<need)throw new Error(`Only ${total} Ribbed ${style} wholesale piece${total===1?' is':'s are'} available for ${label} right now.`);for(const x of choices){if(need<=0)break;const used=Math.min(Number(ribbedVariant(x.product,style).stock||0),need);takeRibbedProduct(x.product,style,used,`${x.product.name} ${style}`);need-=used;}};
       for(const item of cart){
+        const preorder=item.fulfilmentType==='preorder'||item.preorder===true||item.fulfilment?.type==='preorder';
+        if(preorder&&(item.type==='catalog'||item.type==='wholesale-product'))continue;
         if(item.type==='catalog'&&item.category==='ribbed'){
           const product=ribbedItems.find(x=>x.id===item.productId);if(!product)throw new Error('That Ribbed Hairband is no longer available.');takeRibbedProduct(product,item.style==='twisted'?'twisted':'flat',Number(item.qty||0),`${item.color||product.name} Ribbed ${item.style||'flat'}`);continue;
         }
@@ -196,6 +212,8 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
           }
         }else if(item.type==='catalog'){
           const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(product){const need=Math.max(0,Number(item.qty||0));let have=0;if(product.sizes){const d=product.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=product.available===false?0:Math.max(0,Number(product.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${product.name}${have===1?' is':'s are'} available right now.`:`${product.name} is sold out right now.`);}
+        }else if(item.type==='wholesale-product'){
+          const product=((catalogData?.items?.length?catalogData.items:(window.BF_CATALOG_DEFAULTS||[]))).find(x=>x.id===item.productId);if(!product||product.deleted===true||product.available===false)throw new Error(`${item.name||'This product'} is not available for wholesale right now.`);const need=Math.max(0,Number(item.qty||0));let have=0;if(product.sizes&&Object.keys(product.sizes).length){const d=product.sizes?.[item.size]||{};have=d.available===false?0:Math.max(0,Number(d.stock||0));}else have=product.available===false?0:Math.max(0,Number(product.stock||0));if(need>have)throw new Error(have>0?`Only ${have} ${item.name} unit${have===1?' is':'s are'} available right now.`:`${item.name} is sold out right now.`);
         }else if(item.type==='apparel'&&item.productId==='spandex-tube-top'){
           const size=String(item.size||'').toUpperCase(),sizeData=apparelData?.sizes?.[size]||{},have=sizeData.available===false?0:Math.max(0,Number(sizeData.stock??0)),need=Math.max(0,Number(item.qty||0));
           if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} left in size ${size}.`:`Size ${size} is sold out right now.`);
@@ -207,12 +225,17 @@ imageForProduct(style='flat', name='Pink', material='smooth') {
   async changeQty(index,delta){
     const c=this.getCart();if(!c[index])return;
     if(c[index].lockedBundleQty&&delta>0){this.toast('Signature print wholesale is sold only as 10, 30, 50, 100 or 200-piece bundles. Choose the bundle size you want.');return;}
-    const previous=Number(c[index].qty||1),next=Math.max(1,previous+delta);
+    const previous=Number(c[index].qty||1),previousPrice=Number(c[index].price||0),minWholesale=Math.max(1,Number(c[index].wholesaleMinQty||1));
+    const next=c[index].type==='wholesale-product'?Math.max(minWholesale,previous+delta):Math.max(1,previous+delta);
     if(next===previous)return;
     c[index].qty=next;
-    if(delta>0&&(((c[index].material||'smooth')==='smooth'&&(c[index].type==='retail'||c[index].type==='wholesale'))||c[index].type==='apparel'||c[index].type==='catalog')){
+    if(c[index].type==='wholesale-product'){
+      const tiers=Array.isArray(c[index].wholesaleTiers)?c[index].wholesaleTiers:[];let tierPrice=0;for(const tier of tiers){if(next>=Number(tier.minQty||0))tierPrice=Number(tier.price||0);}if(tierPrice>0)c[index].price=tierPrice;
+    }
+    const needsStockCheck=delta>0&&(((c[index].material||'smooth')==='smooth'&&(c[index].type==='retail'||c[index].type==='wholesale'))||c[index].type==='apparel'||c[index].type==='catalog'||c[index].type==='wholesale-product');
+    if(needsStockCheck){
       const error=await this.managedCartStockError(c);
-      if(error){this.toast(`That's all we've got ✨ ${error}`);return;}
+      if(error){c[index].qty=previous;c[index].price=previousPrice;this.saveCart(c);this.toast(`That's all we've got ✨ ${error}`);return;}
     }
     this.saveCart(c);
   },
@@ -274,7 +297,9 @@ function buildSearchIndex(){
     {title:'Ribbed Hairbands',meta:'11 colours and print collection',url:'ribbed.html',terms:'ribbed hairbands shop cherry navy noir'},
     {title:'Tops',meta:'Band Factory Basics',url:'tops.html',terms:'tops basics clothing apparel'},
     {title:'Sets',meta:'Band Factory Basics',url:'sets.html',terms:'sets basics clothing apparel'},
-    {title:'Wholesale Hairbands',meta:'Smooth and Ribbed',url:'wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands smooth ribbed'},
+    {title:'Wholesale',meta:'Choose hairbands or other products',url:'wholesale.html',terms:'wholesale bulk reseller business'},
+    {title:'Hairbands Wholesale',meta:'Smooth and Ribbed',url:'hairbands-wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands smooth ribbed'},
+    {title:'Other Products Wholesale',meta:'Wholesale clothing and products',url:'wholesale-products.html',terms:'wholesale products tops clothing bulk reseller'},
     {title:'Reviews',meta:'Customer Reviews',url:'index.html#reviews',terms:'reviews feedback worn loved customers'},
     {title:'Delivery and Pickup',meta:'Order fulfilment information',url:'checkout.html',terms:'delivery pickup dispatch wednesday saturday checkout'},
     {title:'Contact Band Factory',meta:'Questions and order help',url:'contact.html',terms:'contact whatsapp email help support'}];
@@ -282,7 +307,7 @@ function buildSearchIndex(){
 function setupSiteSearch(){
   const overlay=document.getElementById('siteSearch'),input=document.getElementById('siteSearchInput'),results=document.getElementById('siteSearchResults'); if(!overlay||!input)return;
   let index=buildSearchIndex();
-  (async()=>{try{await BF.loadSmoothPalette();if(window.BFCatalog){const [items,categories]=await Promise.all([BFCatalog.load(),BFCatalog.loadCategories()]),visible=categories.filter(c=>c.visible!==false),visibleIds=new Set(visible.map(c=>c.id));const smoothVisible=visibleIds.has('smooth');const dynamic=[];if(smoothVisible)for(const [name] of BF.colors)dynamic.push({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth flat twisted hairband retail colour color`});for(const c of visible)dynamic.push({title:c.name,meta:c.eyebrow||'Collection',url:BFCatalog.categoryUrl(c),image:c.image||'',terms:`${c.name} ${c.description||''} collection shop category`});for(const item of items.filter(x=>visibleIds.has(x.category)&&x.available!==false))dynamic.push({title:item.name,meta:(visible.find(c=>c.id===item.category)?.name||'Product'),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`,image:BFCatalog.image(item),terms:`${item.name} ${item.subtitle||''} ${item.color||''} ${item.description||''}`});index=[...dynamic,{title:'Wholesale Hairbands',meta:'Bulk orders',url:'wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands'},{title:'Reviews',meta:'Customer Reviews',url:'index.html#reviews',terms:'reviews feedback worn loved customers'},{title:'Contact Band Factory',meta:'Questions and order help',url:'contact.html',terms:'contact whatsapp email help support'}];}}catch(e){console.warn('[Band Factory] Search catalogue could not refresh.',e)}})();
+  (async()=>{try{await BF.loadSmoothPalette();if(window.BFCatalog){const [items,categories]=await Promise.all([BFCatalog.load(),BFCatalog.loadCategories()]),visible=categories.filter(c=>c.visible!==false),visibleIds=new Set(visible.map(c=>c.id));const smoothVisible=visibleIds.has('smooth');const dynamic=[];if(smoothVisible)for(const [name] of BF.colors)dynamic.push({title:`${name} Smooth Hairband`,meta:'Smooth Hairband · Retail',url:`product.html?color=${encodeURIComponent(name)}`,image:BF.imageForColor(name),terms:`${name} smooth flat twisted hairband retail colour color`});for(const c of visible)dynamic.push({title:c.name,meta:c.eyebrow||'Collection',url:BFCatalog.categoryUrl(c),image:c.image||'',terms:`${c.name} ${c.description||''} collection shop category`});for(const item of items.filter(x=>visibleIds.has(x.category)&&x.available!==false))dynamic.push({title:item.name,meta:(visible.find(c=>c.id===item.category)?.name||'Product'),url:item.id==='spandex-tube-top'?'tube-top.html':`item.html?id=${encodeURIComponent(item.id)}`,image:BFCatalog.image(item),terms:`${item.name} ${item.subtitle||''} ${item.color||''} ${item.description||''}`});index=[...dynamic,{title:'Wholesale',meta:'Choose hairbands or other products',url:'wholesale.html',terms:'wholesale bulk reseller business'},{title:'Hairbands Wholesale',meta:'Smooth and Ribbed',url:'hairbands-wholesale.html',terms:'wholesale standard custom colour mix bulk reseller hairbands'},{title:'Other Products Wholesale',meta:'Wholesale clothing and products',url:'wholesale-products.html',terms:'wholesale products tops clothing bulk reseller'},{title:'Reviews',meta:'Customer Reviews',url:'index.html#reviews',terms:'reviews feedback worn loved customers'},{title:'Contact Band Factory',meta:'Questions and order help',url:'contact.html',terms:'contact whatsapp email help support'}];}}catch(e){console.warn('[Band Factory] Search catalogue could not refresh.',e)}})();
   const render=q=>{const term=q.trim().toLowerCase();const found=term?index.filter(x=>(x.title+' '+x.meta+' '+x.terms).toLowerCase().includes(term)).slice(0,8):index.slice(0,6);results.innerHTML=found.map(x=>`<a class="search-result" href="${x.url}">${x.image?`<img src="${x.image}" alt="">`:`<span class="search-result-icon"><i class="fa-solid fa-arrow-right"></i></span>`}<span><strong>${x.title}</strong><small>${x.meta}</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`).join('')||'<div class="search-empty">No results found. Try a product name, colour or category.</div>'};
   const open=()=>{overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');document.body.classList.add('search-open');render(input.value);setTimeout(()=>input.focus(),100)};
   const close=()=>{overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('search-open')};

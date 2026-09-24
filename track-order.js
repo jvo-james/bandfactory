@@ -224,8 +224,15 @@
     }).join('');
 
     const fulfilment=String(order.fulfilment||'Delivery');
-    const when=fulfilment.toLowerCase()==='pickup'?(order.pickupDate?date(order.pickupDate):'To be confirmed'):(order.fulfilmentDate?date(order.fulfilmentDate):'To be confirmed');
+    const groups=(Array.isArray(order.fulfilmentGroups)&&order.fulfilmentGroups.length?order.fulfilmentGroups:null)||(
+      window.BFFulfilment?.orderGroups?.(order)||[]
+    );
+    const split=groups.length>1 || order.fulfilmentPlan==='separate';
+    const when=fulfilment.toLowerCase()==='pickup'?(order.pickupDate?date(order.pickupDate):'To be confirmed'):(groups[0]?.date?date(groups[0].date):(order.fulfilmentDate?date(order.fulfilmentDate):'To be confirmed'));
+    const latestWhen=fulfilment.toLowerCase()==='pickup'?'':(groups.length?date(groups[groups.length-1]?.date):order.latestFulfilmentDate?date(order.latestFulfilmentDate):'');
     const destination=fulfilment.toLowerCase()==='pickup'?(order.pickupAddress||'Pickup details will be confirmed'):[order.city,order.region,order.country].filter(Boolean).join(', ')||'Delivery details saved';
+    const schedule=groups.map((group,index)=>{const groupItems=(group.items||[]).map(item=>`<div class="bf-track-schedule-item"><span>${esc(item.name||'Band Factory item')}${item.size?` · ${esc(item.size)}`:''}</span><strong>×${Number(item.qty||1)}</strong></div>`).join('');return `<div class="bf-track-schedule-group"><div class="bf-track-schedule-head"><strong>${esc(group.label||`Delivery ${index+1}`)}</strong><span>${esc(date(group.date))}</span></div>${groupItems||'<span class="bf-track-schedule-empty">Item details saved with your order.</span>'}<small>${esc(group.status||status)}</small></div>`}).join('');
+    if(split && status==='Preparing') statusMessage[1]='We are preparing your order for more than one delivery date. You can see each part below.';
     const items=(Array.isArray(order.items)?order.items:[]).map(item=>{
       const qty=Number(item.qty||1);
       const meta=[item.color,item.size,item.style,qty>1?`Qty ${qty}`:''].filter(Boolean).join(' · ');
@@ -251,12 +258,14 @@
       <section class="bf-track-details-card">
         <div class="bf-track-card-heading"><div><p class="bf-track-kicker">Fulfilment</p><h3>${esc(fulfilment)}</h3></div><i class="fa-solid ${fulfilment.toLowerCase()==='pickup'?'fa-bag-shopping':'fa-truck-fast'}"></i></div>
         <div class="bf-track-details-grid">
-          <div><span>${fulfilment.toLowerCase()==='pickup'?'Pickup date':'Expected update'}</span><strong>${esc(when)}</strong></div>
+          <div><span>${fulfilment.toLowerCase()==='pickup'?'Pickup date':'First delivery'}</span><strong>${esc(when)}</strong></div>
           <div><span>${fulfilment.toLowerCase()==='pickup'?'Pickup point':'Destination'}</span><strong>${esc(destination)}</strong></div>
-          <div><span>Payment</span><strong>${esc(order.payment||'Paid')}</strong></div>
-          <div><span>Order total</span><strong>${money(order.total)}</strong></div>
+          <div><span>${split?'Delivery plan':'Payment'}</span><strong>${split?`${groups.length} deliveries`:esc(order.payment||'Paid')}</strong></div>
+          <div><span>${split?'Last delivery':'Order total'}</span><strong>${split?esc(latestWhen||when):money(order.total)}</strong></div>
         </div>
       </section>
+
+      ${schedule?`<section class="bf-track-schedule-card"><div class="bf-track-card-heading"><div><p class="bf-track-kicker">Delivery plan</p><h3>${split?'Your order, by date':'Fulfilment schedule'}</h3></div><i class="fa-regular fa-calendar-days"></i></div><div class="bf-track-schedule-list">${schedule}</div></section>`:''}
 
       <details class="bf-track-order-items" open>
         <summary><span>Order summary</span><span>${Array.isArray(order.items)?order.items.length:0} item${Array.isArray(order.items)&&order.items.length===1?'':'s'} <i class="fa-solid fa-chevron-down"></i></span></summary>

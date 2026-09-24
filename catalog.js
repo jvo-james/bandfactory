@@ -58,6 +58,34 @@ window.BFCatalog = {
     if(item?.sizes&&Object.keys(item.sizes).length){const d=item.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
     return item?.available===false?0:Math.max(0,Number(item?.stock??0));
   },
+  fulfilment(item={}){
+    const f=item?.fulfilment||{};
+    const type=String(item?.fulfilmentType||f.type||(item?.preorder===true?'preorder':'standard')).trim().toLowerCase()==='preorder'?'preorder':'standard';
+    const date=type==='preorder'?(item?.fulfilmentDate||item?.preorderDate||f.date||''):'';
+    return {type,date,isPreorder:type==='preorder'};
+  },
+  isPreorder(item={}){return this.fulfilment(item).isPreorder;},
+  preorderDate(item={}){return this.fulfilment(item).date||'';},
+  wholesale(item={}){
+    const raw=item?.wholesale||{};
+    const tiers=(Array.isArray(raw.tiers)?raw.tiers:[]).map(t=>({minQty:Math.max(1,Math.floor(Number(t?.minQty||0))),price:Math.max(0,Number(t?.price||0))})).filter(t=>t.minQty>0&&t.price>0).sort((a,b)=>a.minQty-b.minQty);
+    const minQty=Math.max(1,Math.floor(Number(raw.minQty||tiers[0]?.minQty||1)));
+    return {enabled:raw.enabled===true,minQty,tiers};
+  },
+  isWholesale(item={}){return this.wholesale(item).enabled;},
+  wholesalePriceForQty(itemOrWholesale={},qty=1){
+    const data=itemOrWholesale?.wholesale?this.wholesale(itemOrWholesale):itemOrWholesale;
+    const tiers=Array.isArray(data?.tiers)?data.tiers:[];const n=Math.max(1,Math.floor(Number(qty||1)));
+    let selected=null;for(const tier of tiers){if(n>=Number(tier.minQty))selected=tier;}
+    return selected?Number(selected.price):0;
+  },
+  purchasable(item={}){
+    if(item?.available===false)return false;
+    if(this.isPreorder(item))return true;
+    if(item?.category==='ribbed')return ['flat','twisted'].some(style=>{const v=this.variant(item,style);return v.available!==false&&Number(v.stock||0)>0;});
+    if(item?.sizes&&Object.keys(item.sizes).length)return Object.values(item.sizes).some(v=>v?.available!==false&&Number(v?.stock||0)>0);
+    return Number(item?.stock||0)>0;
+  },
   async loadCategories(){
     let saved={};try{saved=await BFStore.getDoc('products/categories',{});}catch(e){console.warn(e)}
     const byId=Object.fromEntries((saved.items||[]).map(x=>[x.id,x]));

@@ -147,3 +147,30 @@
 
 /* Configurable delivery day selector */
 .delivery-days-field{grid-column:1/-1}.delivery-days-admin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.delivery-day-option{display:flex!important;align-items:center;gap:9px;border:1px solid #e1dcdf;border-radius:10px;padding:11px 12px;margin:0!important;background:#fff;cursor:pointer;font-size:10px!important;text-transform:none!important;letter-spacing:0!important;color:#302b2d!important}.delivery-day-option:has(input:checked){border-color:#111;background:#faf7f8;font-weight:700}.delivery-day-option input{width:16px!important;height:16px!important;min-height:0!important;padding:0!important;accent-color:#111}@media(max-width:720px){.delivery-days-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* -------------------------
+   PRODUCT WHOLESALE + FULFILMENT CONTROLS
+------------------------- */
+.studio-wholesale-tier-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:12px;padding:15px 16px;background:#fbf6f8;border:1px solid #eadde2}
+.studio-wholesale-tier-head>div{min-width:0}.studio-wholesale-tier-head strong{display:block;font-size:12px;color:#271b20}.studio-wholesale-tier-head span{display:block;margin-top:4px;font-size:10px;line-height:1.5;color:#816f76;max-width:610px}
+.studio-wholesale-tier-rows{display:grid;gap:8px}.studio-wholesale-tier-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid #eee4e8;background:#fff}.studio-wholesale-tier-row .admin-field{margin:0}.studio-wholesale-tier-remove{height:42px;min-width:42px;padding:0}.studio-wholesale-tier-row label{font-size:9px}
+.studio-detail-group[open] #studioPreorderDateWrap{display:block}
+@media(max-width:620px){.studio-wholesale-tier-head{align-items:flex-start;flex-direction:column}.studio-wholesale-tier-row{grid-template-columns:1fr 1fr}.studio-wholesale-tier-remove{grid-column:1/-1;width:100%}}
+
+/* pre-order + fulfilment management */
+.admin-order-fulfilment{margin:18px 0 4px;padding:16px;border:1px solid var(--admin-border);background:#fffafc}
+.admin-order-fulfilment-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.admin-order-fulfilment-head .drawer-section-label{margin:0 0 4px;display:block}
+.admin-order-fulfilment-head h3{font-family:var(--serif);font-size:25px;margin:0;color:#21191d;font-weight:400}
+.admin-fulfilment-plan-badge{display:inline-flex;align-items:center;padding:6px 8px;background:#f3e8ed;color:#755662;font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;white-space:nowrap}
+.admin-fulfilment-groups{display:grid;gap:9px}
+.admin-fulfilment-group{padding:12px;border:1px solid #e8dde1;background:#fff}
+.admin-fulfilment-group-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:7px}
+.admin-fulfilment-group-head strong{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#2c2327}
+.admin-fulfilment-group-head span{font-size:10px;color:#7d6f75;text-align:right}
+.admin-fulfilment-item{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:10px;color:#62575c}
+.admin-fulfilment-item strong{color:#231a1e}
+.admin-fulfilment-group>small{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #eee5e9;color:#94878d;font-size:8px}
+.admin-fulfilment-note{display:flex;gap:7px;margin:10px 0 0;padding:10px 12px;background:#f7f1f3;color:#796b71;font-size:9px;line-height:1.5}
+.admin-fulfilment-note i{color:#a16b7e;margin-top:2px}
+@media(max-width:520px){.admin-order-fulfilment-head{display:grid}.admin-fulfilment-plan-badge{justify-self:start}.admin-fulfilment-group-head{display:grid;gap:3px}.admin-fulfilment-group-head span{text-align:left}}

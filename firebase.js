@@ -84,6 +84,7 @@
             }
           }else unallocatedWholesale+=number(item.bundlePieces)*mult;
         }
+        if(item.type==='wholesale-product') catalogDeductions.push({productId:item.productId,size:item.size||'',qty:number(item.qty)});
         if(item.type==='wholesale'&&item.material==='ribbed'){
           if(item.wholesaleMode==='custom'&&item.allocations){
             if(item.style==='mixed'){for(const colors of Object.values(item.allocations||{}))for(const [color,qty] of Object.entries(colors||{}))catalogDeductions.push({category:'ribbed',color,qty:number(qty)*mult});}

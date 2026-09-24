@@ -1,4 +1,4 @@
-const cart = BF.getCart();
+let cart = BF.getCart();
 let checkoutSettings = {};
 let landmarkTimer;
 let paymentInProgress = false;
@@ -10,8 +10,9 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 function itemsSummary(){
-  return cart.map(i => i.type === 'wholesale' ? `${i.name}: ${i.summary}` : i.type==='apparel' ? `${i.qty} × ${i.name} · Black · Size ${i.size}` : i.type==='simple' ? `${i.qty} × ${i.name}` : i.type==='catalog' ? `${i.qty} × ${i.name}` : `${i.qty} × ${i.color} ${i.material==='ribbed'?'Ribbed':'Smooth'} ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} Hairband`).join(' | ');
+  return cart.map(i => i.type === 'wholesale' ? `${i.name}: ${i.summary}` : i.type==='wholesale-product' ? `${i.qty} × ${i.name}${i.size?` · Size ${i.size}`:''} · Wholesale` : i.type==='apparel' ? `${i.qty} × ${i.name} · Black · Size ${i.size}` : i.type==='simple' ? `${i.qty} × ${i.name}` : i.type==='catalog' ? `${i.qty} × ${i.name}${i.size?` · Size ${i.size}`:''}` : `${i.qty} × ${i.color} ${i.material==='ribbed'?'Ribbed':'Smooth'} ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} Hairband`).join(' | ');
 }
+
 
 function selectedFulfilment(){
   return $('[name="fulfilment"]:checked')?.value || 'delivery';
@@ -87,7 +88,7 @@ function renderSummary(){
   if(!cart.length){
     el.innerHTML = '<p>Your Bag is empty. <a href="shop.html" style="color:#f8dce7;text-decoration:underline">Return to the shop</a>.</p>';
   }else{
-    el.innerHTML = cart.map(i => `<div class="summary-row"><img src="${i.image}" alt="${i.name}"><p><strong>${i.name}</strong><br><small>${i.type === 'wholesale' ? i.summary : i.type==='apparel' ? `Black · Size ${i.size} × ${i.qty}` : i.type==='simple' ? `Quantity × ${i.qty}` : i.type==='catalog' ? `${i.color||i.category||'Product'}${i.style?` · ${i.style[0].toUpperCase()+i.style.slice(1)}`:''} × ${i.qty}` : `${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} × ${i.qty}`}</small></p><strong>${BF.money(i.price * i.qty)}</strong></div>`).join('');
+    el.innerHTML = cart.map(i => `<div class="summary-row"><img src="${i.image}" alt="${i.name}"><p><strong>${i.name}</strong><br><small>${i.type === 'wholesale' ? i.summary : i.type==='wholesale-product' ? `Wholesale${i.size?` · Size ${i.size}`:''} × ${i.qty}` : i.type==='apparel' ? `Black · Size ${i.size} × ${i.qty}` : i.type==='simple' ? `Quantity × ${i.qty}` : i.type==='catalog' ? `${i.color||i.category||'Product'}${i.size?` · Size ${i.size}`:''}${i.style?` · ${i.style[0].toUpperCase()+i.style.slice(1)}`:''} × ${i.qty}` : `${i.color} · ${(i.style||'flat')[0].toUpperCase()+(i.style||'flat').slice(1)} × ${i.qty}`}</small></p><strong>${BF.money(i.price * i.qty)}</strong></div>`).join('');
   }
 
   $('#summarySubtotal').textContent = BF.money(subtotal());
@@ -123,12 +124,88 @@ function dateFromInput(value){
   return new Date(year, month - 1, day, 12, 0, 0);
 }
 
+function checkoutFulfilmentInfo(fdOrPlan){
+  const fulfilment=typeof fdOrPlan==='string'?fdOrPlan:(fdOrPlan?.get?.('fulfilment')||'delivery');
+  const plan=typeof fdOrPlan==='string' ? 'together' : (fdOrPlan?.get?.('fulfilmentPlan')||'together');
+  const pickupDate=typeof fdOrPlan==='string'?null:dateFromInput(fdOrPlan?.get?.('pickupDate')||'');
+  const built=window.BFFulfilment?.buildGroups ? window.BFFulfilment.buildGroups(cart,{
+    mode:fulfilment,
+    plan,
+    standardDate:window.__bfDispatchDate?.toISOString?.()||'',
+    pickupDate:pickupDate?.toISOString?.()||'',
+    status:'Preparing'
+  }) : {plan,mixed:false,hasPreorder:false,groups:[] ,latestDate:null};
+  return {...built,fulfilment,pickupDate};
+}
+
+function mixedFulfilmentDates(){
+  if(!window.BFFulfilment||!window.__bfDispatchDate)return false;
+  const dates=window.BFFulfilment.cartFulfilmentDates(cart,window.__bfDispatchDate.toISOString());
+  return dates.length>1;
+}
+
+function renderFulfilmentPlan(){
+  const card=$('#preorderFulfilmentCard');
+  if(!card)return;
+  const delivery=selectedFulfilment()==='delivery';
+  const show=delivery && window.BFFulfilment?.cartHasPreorder?.(cart) && mixedFulfilmentDates();
+  card.hidden=!show;
+  if(!show)return;
+  const readyDate=window.__bfDispatchDate;
+  const preorderDates=cart.filter(i=>window.BFFulfilment.isPreorder(i)).map(i=>window.BFFulfilment.itemFulfilmentDate(i,readyDate));
+  const firstPreorder=window.BFFulfilment.latestDate(preorderDates);
+  $('#fulfilmentPlanIntro').textContent='your bag contains items that are ready on different dates. choose whether to receive them separately or wait and receive everything together.';
+  $('#togetherPlanCopy').textContent=firstPreorder
+    ? `we’ll hold your ready items and send your complete order on ${formatDate(firstPreorder)}. one delivery fee applies.`
+    : 'we’ll hold your ready items and send your complete order on the later fulfilment date. one delivery fee applies.';
+  $('#separatePlanCopy').textContent=readyDate&&firstPreorder
+    ? `ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. a delivery fee applies to each delivery.`
+    : 'ready items go first and pre-order items follow on their fulfilment date. a delivery fee applies to each delivery.';
+  const plan=$('[name="fulfilmentPlan"]:checked')?.value||'together';
+  const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
+  const groupCopy=(group)=>`${formatDate(group.date)} · ${group.items.length} item${group.items.length===1?'':'s'}`;
+  $('#fulfilmentPlanSummary').innerHTML=info.groups.length
+    ? `<strong>${plan==='separate'?'your delivery plan':'one delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
+    : '';
+}
+
+function renderDispatchNote(){
+  const base=window.__bfDispatchDate;
+  if(selectedFulfilment()!=='delivery')return;
+  const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
+  if(mixedFulfilmentDates()){
+    $('#dispatchNote').innerHTML=info.plan==='separate'
+      ? `your order is planned across ${info.groups.length} deliveries. first: <strong>${formatDate(info.groups[0].date)}</strong>.`
+      : `we’ll hold the ready items and deliver everything together on <strong>${formatDate(info.groups[0].date)}</strong>.`;
+    return;
+  }
+  if(info.hasPreorder&&info.groups[0]?.date){
+    $('#dispatchNote').innerHTML=`your order is scheduled for <strong>${formatDate(info.groups[0].date)}</strong>.`;
+    return;
+  }
+  $('#dispatchNote').innerHTML=base
+    ? `Your order is scheduled for <strong>${formatDate(base)}</strong>.`
+    : 'The next dispatch date will be confirmed by Band Factory.';
+}
+
+function deliveryFeeStatus(info){
+  if(info.fulfilment!=='delivery')return 'Not applicable';
+  if(info.groups.length>1)return `${info.groups.length} delivery fees`;
+  if(info.hasPreorder)return '1 delivery fee';
+  return 'To be communicated';
+}
+
 function setPickupMinimumDate(){
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth()+1).padStart(2,'0');
   const d = String(now.getDate()).padStart(2,'0');
-  $('#pickupDate').min = `${y}-${m}-${d}`;
+  let min=`${y}-${m}-${d}`;
+  const preorderDates=(cart||[]).filter(i=>window.BFFulfilment?.isPreorder?.(i)).map(i=>window.BFFulfilment.itemFulfilmentDate(i,window.__bfDispatchDate));
+  const latest=window.BFFulfilment?.latestDate?.(preorderDates);
+  if(latest){const ly=latest.getFullYear(),lm=String(latest.getMonth()+1).padStart(2,'0'),ld=String(latest.getDate()).padStart(2,'0');min=`${ly}-${lm}-${ld}`;}
+  if($('#pickupDate'))$('#pickupDate').min=min;
+  if($('#pickupDate')?.value && dateFromInput($('#pickupDate').value)?.getTime()<dateFromInput(min)?.getTime())$('#pickupDate').value=min;
 }
 
 function updatePickupDateLabel(){
@@ -153,9 +230,9 @@ async function updateDispatch(){
   window.BFDispatch?.apply(checkoutSettings);
   const date = nextDispatch(checkoutSettings);
   window.__bfDispatchDate = date;
-  $('#dispatchNote').innerHTML = date
-    ? `Your order is scheduled for <strong>${formatDate(date)}</strong>.`
-    : 'The next dispatch date will be confirmed by Band Factory.';
+  setPickupMinimumDate();
+  renderFulfilmentPlan();
+  renderDispatchNote();
 
   const address = checkoutSettings.pickupAddress || BF_CONFIG.pickup.address || 'Pickup address will be confirmed.';
   $('#pickupAddress').textContent = address;
@@ -208,7 +285,10 @@ function toggleFulfilment(){
   });
   $('#pickupDate').required = !delivery;
   if(delivery) clearFieldError($('#pickupDate'));
+  setPickupMinimumDate();
   syncCountryState();
+  renderFulfilmentPlan();
+  renderDispatchNote();
 
   renderSummary();
   validateForm(false);
@@ -468,6 +548,44 @@ async function restoreRecoveryCart(){
   }catch(error){console.warn('[Band Factory] Recovery cart could not be restored.',error)}
 }
 
+async function refreshCatalogCartMetadata(){
+  const current=BF.getCart();
+  const relevant=current.filter(item=>item?.type==='catalog'||item?.type==='wholesale-product');
+  if(!relevant.length){cart=current;return;}
+  try{
+    const saved=await BFStore.getDoc('products/catalog',{items:[]});
+    const byId=Object.fromEntries((Array.isArray(saved?.items)?saved.items:[]).map(item=>[item.id,item]));
+    let changed=false;
+    for(const item of current){
+      if(item?.type!=='catalog'&&item?.type!=='wholesale-product')continue;
+      const product=byId[item.productId];
+      if(!product)continue;
+      const fulfilment=window.BFCatalog?.fulfilment?.(product)||{type:'standard',date:''};
+      if(item.fulfilmentType!==fulfilment.type||item.fulfilmentDate!==(fulfilment.date||'')){
+        item.fulfilmentType=fulfilment.type;
+        item.fulfilmentDate=fulfilment.date||'';
+        changed=true;
+      }
+      if(item.type==='wholesale-product'){
+        const wholesale=window.BFCatalog?.wholesale?.(product)||{enabled:false,minQty:1,tiers:[]};
+        const nextQty=Math.max(wholesale.minQty,Math.floor(Number(item.qty||wholesale.minQty||1)));
+        const currentPrice=Number(item.price||0),nextPrice=Number(window.BFCatalog?.wholesalePriceForQty?.(product,nextQty)||0);
+        if(item.name!==product.name){item.name=product.name;changed=true;}
+        if(item.image!==(window.BFCatalog?.image?.(product)||product.image||'')){item.image=window.BFCatalog?.image?.(product)||product.image||'';changed=true;}
+        if(item.wholesaleMinQty!==wholesale.minQty){item.wholesaleMinQty=wholesale.minQty;changed=true;}
+        const nextTiers=JSON.stringify(wholesale.tiers||[]);
+        if(JSON.stringify(item.wholesaleTiers||[])!==nextTiers){item.wholesaleTiers=wholesale.tiers||[];changed=true;}
+        if(nextPrice>0&&currentPrice!==nextPrice){item.price=nextPrice;changed=true;}
+      }
+    }
+    cart=current;
+    if(changed)BF.saveCart(cart);
+  }catch(error){
+    cart=current;
+    console.warn('[Band Factory] Could not refresh product details in checkout.',error);
+  }
+}
+
 function abandonedCartId(){let id=localStorage.getItem(ABANDONED_ID_KEY);if(!id){id='CART-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();localStorage.setItem(ABANDONED_ID_KEY,id)}return id}
 async function saveAbandonedCartNow(){
   if(paymentInProgress||!cart.length)return;const form=$('#checkoutForm');if(!form)return;const fd=new FormData(form),phone=String(fd.get('phone')||'').trim();if(normalizeCheckoutPhone(phone).length<10)return;
@@ -646,7 +764,7 @@ const id = orderId;
     normalizedPhone: normalizeCheckoutPhone(fd.get('phone')),
     ...attributionData(fd),
     fulfilment,
-    fulfilmentDate: fulfilment === 'delivery' ? window.__bfDispatchDate?.toISOString() : pickupDate?.toISOString(),
+    ...buildOrderFulfilment(fd,'Preparing'),
     pickupDate: pickupDate?.toISOString() || '',
     pickupAddress: fulfilment === 'pickup' ? (checkoutSettings.pickupAddress || BF_CONFIG.pickup.address) : '',
     country: fulfilment === 'delivery' ? (fd.get('country') || 'Ghana') : 'Ghana',
@@ -666,13 +784,12 @@ const id = orderId;
     subtotal: sub,
     deliveryFee: fee,
     processingFee: processing,
-    deliveryFeeStatus: fulfilment === 'delivery' ? 'To be communicated' : 'Not applicable',
     total,
     payment: 'Paid',
     createdAt: new Date().toISOString(),
     paystackReference: transaction.reference || transaction.trxref || '',
     status: 'Preparing',
-    type: cart.some(i=>i.type === 'wholesale') ? 'Wholesale' : 'Retail',
+    type: cart.some(i=>i.type === 'wholesale' || i.type==='wholesale-product') ? 'Wholesale' : 'Retail',
     abandonedCartId: localStorage.getItem(ABANDONED_ID_KEY) || ''
   };
 
@@ -724,7 +841,12 @@ setPaymentState(
 
 
 async function validateCartStock(){
-  const [settings,productData,apparelData,catalogData]=await Promise.all([BFStore.getDoc('settings/store',{}),BFStore.getDoc('products/smooth',{colors:{},styles:{}}),BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),BFStore.getDoc('products/catalog',{items:[]})]);
+  const [settings,productData,apparelData,catalogData]=await Promise.all([
+    BFStore.getDoc('settings/store',{}),
+    BFStore.getDoc('products/smooth',{colors:{},styles:{}}),
+    BFStore.getDoc('products/spandexTubeTop',{name:'Spandex Tube Top',price:64,color:'Black',sizes:{XS:{stock:3,available:true},S:{stock:4,available:true},M:{stock:3,available:true},L:{stock:3,available:true},XL:{stock:3,available:true},'2XL':{stock:3,available:true}}}),
+    BFStore.getDoc('products/catalog',{items:[]})
+  ]);
   const remaining={flat:{},twisted:{}};
   const colors=new Set([...(BF.colors||[]).map(x=>x[0]),...Object.keys(productData.colors||{}),...Object.keys(productData.styles?.flat?.colors||{}),...Object.keys(productData.styles?.twisted?.colors||{})]);
   for(const style of ['flat','twisted']) for(const color of colors){
@@ -744,10 +866,35 @@ async function validateCartStock(){
     for(const [color,stock] of choices){if(need<=0)break;const used=Math.min(stock,need);remaining[style][color]-=used;need-=used;}
   };
   const apparelRemaining={};for(const [size,data] of Object.entries(apparelData?.sizes||{}))apparelRemaining[String(size).toUpperCase()]=data?.available===false?0:Math.max(0,Number(data?.stock??0));
-  const catalogRemaining=Object.fromEntries((catalogData.items||[]).map(item=>[item.id,{flat:{stock:Number(item.styles?.flat?.stock??item.stock??0),available:item.styles?.flat?.available??item.available!==false},twisted:{stock:Number(item.styles?.twisted?.stock??0),available:item.styles?.twisted?.available===true}}]));
+  const catalogItems=Array.isArray(catalogData.items)?catalogData.items:[];
+  const catalogRemaining=Object.fromEntries(catalogItems.map(item=>[item.id,{flat:{stock:Number(item.styles?.flat?.stock??item.stock??0),available:item.styles?.flat?.available??item.available!==false},twisted:{stock:Number(item.styles?.twisted?.stock??0),available:item.styles?.twisted?.available===true}}]));
+  const catalogById=Object.fromEntries(catalogItems.map(item=>[item.id,item]));
   for(const item of cart){
-    if(item.type==='catalog'&&item.category==='ribbed'){const style=item.style==='twisted'?'twisted':'flat',entry=catalogRemaining[item.productId]?.[style]||{stock:0,available:false},have=entry.available===false?0:Math.max(0,Number(entry.stock||0)),need=Math.max(0,Number(item.qty||0));if(need>have)throw new Error(have>0?`Only ${have} ${item.color||'Ribbed'} ${style} hairband${have===1?' is':'s are'} available right now. Please reduce the quantity in your Bag.`:`${item.color||'This Ribbed'} ${style} hairband is sold out. Please remove it from your Bag or choose another option.`);entry.stock=have-need;continue;}
-    if(item.type==='apparel'&&item.productId==='spandex-tube-top'){const size=String(item.size||'').toUpperCase(),have=Math.max(0,Number(apparelRemaining[size]||0)),need=Math.max(0,Number(item.qty||0));if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} available in size ${size}. Please reduce the quantity in your Bag.`:`Spandex Tube Top size ${size} is sold out. Please remove it from your Bag or choose another size.`);apparelRemaining[size]=have-need;continue;}
+    const isPreorder=window.BFFulfilment?.isPreorder?.(item)||item.fulfilmentType==='preorder';
+    if(item.type==='wholesale-product'){
+      const product=catalogById[item.productId];
+      if(!product||product.deleted===true||product.available===false)throw new Error(`${item.name||'This wholesale product'} is no longer available.`);
+      const w=BFCatalog.wholesale(product);
+      if(!w.enabled||!w.tiers.length)throw new Error(`${product.name||'This product'} is not currently available for wholesale.`);
+      const qty=Math.max(0,Math.floor(Number(item.qty||0))),min=w.minQty,expected=BFCatalog.wholesalePriceForQty(product,qty);
+      if(qty<min)throw new Error(`${product.name||'This product'} has a minimum wholesale order of ${min} units.`);
+      if(!expected||Math.abs(Number(item.price||0)-expected)>0.001)throw new Error(`The wholesale price for ${product.name||'this product'} has changed. Please remove it from your Bag and add it again.`);
+      if(product.sizes&&Object.keys(product.sizes).length){const size=String(item.size||'');const d=product.sizes[size];if(!d||d.available===false)throw new Error(`${product.name||'This product'} is not available in the selected size.`);if(!isPreorder&&Number(d.stock||0)<qty)throw new Error(`Only ${Number(d.stock||0)} ${product.name||'units'} are available in size ${size}.`);}else if(!isPreorder&&Number(product.stock||0)<qty)throw new Error(`Only ${Number(product.stock||0)} ${product.name||'units'} are available right now.`);
+      continue;
+    }
+    if(item.type==='catalog'){
+      const product=catalogById[item.productId];
+      if(product?.available===false)throw new Error(`${item.name||'This product'} is no longer available.`);
+      if(isPreorder)continue;
+    }
+    if(item.type==='catalog'&&item.category==='ribbed'){
+      const style=item.style==='twisted'?'twisted':'flat',entry=catalogRemaining[item.productId]?.[style]||{stock:0,available:false},have=entry.available===false?0:Math.max(0,Number(entry.stock||0)),need=Math.max(0,Number(item.qty||0));
+      if(need>have)throw new Error(have>0?`Only ${have} ${item.color||'Ribbed'} ${style} hairband${have===1?' is':'s are'} available right now. Please reduce the quantity in your Bag.`:`${item.color||'This Ribbed'} ${style} hairband is sold out. Please remove it from your Bag or choose another option.`);entry.stock=have-need;continue;
+    }
+    if(item.type==='apparel'&&item.productId==='spandex-tube-top'){
+      const size=String(item.size||'').toUpperCase(),have=Math.max(0,Number(apparelRemaining[size]||0)),need=Math.max(0,Number(item.qty||0));
+      if(need>have)throw new Error(have>0?`Only ${have} Spandex Tube Top${have===1?' is':'s are'} available in size ${size}. Please reduce the quantity in your Bag.`:`Spandex Tube Top size ${size} is sold out. Please remove it from your Bag or choose another size.`);apparelRemaining[size]=have-need;continue;
+    }
     if((item.material||'smooth')!=='smooth')continue;
     if(item.type==='retail'){
       const style=item.style==='twisted'?'twisted':'flat';take(style,item.color,Number(item.qty||0),`${item.color} ${style} hairband`);
@@ -787,6 +934,21 @@ async function reserveStock(orderId,token){
 async function releaseStock(orderId,token){
   if(!orderId||!token)return;
   try{await fetch('/.netlify/functions/release-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,token}),keepalive:true});}catch(error){console.warn('[Band Factory] Could not release checkout stock immediately:',error);}
+}
+
+
+function buildOrderFulfilment(fd,status='Preparing'){
+  const info=checkoutFulfilmentInfo(fd);
+  const groups=(info.groups||[]).map((group,index)=>({...group,id:group.id||`delivery-${index+1}`,status:group.status||status}));
+  const firstDate=groups[0]?.date||null;
+  const latest=info.latestDate||((groups.length)?window.BFFulfilment?.latestDate?.(groups.map(g=>g.date)):null);
+  return {
+    fulfilmentPlan:info.plan||'single',
+    fulfilmentGroups:groups,
+    fulfilmentDate:firstDate?window.BFFulfilment?.isoDate?.(firstDate)||new Date(firstDate).toISOString():'',
+    latestFulfilmentDate:latest?window.BFFulfilment?.isoDate?.(latest)||new Date(latest).toISOString():'',
+    deliveryFeeStatus:deliveryFeeStatus(info)
+  };
 }
 
 async function pay(){
@@ -842,11 +1004,7 @@ const key = BF_CONFIG.paystackPublicKey;
     ...attributionData(fd),
 
     fulfilment,
-
-    fulfilmentDate:
-      fulfilment === 'delivery'
-        ? window.__bfDispatchDate?.toISOString()
-        : '',
+    ...buildOrderFulfilment(fd,'Awaiting Payment'),
 
     pickupDate:
       fulfilment === 'pickup'
@@ -926,18 +1084,13 @@ const key = BF_CONFIG.paystackPublicKey;
     processingFee: processingFee(),
     deliveryFee: null,
 
-    deliveryFeeStatus:
-      fulfilment === 'delivery'
-        ? 'To be communicated'
-        : 'Not applicable',
-
     total: grandTotal(),
 
     payment: 'Pending',
     status: 'Awaiting Payment',
 
     type:
-      cart.some(i => i.type === 'wholesale')
+      cart.some(i => i.type === 'wholesale' || i.type === 'wholesale-product')
         ? 'Wholesale'
         : 'Retail',
 
@@ -997,8 +1150,8 @@ const key = BF_CONFIG.paystackPublicKey;
             email:String(fd.get('email')||'').trim(),paymentEmail:paymentEmailFor(fd),normalizedPhone:normalizeCheckoutPhone(fd.get('phone')),...attributionData(fd),
             items:cart,
             itemsSummary:itemsSummary(),
-            subtotal:subtotal(),processingFee:processingFee(),deliveryFee:null,deliveryFeeStatus:fd.get('fulfilment') === 'delivery' ? 'To be communicated' : 'Not applicable',total:grandTotal(),
-            payment:'Paid',paystackReference:transaction.reference || transaction.trxref || '',createdAt:new Date().toISOString(),status:'Preparing',type:cart.some(i=>i.type==='wholesale')?'Wholesale':'Retail',abandonedCartId:localStorage.getItem(ABANDONED_ID_KEY)||'',syncStatus:'pending',emailStatus:'pending'
+            subtotal:subtotal(),processingFee:processingFee(),deliveryFee:null,...buildOrderFulfilment(fd,'Preparing'),total:grandTotal(),
+            payment:'Paid',paystackReference:transaction.reference || transaction.trxref || '',createdAt:new Date().toISOString(),status:'Preparing',type:cart.some(i=>i.type==='wholesale' || i.type==='wholesale-product')?'Wholesale':'Retail',abandonedCartId:localStorage.getItem(ABANDONED_ID_KEY)||'',syncStatus:'pending',emailStatus:'pending'
           };
           sessionStorage.setItem('bf_payment_success',JSON.stringify({verifiedClientSuccess:true,createdAt:Date.now(),order:fallbackOrder}));
           localStorage.removeItem('bf_cart');
@@ -1063,6 +1216,10 @@ function setupLiveValidation(){
     validateForm(false);
   });
   form.addEventListener('change',event=>{
+    if(event.target.name==='fulfilmentPlan'){
+      renderFulfilmentPlan();
+      renderDispatchNote();
+    }
     saveDraft();
     queueAbandonedSave();
     validateForm(false);
@@ -1081,6 +1238,7 @@ function setupSummaryToggle(){
 document.addEventListener('DOMContentLoaded',async()=>{
   captureAttribution();
   await restoreRecoveryCart();
+  await refreshCatalogCartMetadata();
   setupCountrySelector();
   restoreDraft();
   try{

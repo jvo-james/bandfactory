@@ -12,15 +12,27 @@
   const order = payload.order;
   const esc = v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const money = v => `GHS ${Number(v||0).toLocaleString('en-GH',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  const deliveryDisplay = () => order.fulfilment === 'delivery' ? 'To be communicated' : 'Not applicable';
+  const deliveryDisplay = () => order.deliveryFeeStatus || (order.fulfilment === 'delivery' ? 'To be communicated' : 'Not applicable');
   const date = v => { if(!v || v==='Pickup') return ''; const d=new Date(v); return isNaN(d)?String(v):new Intl.DateTimeFormat('en-GH',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d); };
   const dateTime = v => { const d=new Date(v); return isNaN(d)?'':new Intl.DateTimeFormat('en-GH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d); };
 
   function itemDescription(i){
     if(i.type==='wholesale') return i.summary || `${i.bundlePieces||''} pieces`;
+    if(i.type==='wholesale-product') return `Wholesale · ${i.size?`Size ${i.size} · `:''}Quantity ${i.qty||1}`;
     if(i.type==='apparel') return `Black · Size ${i.size||'-'} · Quantity ${i.qty||1}`;
     if(i.type==='simple') return `Quantity ${i.qty||1}`;
     return `${i.color||''} · Quantity ${i.qty||1}`;
+  }
+
+  function fulfilmentReceiptHtml(){
+    const info=window.BFFulfilment?.summary?.(order)||{groups:[]},groups=info.groups||[];
+    if(!groups.length)return '';
+    const title=order.fulfilment==='pickup'?'Pickup schedule':info.split?'Delivery schedule':'Fulfilment schedule';
+    const intro=info.split
+      ? `your order will arrive in ${groups.length} deliveries.`
+      : (info.hasPreorder&&info.plan==='together'&&order.fulfilment==='delivery' ? 'we’ll hold the ready items until the pre-order date and deliver everything together.' : 'your fulfilment details are below.');
+    const cards=groups.map((group,index)=>{const items=(group.items||[]).map(i=>`${esc(i.name)}${i.size?` · ${esc(i.size)}`:''} × ${Number(i.qty||1)}`).join('<br>');return `<div class="receipt-fulfilment-group"><div><span>${esc(group.label||`Delivery ${index+1}`)}</span><strong>${esc(date(group.date))}</strong></div><p>${items||'Item details saved with your order.'}</p></div>`}).join('');
+    return `<p class="receipt-fulfilment-intro">${esc(intro)}</p><div class="receipt-fulfilment-groups">${cards}</div>`;
   }
 
   function receiptHTML(){
@@ -77,6 +89,7 @@
           <span class="receipt-eyebrow">${fulfilmentTitle}</span>
           <h3>${order.fulfilment==='pickup'?'Pickup details':'Delivery details'}</h3>
           <p>${fulfilmentCopy}</p>
+          ${fulfilmentReceiptHtml()}
         </div>
         <div class="receipt-totals">
           <div class="receipt-total-row"><span>Subtotal</span><strong>${money(order.subtotal ?? order.total)}</strong></div>
