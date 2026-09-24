@@ -2,6 +2,8 @@ const { isPreorder } = require('../../fulfilment');
 
 const number = value => Number(value || 0);
 const PRINT_IDS = new Set(['ribbed-cherry-milk', 'ribbed-navy-milk', 'ribbed-noir-gold']);
+const PREORDER_SIZES = new Set(['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL']);
+const validPreorderSize = size => PREORDER_SIZES.has(String(size || '').trim().toUpperCase());
 
 function cloneStyles(product = {}) {
   const styles = JSON.parse(JSON.stringify(product.styles || {}));
@@ -158,6 +160,7 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
       for (const allocation of allocations) {
         const variantId = String(allocation?.variantId || ''), size = String(allocation?.size || ''), pieceQty = Math.max(0, Math.floor(number(allocation?.qty))), key = `${variantId}::${size}`;
         if (!pieceQty) continue;
+        if (preorder && !validPreorderSize(size)) { errors.push(`${product.name || item.name || 'This product'} is available for pre-order in sizes 2XS through 2XL only.`); continue; }
         if (seen.has(key)) { errors.push(`${product.name || item.name || 'This product'} has a repeated colour and size selection.`); continue; }
         seen.add(key);
         const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
@@ -180,7 +183,9 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
       if (variant.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in the selected colour.`); continue; }
       const sizes = variant.sizes && typeof variant.sizes === 'object' ? variant.sizes : {};
       if (Object.keys(sizes).length) {
-        const size = String(item.size || ''), sizeData = sizes[size];
+        const size = String(item.size || '');
+        if (preorder && size && !validPreorderSize(size)) { errors.push(`${product.name || item.name || 'This product'} is available for pre-order in sizes 2XS through 2XL only.`); continue; }
+        const sizeData = sizes[size];
         if (!sizeData || sizeData.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in the selected size.`); continue; }
         if (!preorder && number(sizeData.stock) < qty) errors.push(`Only ${Math.max(0, number(sizeData.stock))} ${product.name || 'units'} are available in size ${size}.`);
       } else if (!preorder && number(variant.stock) < qty) errors.push(`Only ${Math.max(0, number(variant.stock))} ${product.name || 'units'} are available right now.`);
@@ -189,6 +194,7 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
 
     if (product.sizes && Object.keys(product.sizes).length) {
       const size = String(item.size || '');
+      if (preorder && size && !validPreorderSize(size)) { errors.push(`${product.name || item.name || 'This product'} is available for pre-order in sizes 2XS through 2XL only.`); continue; }
       const data = product.sizes[size];
       if (!data || data.available === false) errors.push(`${product.name || item.name || 'This product'} is not available in the selected size.`);
       else if (!preorder && number(data.stock) < qty) errors.push(`Only ${Math.max(0, number(data.stock))} ${product.name || 'units'} are available in size ${size}.`);
