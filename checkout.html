@@ -23,6 +23,20 @@
     .preorder-fulfilment-card{margin-top:14px;padding:18px;background:#fff;border:1px solid #eadde2}
     .preorder-fulfilment-head{display:flex;gap:12px;align-items:flex-start}.preorder-fulfilment-icon{width:34px;height:34px;display:grid;place-items:center;background:#f8e6ed;color:#945f73;flex:0 0 auto}.preorder-fulfilment-head h3{margin:4px 0 5px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:400;color:#251b1f}.preorder-fulfilment-head p{margin:0;color:#75656c;font-size:11px;line-height:1.55}.preorder-plan-options{display:grid;gap:8px;margin-top:16px}.preorder-plan-option{display:grid;grid-template-columns:18px 1fr 24px;gap:10px;align-items:start;padding:13px;border:1px solid #dfd1d7;background:#fbf7f8;cursor:pointer}.preorder-plan-option input{margin-top:3px;accent-color:#1c1618}.preorder-plan-copy strong{display:block;font-size:11px;color:#251b1f}.preorder-plan-copy small{display:block;margin-top:4px;font-size:10px;line-height:1.55;color:#76666d}.preorder-plan-check{width:24px;height:24px;border:1px solid #cfc0c7;display:grid;place-items:center;color:transparent}.preorder-plan-option:has(input:checked){border-color:#1f181b;background:#fff}.preorder-plan-option:has(input:checked) .preorder-plan-check{background:#1f181b;border-color:#1f181b;color:#fff}.preorder-fulfilment-summary{margin-top:10px;padding:11px 12px;background:#f5edf0;color:#68565e;font-size:10px;line-height:1.55}.preorder-fulfilment-summary strong{color:#2a2024}
     @media(max-width:620px){.preorder-fulfilment-card{padding:14px}.preorder-fulfilment-head h3{font-size:20px}.preorder-plan-option{grid-template-columns:18px 1fr 20px;padding:12px}.preorder-plan-check{width:20px;height:20px;font-size:9px}}
+
+    .checkout-page select.field{padding-right:42px;background:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23685d62' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px 14px;cursor:pointer}
+    .select-cue-help{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px;color:#8a7c82}
+    .select-cue-help i{font-size:8px;color:#a36f83}
+    .pickup-date-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:8px}
+    .pickup-date-heading label{margin:0}
+    .pickup-date-heading>span{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #eadfe3;border-radius:999px;background:#fff7fa;color:#7b6c72;font-size:8px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+    .pickup-date-heading>span i{color:#b97895}
+    .pickup-date-input-wrap{position:relative}
+    .pickup-date-input-wrap>i{position:absolute;left:14px;top:50%;transform:translateY(-50%);z-index:1;color:#a36f83;font-size:15px;pointer-events:none}
+    .pickup-date-input-wrap .field{padding-left:42px;padding-right:44px;min-height:50px;cursor:pointer}
+    .pickup-date-input-wrap .field::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.78;width:20px;height:20px}
+    .pickup-date-help{margin-top:8px}
+    @media(max-width:560px){.pickup-date-heading{align-items:flex-start;flex-direction:column;gap:7px}.pickup-date-heading>span{font-size:7px}.pickup-date-input-wrap .field{min-height:52px}}
 </style>
 <meta name="robots" content="noindex,follow"><link rel="stylesheet" href="catalog.css"><link rel="stylesheet" href="track-order.css"></head>
 <body class="checkout-page">
@@ -73,9 +87,10 @@
             </div>
             <div class="form-group">
               <label>How did you hear about Band Factory? <span class="optional-label">Optional</span></label>
-              <select class="field" name="reportedSource" id="reportedSource">
+              <select class="field" name="reportedSource" id="reportedSource" aria-describedby="reportedSourceHelp">
                 <option value="">Choose one if you remember</option><option value="TikTok">TikTok</option><option value="WhatsApp">WhatsApp</option><option value="Snapchat">Snapchat</option><option value="Instagram">Instagram</option><option value="Google">Google</option><option value="Friend / Referral">Friend / Referral</option><option value="Other">Other</option>
               </select>
+              <small class="field-help select-cue-help" id="reportedSourceHelp"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i> Choose from the list.</small>
               <small class="field-help">This helps Band Factory know which platforms are bringing customers. It does not affect your order.</small>
             </div>
           </div>
@@ -143,9 +158,10 @@
             <div class="form-row">
               <div class="form-group" id="ghanaRegionGroup">
                 <label>Region</label>
-                <select class="field" name="region" id="ghanaRegion">
+                <select class="field" name="region" id="ghanaRegion" aria-describedby="ghanaRegionHelp">
                   <option>Greater Accra</option><option>Ashanti</option><option>Central</option><option>Eastern</option><option>Western</option><option>Volta</option><option>Northern</option><option>Bono</option><option>Bono East</option><option>Ahafo</option><option>Upper East</option><option>Upper West</option><option>Oti</option><option>North East</option><option>Savannah</option><option>Western North</option>
                 </select>
+                <small class="field-help select-cue-help" id="ghanaRegionHelp"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i> Choose from the list.</small>
               </div>
               <div class="form-group" id="internationalRegionGroup" hidden>
                 <label>State / Province / Region</label>
@@ -199,8 +215,15 @@
               </div>
             </div>
             <div class="pickup-date-wrap form-group">
-              <label>Choose your pickup date</label>
-              <input class="field" type="date" name="pickupDate" id="pickupDate">
+              <div class="pickup-date-heading">
+                <label for="pickupDate">Choose your pickup date</label>
+                <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> Tap to choose</span>
+              </div>
+              <div class="pickup-date-input-wrap">
+                <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+                <input class="field" type="date" name="pickupDate" id="pickupDate" aria-describedby="pickupDateHelp pickupDateStatus">
+              </div>
+              <small class="field-help pickup-date-help" id="pickupDateHelp">Tap the date field to open the calendar and choose your preferred pickup day.</small>
               <div class="pickup-date-status" id="pickupDateStatus">Please choose a date.</div>
               <span class="field-error">Please choose your preferred pickup date.</span>
             </div>

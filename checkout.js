@@ -139,36 +139,55 @@ function checkoutFulfilmentInfo(fdOrPlan){
 }
 
 function mixedFulfilmentDates(){
-  if(!window.BFFulfilment||!window.__bfDispatchDate)return false;
-  const dates=window.BFFulfilment.cartFulfilmentDates(cart,window.__bfDispatchDate.toISOString());
-  return dates.length>1;
+  if(!window.BFFulfilment||!window.__bfDispatchDate||!cart.length)return false;
+  try{
+    const readyDate=window.__bfDispatchDate.toISOString();
+    const hasPreorder=window.BFFulfilment.cartHasPreorder?.(cart);
+    const hasReadyItems=cart.some(item=>!window.BFFulfilment.isPreorder(item));
+    if(!hasPreorder||!hasReadyItems)return false;
+    const separate=window.BFFulfilment.buildGroups(cart,{mode:'delivery',plan:'separate',standardDate:readyDate,status:'Preparing'});
+    return Boolean(separate?.mixed || (separate?.groups?.length>1));
+  }catch(error){
+    console.warn('[Band Factory] Could not compare fulfilment dates.',error);
+    return false;
+  }
 }
 
 function renderFulfilmentPlan(){
   const card=$('#preorderFulfilmentCard');
   if(!card)return;
+
   const delivery=selectedFulfilment()==='delivery';
-  if(!delivery){
-    card.hidden=true;
-    return;
-  }
+  card.hidden=true;
+  card.style.display=delivery?'':'none';
+  if(!delivery)return;
+
   let show=false;
-  try{ show=!!(window.BFFulfilment?.cartHasPreorder?.(cart) && mixedFulfilmentDates()); }catch(error){ console.warn('[Band Factory] Could not compare fulfilment dates yet.',error); }
+  try{ show=mixedFulfilmentDates(); }catch{}
   card.hidden=!show;
+  card.style.display=show?'':'none';
   if(!show)return;
+
   try{
     const readyDate=window.__bfDispatchDate;
-    const preorderDates=cart.filter(i=>window.BFFulfilment.isPreorder(i)).map(i=>window.BFFulfilment.itemFulfilmentDate(i,readyDate));
-    const firstPreorder=window.BFFulfilment.latestDate(preorderDates);
-    $('#fulfilmentPlanIntro').textContent='Your items are ready on different dates. Choose whether to get them separately or wait for everything.';
-    $('#togetherPlanCopy').textContent=firstPreorder
-      ? `We’ll hold your ready items and send everything on ${formatDate(firstPreorder)}. One delivery fee applies.`
-      : 'We’ll hold your ready items and send everything on the later date. One delivery fee applies.';
-    $('#separatePlanCopy').textContent=readyDate&&firstPreorder
-      ? `Ready items go on ${formatDate(readyDate)}. Pre-order items follow on their date. A delivery fee applies to each delivery.`
-      : 'Ready items go first. Pre-order items follow on their date. A delivery fee applies to each delivery.';
+    const preorderDates=cart
+      .filter(i=>window.BFFulfilment.isPreorder(i))
+      .map(i=>window.BFFulfilment.itemFulfilmentDate(i,readyDate))
+      .filter(Boolean);
+    const latestPreorder=window.BFFulfilment.latestDate(preorderDates);
+
+    $('#fulfilmentPlanIntro').textContent='Your bag contains items that are ready on different dates. Choose whether to receive them separately or wait and receive everything together.';
+    $('#togetherPlanCopy').textContent=latestPreorder
+      ? `We’ll hold your ready items and send your complete order on ${formatDate(latestPreorder)}. One delivery fee applies.`
+      : 'We’ll hold your ready items and send your complete order on the later fulfilment date. One delivery fee applies.';
+    $('#separatePlanCopy').textContent=readyDate
+      ? `Ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.`
+      : 'Ready items go first and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.';
+
     const plan=$('[name="fulfilmentPlan"]:checked')?.value||'together';
-    const info=checkoutFulfilmentInfo(new FormData($('#checkoutForm')));
+    const fd=new FormData($('#checkoutForm'));
+    fd.set('fulfilmentPlan',plan);
+    const info=checkoutFulfilmentInfo(fd);
     const groupCopy=(group)=>`${formatDate(group.date)} · ${group.items.length} item${group.items.length===1?'':'s'}`;
     $('#fulfilmentPlanSummary').innerHTML=info.groups.length
       ? `<strong>${plan==='separate'?'Your delivery plan':'One delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
@@ -176,6 +195,7 @@ function renderFulfilmentPlan(){
   }catch(error){
     console.warn('[Band Factory] Could not render the fulfilment choices yet.',error);
     card.hidden=true;
+    card.style.display='none';
   }
 }
 
