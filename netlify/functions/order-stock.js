@@ -147,30 +147,43 @@ function validateWholesaleItems(order = {}, catalogProduct = {}) {
       continue;
     }
 
+    const allocations = Array.isArray(item.variants) ? item.variants : [];
+    if (allocations.length) {
+      const allocatedTotal = allocations.reduce((sum, x) => sum + Math.max(0, Math.floor(number(x?.qty))), 0);
+      if (allocatedTotal !== qty) {
+        errors.push(`${product.name || item.name || 'This product'} has an invalid colour and size breakdown.`);
+        continue;
+      }
+      const seen = new Set();
+      for (const allocation of allocations) {
+        const variantId = String(allocation?.variantId || ''), size = String(allocation?.size || ''), pieceQty = Math.max(0, Math.floor(number(allocation?.qty))), key = `${variantId}::${size}`;
+        if (!pieceQty) continue;
+        if (seen.has(key)) { errors.push(`${product.name || item.name || 'This product'} has a repeated colour and size selection.`); continue; }
+        seen.add(key);
+        const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+        const variant = hasVariants ? catalogVariant(product, variantId) : null;
+        const target = hasVariants ? variant : product;
+        if (hasVariants && !variant) { errors.push(`${product.name || item.name || 'This product'} is no longer available in that colour.`); continue; }
+        if (target?.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in the selected colour.`); continue; }
+        const sizes = target?.sizes && typeof target.sizes === 'object' ? target.sizes : {};
+        if (Object.keys(sizes).length) {
+          const sizeData = sizes[size];
+          if (!sizeData || sizeData.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in ${target?.color || 'that colour'}, size ${size}.`); continue; }
+          if (!preorder && number(sizeData.stock) < pieceQty) errors.push(`Only ${Math.max(0, number(sizeData.stock))} ${product.name || 'units'} are available in ${target?.color || 'that colour'}, size ${size}.`);
+        } else if (!preorder && number(target?.stock) < pieceQty) errors.push(`Only ${Math.max(0, number(target?.stock))} ${product.name || 'units'} are available in ${target?.color || 'that colour'}.`);
+      }
+      continue;
+    }
     const variant = catalogVariant(product, item.variantId);
     if (Array.isArray(product.variants) && product.variants.length) {
-      if (!variant) {
-        errors.push(`${product.name || item.name || 'This product'} is no longer available in that colour.`);
-        continue;
-      }
-      if (variant.available === false) {
-        errors.push(`${product.name || item.name || 'This product'} is not available in the selected colour.`);
-        continue;
-      }
+      if (!variant) { errors.push(`${product.name || item.name || 'This product'} is no longer available in that colour.`); continue; }
+      if (variant.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in the selected colour.`); continue; }
       const sizes = variant.sizes && typeof variant.sizes === 'object' ? variant.sizes : {};
       if (Object.keys(sizes).length) {
-        const size = String(item.size || '');
-        const sizeData = sizes[size];
-        if (!sizeData || sizeData.available === false) {
-          errors.push(`${product.name || item.name || 'This product'} is not available in the selected size.`);
-          continue;
-        }
-        if (!preorder && number(sizeData.stock) < qty) {
-          errors.push(`Only ${Math.max(0, number(sizeData.stock))} ${product.name || 'units'} are available in size ${size}.`);
-        }
-      } else if (!preorder && number(variant.stock) < qty) {
-        errors.push(`Only ${Math.max(0, number(variant.stock))} ${product.name || 'units'} are available right now.`);
-      }
+        const size = String(item.size || ''), sizeData = sizes[size];
+        if (!sizeData || sizeData.available === false) { errors.push(`${product.name || item.name || 'This product'} is not available in the selected size.`); continue; }
+        if (!preorder && number(sizeData.stock) < qty) errors.push(`Only ${Math.max(0, number(sizeData.stock))} ${product.name || 'units'} are available in size ${size}.`);
+      } else if (!preorder && number(variant.stock) < qty) errors.push(`Only ${Math.max(0, number(variant.stock))} ${product.name || 'units'} are available right now.`);
       continue;
     }
 
@@ -380,7 +393,16 @@ function applyOrderToStock(order = {}, smoothProduct = {}, apparelProduct = {}, 
     }
 
     if (item.type === 'wholesale-product') {
-      consumeCatalog(item.productId, item.size, number(item.qty), item.name || 'Wholesale product', item.variantId || '');
+      if (Array.isArray(item.variants) && item.variants.length) {
+        for (const allocation of item.variants) {
+          const qty = Math.max(0, number(allocation?.qty));
+          if (!qty) continue;
+          const variant = catalogVariant(catalog.items.find(x => x.id === item.productId) || {}, allocation?.variantId || '');
+          consumeCatalog(item.productId, allocation?.size || '', qty, `${item.name || 'Wholesale product'}${variant?.color ? ` · ${variant.color}` : ''}${allocation?.size ? ` · Size ${allocation.size}` : ''}`, allocation?.variantId || '');
+        }
+      } else {
+        consumeCatalog(item.productId, item.size, number(item.qty), item.name || 'Wholesale product', item.variantId || '');
+      }
       continue;
     }
 

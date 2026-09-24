@@ -113,10 +113,19 @@ function infoGrid(rows=[]){
 function paragraph(text){return `<p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.72;color:#554D50">${esc(text)}</p>`}
 function quote(text){return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 0;background:#FFF2F7"><tr><td style="padding:18px 20px;border-left:3px solid #E890AE;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#43383C">${esc(text)}</td></tr></table>`}
 
+function orderItemDetailLines(item = {}) {
+  if (Array.isArray(item.variants) && item.variants.length) {
+    return item.variants.map(v => `${number(v.qty || 0)} × ${esc(v.color || v.variantColor || 'Colour')}${v.size ? ` · Size ${esc(v.size)}` : ''}`).join('<br>');
+  }
+  return [item.color, item.size ? `Size ${item.size}` : '', item.style ? item.style : '', item.qty ? `Qty ${item.qty}` : ''].filter(Boolean).map(esc).join(' · ');
+}
+function orderItemShortText(item = {}) {
+  if (Array.isArray(item.variants) && item.variants.length) return item.variants.map(v => `${Number(v.qty || 0)} × ${v.color || 'Colour'}${v.size ? ` · ${v.size}` : ''}`).join(', ');
+  return [item.color, item.size ? `Size ${item.size}` : '', item.qty ? `Qty ${item.qty}` : ''].filter(Boolean).join(' · ');
+}
 function orderItems(order={}){
-  const items=Array.isArray(order.items)?order.items:[];
-  if(!items.length)return paragraph('Your order items are saved with your order.');
-  return `<div style="margin-top:28px"><div style="margin-bottom:7px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E6A78">Your order</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${items.map(i=>{const qty=Number(i.qty||1),meta=[i.color,i.size,i.style,qty>1?`Qty ${qty}`:''].filter(Boolean).join(' · ');return `<tr><td style="padding:13px 0;border-bottom:1px solid #E7DCE0;vertical-align:top"><div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;font-weight:700;color:#111111">${esc(i.name||'Band Factory item')}</div>${meta?`<div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#887D81">${esc(meta)}</div>`:''}</td><td class="bf-item-price" align="right" style="padding:13px 0 13px 18px;border-bottom:1px solid #E7DCE0;vertical-align:top;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;font-weight:700;color:#111111">${money(Number(i.price||0)*qty)}</td></tr>`}).join('')}</table></div>`;
+  const rows=(order.items||[]).map(item=>{const qty=Number(item.qty||1);return `<tr><td><strong>${esc(item.name||'Band Factory item')}</strong><br><span style="color:#8c7d83;font-size:12px">${orderItemShortText(item)}</span></td><td style="text-align:right">${money(Number(item.price||0)*qty)}</td></tr>`}).join('');
+  return `<div style="margin-top:22px"><h3 style="font:600 20px Georgia,serif;margin:0 0 10px">Order details</h3><table style="width:100%;border-collapse:collapse">${rows||'<tr><td>No item details saved.</td></tr>'}</table></div>`;
 }
 
 
