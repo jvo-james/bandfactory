@@ -623,7 +623,18 @@ async function initWholesale() {
   if (['flat', 'twisted', 'mixed'].includes(params.get('style'))) wholesaleStyle = params.get('style');
   if (params.get('type') === 'custom') orderType = 'custom';
   activeColourStyle = wholesaleStyle === 'mixed' ? 'flat' : wholesaleStyle;
+  const requestedColour = params.get('color');
   resetStyleSplit();
+  if (orderType === 'custom' && requestedColour) {
+    const match = allWholesaleColours().find(([name]) => String(name).toLowerCase() === String(requestedColour).toLowerCase());
+    const targetStyle = editStyle();
+    if (match && colourStock(targetStyle, match[0]) > 0) {
+      selectedColors[targetStyle] = [match[0]];
+      allocations[targetStyle] = { [match[0]]: 0 };
+      renderCustom();
+      updateAll();
+    }
+  }
 
   $$('[data-wholesale-style]').forEach(btn => btn.onclick = () => requestStyle(btn.dataset.wholesaleStyle));
   $$('[data-order-type]').forEach(btn => btn.onclick = () => setOrderType(btn.dataset.orderType));

@@ -30,3 +30,60 @@ body{background:#fff}.pdp{display:grid;grid-template-columns:minmax(0,1.42fr) mi
 
 .catalog-pdp-image{position:relative}.catalog-pdp-image #itemImage{transition:opacity .18s ease}.item-variant-option{cursor:pointer}.item-variant-option.active{background:#fbf4f6}.item-variant-thumb{border:1px solid #eee1e6}.item-gallery button{cursor:pointer}.item-gallery button:focus-visible{outline:2px solid #2a1e22;outline-offset:2px}.catalog-pdp-details .pdp-intro{line-height:1.75}.catalog-fulfilment-notice{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #e6c4d1;background:linear-gradient(135deg,#fff0f5,#fffafa);margin:16px 0}.catalog-fulfilment-notice>i{width:34px;height:34px;display:grid;place-items:center;border:1px solid #e7cbd5;background:#fff;color:#8b5a6f}.catalog-fulfilment-notice strong{font-size:11px}.catalog-fulfilment-notice span,.catalog-fulfilment-notice small{display:block;color:#6d5e64;font-size:10px;line-height:1.6}.catalog-fulfilment-notice small{margin-top:5px}
 @media(max-width:700px){.catalog-pdp-image{scroll-margin-top:10px}.item-gallery{display:flex;gap:7px;overflow:auto;padding:8px 0}.item-gallery button{flex:0 0 58px}.item-variant-option{min-height:58px}}
+
+/* ===== PRODUCT IMAGE PRESENTATION ===== */
+.pdp-image-wrap,
+.catalog-pdp-image{
+    scroll-margin-top:calc(var(--header-h) + 18px);
+    background:#f4edf0;
+}
+.pdp-image-wrap img,
+.catalog-pdp-image #itemImage{
+    object-fit:contain!important;
+    object-position:center!important;
+    background:#f4edf0;
+}
+@media(max-width:980px){
+    .pdp-image-wrap{
+        height:auto;
+        aspect-ratio:4/4.7;
+        min-height:0;
+    }
+}
+@media(max-width:600px){
+    .pdp-image-wrap{
+        aspect-ratio:1/1.15;
+    }
+    .pdp-image-wrap img,
+    .catalog-pdp-image #itemImage{
+        padding:4%;
+    }
+}
+
+/* Product-specific wholesale handoff */
+.catalog-wholesale-link,
+#pdpWholesaleLink{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    min-height:46px;
+    margin:9px 0 26px;
+    padding:0 14px;
+    border:1px solid #ded3d8;
+    background:#fbf6f8;
+    color:#2c2227;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    text-decoration:none;
+    transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+.catalog-wholesale-link:hover,
+#pdpWholesaleLink:hover{
+    background:#f5e6ed;
+    border-color:#c8a5b4;
+    transform:translateY(-1px);
+}

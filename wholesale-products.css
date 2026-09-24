@@ -2,3 +2,123 @@
 
 .wholesale-product-card-link{display:block;color:inherit;text-decoration:none}.wholesale-product-body{min-width:0}.wholesale-product-prices{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.wholesale-price-line{padding:8px 9px;background:#fbf6f8;border:1px solid #eee3e7}.wholesale-price-line span{display:block;font-size:7px;text-transform:uppercase;letter-spacing:.1em;color:#8a7a81;font-weight:900}.wholesale-price-line strong{display:block;font-size:12px;margin-top:3px}.wholesale-price-line small{display:block;font-size:7px;color:#8c7d83;margin-top:3px}.wholesale-price-line.subtle{background:#fff}.wholesale-card-swatches{margin-top:10px}.wholesale-card-swatches .bf-card-swatch{padding:4px 2px}.wholesale-card-swatches .bf-card-swatch small{font-size:6px}.bf-card-swatches{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 2px}.bf-card-swatch{border:0;background:transparent;padding:2px;display:inline-flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:#6f6268;min-width:31px}.bf-card-swatch span{width:27px;height:27px;border-radius:50%;background:var(--swatch,#ddd);border:1px solid rgba(0,0,0,.14);box-shadow:0 0 0 2px #fff,0 0 0 3px transparent;transition:transform .18s ease,box-shadow .18s ease}.bf-card-swatch small{font-size:6px;line-height:1.1;text-align:center;max-width:48px}.bf-card-swatch:hover span,.bf-card-swatch:focus-visible span,.bf-card-swatch.is-active span{transform:scale(1.05);box-shadow:0 0 0 2px #fff,0 0 0 3px #231b1e}.bf-card-swatch:focus-visible{outline:0}.bf-card-colour{min-height:12px}
 @media(max-width:800px){.wholesale-product-prices{grid-template-columns:1fr 1fr}.wholesale-product-card .wholesale-product-meta{min-height:58px}.bf-card-swatch span{width:25px;height:25px}}@media(max-width:520px){.wholesale-product-prices{grid-template-columns:1fr}.wholesale-price-line{padding:7px 8px}.bf-card-swatches{gap:5px}.bf-card-swatch span{width:24px;height:24px}.bf-card-swatch small{font-size:5.5px}}
+
+/* ===== WHOLESALE PRODUCT SHOP — CLEAN GRID REDESIGN ===== */
+.wholesale-products-page{background:#faf7f8}
+.wholesale-products-content{padding-top:58px}
+.wholesale-products-toolbar{padding-bottom:10px;border-bottom:1px solid #e6dce0}
+.wholesale-products-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+}
+.wholesale-product-card{
+    overflow:hidden;
+    background:#fff;
+    border:1px solid #e4d9de;
+    box-shadow:0 5px 0 rgba(17,17,17,.015);
+    transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;
+}
+.wholesale-product-card:hover{
+    transform:translateY(-5px);
+    border-color:#cdb3bf;
+    box-shadow:0 24px 54px rgba(45,18,29,.10);
+}
+.wholesale-product-card-link{height:100%;display:flex;flex-direction:column}
+.wholesale-product-media{
+    position:relative;
+    aspect-ratio:4/4.65;
+    background:
+      radial-gradient(circle at 50% 35%,rgba(255,255,255,.95),transparent 46%),
+      #f3eaed;
+}
+.wholesale-product-media:after{
+    content:'';
+    position:absolute;
+    inset:12px;
+    border:1px solid rgba(17,17,17,.08);
+    pointer-events:none;
+}
+.wholesale-product-media img{
+    position:relative;
+    z-index:0;
+    object-fit:contain;
+    padding:7%;
+    transition:transform .5s cubic-bezier(.2,.7,.2,1);
+}
+.wholesale-product-card:hover .wholesale-product-media img{transform:scale(1.035)}
+.wholesale-product-badge{
+    left:18px;
+    top:18px;
+    z-index:3;
+    padding:7px 9px;
+    border:1px solid rgba(17,17,17,.1);
+    background:#111;
+}
+.wholesale-product-badge.preorder{background:#8b5b70}
+.wholesale-product-arrow{
+    right:18px;
+    top:18px;
+    z-index:3;
+    opacity:1;
+    transform:none;
+    width:34px;
+    height:34px;
+}
+.wholesale-product-body{
+    flex:1;
+    display:grid;
+    gap:8px;
+    padding:17px 17px 18px;
+}
+.wholesale-product-meta{
+    min-height:56px;
+    align-items:start;
+}
+.wholesale-product-meta h3{font-size:12px;line-height:1.3}
+.wholesale-product-meta p{font-size:9px;margin-top:5px;color:#8b7b83}
+.wholesale-save-pill{background:#f2e2e8;color:#82566b;padding:6px 8px}
+.wholesale-card-swatches{
+    margin:0;
+    padding-top:1px;
+    gap:5px;
+}
+.wholesale-card-swatches .bf-card-swatch{min-width:35px;padding:2px 1px}
+.wholesale-card-swatches .bf-card-swatch span{width:27px;height:27px}
+.wholesale-card-swatches .bf-card-swatch small{font-size:5.5px}
+.wholesale-product-prices{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    margin-top:auto;
+}
+.wholesale-price-line{
+    min-height:70px;
+    padding:9px 10px;
+    background:#fbf7f8;
+    border:1px solid #eee3e7;
+}
+.wholesale-price-line span{font-size:6.5px}
+.wholesale-price-line strong{font-size:13px;margin-top:4px}
+.wholesale-price-line small{font-size:6.5px;line-height:1.3}
+.wholesale-product-date{font-size:7.5px;margin-top:0}
+@media(max-width:1050px){
+    .wholesale-products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:800px){
+    .wholesale-products-content{padding-top:42px}
+    .wholesale-products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .wholesale-product-media{aspect-ratio:4/4.9}
+    .wholesale-product-media:after{inset:8px}
+    .wholesale-product-badge{left:10px;top:10px;padding:6px 7px;font-size:6px}
+    .wholesale-product-arrow{right:10px;top:10px;width:30px;height:30px}
+    .wholesale-product-body{padding:12px 10px 13px;gap:7px}
+    .wholesale-product-meta{min-height:62px}
+    .wholesale-product-meta h3{font-size:9px}
+    .wholesale-product-meta p{font-size:8px}
+    .wholesale-save-pill{font-size:6px;padding:5px 6px}
+    .wholesale-product-prices{grid-template-columns:1fr;gap:5px}
+    .wholesale-price-line{min-height:61px;padding:8px}
+    .wholesale-price-line strong{font-size:11px}
+    .wholesale-price-line small{font-size:6px}
+}

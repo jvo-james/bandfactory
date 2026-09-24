@@ -195,9 +195,11 @@ window.BFCatalog = {
         if(colourLabel)colourLabel.textContent=variant.color||'';
         buttons.forEach(btn=>{const active=btn.dataset.cardVariant===variant.id;btn.classList.toggle('is-active',active);btn.setAttribute('aria-pressed',active?'true':'false');});
         const retailUrl=`item.html?id=${encodeURIComponent(product.id)}&variant=${encodeURIComponent(variant.id)}`;
-        if(link)link.href=retailUrl;
+        const wholesaleUrl=`wholesale-product.html?id=${encodeURIComponent(product.id)}&variant=${encodeURIComponent(variant.id)}`;
+        const primaryMode=String(link?.dataset.cardLinkMode||card.dataset.bfLinkMode||'').toLowerCase();
+        if(link)link.href=primaryMode==='wholesale'?wholesaleUrl:retailUrl;
         if(retailLink)retailLink.href=retailUrl;
-        if(wholesaleLink)wholesaleLink.href=`wholesale-product.html?id=${encodeURIComponent(product.id)}&variant=${encodeURIComponent(variant.id)}`;
+        if(wholesaleLink)wholesaleLink.href=wholesaleUrl;
       };
       const defaultId=product.featuredVariantId||product.featuredColour||variants[0]?.id||'';
       setVariant(defaultId);

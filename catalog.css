@@ -39,3 +39,15 @@
 
 .catalog-tile-link{display:block;color:inherit;text-decoration:none}.bf-variant-card .catalog-tile-copy{min-width:0}.bf-card-colour{color:#8b7c83}.bf-card-swatches{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-start;margin:8px 0 2px}.bf-card-swatch{border:0;background:transparent;padding:2px;display:inline-flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:#776970;min-width:31px}.bf-card-swatch span{display:block;width:28px;height:28px;border-radius:50%;background:var(--swatch,#ddd);border:1px solid rgba(0,0,0,.15);box-shadow:0 0 0 2px #fff,0 0 0 3px transparent;transition:transform .18s ease,box-shadow .18s ease}.bf-card-swatch small{font-size:6px;line-height:1.1;max-width:50px;text-align:center}.bf-card-swatch:hover span,.bf-card-swatch:focus-visible span,.bf-card-swatch.is-active span{transform:scale(1.04);box-shadow:0 0 0 2px #fff,0 0 0 3px #2a2024}.bf-card-swatch:focus-visible{outline:0}.catalog-fulfilment-date{display:block;margin-top:6px;font-size:8px;color:#8f6174}.catalog-tile-media img{transition:transform .45s ease}.bf-variant-card:hover .catalog-tile-media img{transform:scale(1.02)}
 @media(max-width:600px){.bf-card-swatches{gap:5px}.bf-card-swatch span{width:25px;height:25px}.bf-card-swatch small{font-size:5.5px}}
+
+/* ===== CATALOG PDP + RELATED POLISH ===== */
+.catalog-pdp-image #itemImage{object-fit:contain!important;background:#f4edf0}
+.pdp-related-card .catalog-tile-media{background:#f4edf0}
+.pdp-related-card .catalog-tile-media img{object-fit:contain;padding:5%;background:#f4edf0}
+.pdp-related-card .catalog-tile-copy{padding:12px 2px 0}
+.pdp-related-card .catalog-tile-copy>strong{display:block;margin-top:8px}
+.pdp-related-card .bf-card-swatches{margin-top:7px}
+@media(max-width:700px){
+    .catalog-pdp-image{scroll-margin-top:calc(var(--header-h) + 10px)}
+    .catalog-pdp-image #itemImage{padding:4%}
+}
