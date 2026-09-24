@@ -1,6 +1,6 @@
 const admin=require('firebase-admin');
 const {dispatchStoredEvent}=require('./email-core');
-const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock}=require('./order-stock');
+const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock,validateWholesaleItems}=require('./order-stock');
 if(!admin.apps.length){admin.initializeApp({credential:admin.credential.cert({projectId:process.env.FIREBASE_PROJECT_ID,clientEmail:process.env.FIREBASE_CLIENT_EMAIL,privateKey:String(process.env.FIREBASE_PRIVATE_KEY||'').replace(/\\n/g,'\n')})});}
 const db=admin.firestore();
 const normalizePhone=value=>{let digits=String(value||'').replace(/\D/g,'');if(digits.startsWith('0')&&digits.length>=10)digits='233'+digits.slice(1);return digits};
@@ -14,13 +14,15 @@ exports.handler=async event=>{
   const response=await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,{headers:{Authorization:`Bearer ${secret}`}});const verification=await response.json().catch(()=>({})),data=verification?.data;
   if(!response.ok||!verification.status||data?.status!=='success')return {statusCode:400,headers,body:JSON.stringify({ok:false,error:'Paystack could not confirm this payment.'})};
   const expected=Math.round(number(order.total)*100),paid=number(data.amount),currency=String(data.currency||'').toUpperCase();if(paid!==expected||currency!=='GHS')return {statusCode:400,headers,body:JSON.stringify({ok:false,error:'The confirmed payment does not match this order.'})};
-  const paymentRef=db.collection('paymentReferences').doc(reference),orderRef=db.collection('orders').doc(order.id),productRef=db.doc('products/smooth'),catalogRef=db.doc('products/catalog'),apparelRef=db.doc('products/spandexTubeTop'),reservationRef=db.collection('stockReservations').doc(order.id);
+  const paymentRef=db.collection('paymentReferences').doc(reference),orderRef=db.collection('orders').doc(order.id),productRef=db.doc('products/smooth'),catalogRef=db.doc('products/catalog'),apparelRef=db.doc('products/spandexTubeTop'),reservationRef=db.collection('stockReservations').doc(order.id),needsWholesaleValidation=(order.items||[]).some(item=>item.type==='wholesale-product');
   await db.runTransaction(async tx=>{
    const seen=await tx.get(paymentRef);if(seen.exists)return;
    const reservationSnap=await tx.get(reservationRef);
    const hasReservation=reservationSnap.exists&&['reserved','finalized'].includes(reservationSnap.data()?.status);
    let stockResult=null,productSnap=null,catalogSnap=null,apparelSnap=null;
-   if(orderUsesManagedStock(order)&&!hasReservation){if(orderUsesSmoothStock(order))productSnap=await tx.get(productRef);if(orderUsesRibbedStock(order))catalogSnap=await tx.get(catalogRef);if(orderUsesApparelStock(order))apparelSnap=await tx.get(apparelRef);if((!orderUsesSmoothStock(order)||productSnap?.exists)&&(!orderUsesRibbedStock(order)||catalogSnap?.exists)&&(!orderUsesApparelStock(order)||apparelSnap?.exists))stockResult=applyOrderToStock(order,productSnap?.data()||{},apparelSnap?.data()||{},catalogSnap?.data()||{});}
+   if(needsWholesaleValidation||orderUsesRibbedStock(order))catalogSnap=await tx.get(catalogRef);
+   if(needsWholesaleValidation){if(!catalogSnap?.exists)throw new Error('Wholesale product information is temporarily unavailable.');const wholesaleErrors=validateWholesaleItems(order,catalogSnap.data()||{});if(wholesaleErrors.length)throw new Error(wholesaleErrors[0]);}
+   if(orderUsesManagedStock(order)&&!hasReservation){if(orderUsesSmoothStock(order))productSnap=await tx.get(productRef);if(orderUsesRibbedStock(order)&&!catalogSnap)catalogSnap=await tx.get(catalogRef);if(orderUsesApparelStock(order))apparelSnap=await tx.get(apparelRef);if((!orderUsesSmoothStock(order)||productSnap?.exists)&&(!orderUsesRibbedStock(order)||catalogSnap?.exists)&&(!orderUsesApparelStock(order)||apparelSnap?.exists))stockResult=applyOrderToStock(order,productSnap?.data()||{},apparelSnap?.data()||{},catalogSnap?.data()||{});}
    if(stockResult?.shortages?.length)throw new Error(`Paid order ${order.id} has insufficient stock: ${stockResult.shortages.join('; ')}`);
    const t=admin.firestore.FieldValue.serverTimestamp(),stockSyncStatus=orderUsesManagedStock(order)?(hasReservation?'updated':(stockResult?'updated':'needs-review')):'not-required';
    tx.set(orderRef,{...order,payment:'Paid',status:'Preparing',serverVerified:true,stockSyncStatus,verification:{reference,amount:paid,currency,paidAt:data.paid_at||null,channel:data.channel||''},verifiedAt:t},{merge:false});

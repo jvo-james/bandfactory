@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const BFFulfilment = require('../../fulfilment');
 
 function initFirebase(){
   if(!admin.apps.length){
@@ -118,6 +119,20 @@ function orderItems(order={}){
   return `<div style="margin-top:28px"><div style="margin-bottom:7px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E6A78">Your order</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${items.map(i=>{const qty=Number(i.qty||1),meta=[i.color,i.size,i.style,qty>1?`Qty ${qty}`:''].filter(Boolean).join(' · ');return `<tr><td style="padding:13px 0;border-bottom:1px solid #E7DCE0;vertical-align:top"><div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;font-weight:700;color:#111111">${esc(i.name||'Band Factory item')}</div>${meta?`<div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#887D81">${esc(meta)}</div>`:''}</td><td class="bf-item-price" align="right" style="padding:13px 0 13px 18px;border-bottom:1px solid #E7DCE0;vertical-align:top;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;font-weight:700;color:#111111">${money(Number(i.price||0)*qty)}</td></tr>`}).join('')}</table></div>`;
 }
 
+
+function fulfilmentEmailBlock(order={}){
+  const info=BFFulfilment.summary(order),groups=info.groups||[],pickup=String(order.fulfilment||'').toLowerCase()==='pickup';
+  if(!groups.length)return '';
+  const heading=info.split?`Your order is scheduled across ${groups.length} deliveries.`:info.hasPreorder&&info.plan==='together'?'We’ll hold your ready items until the pre-order date.':pickup?'Your pickup plan is below.':'Your delivery plan is below.';
+  const intro=paragraph(heading);
+  const cards=groups.map((group,index)=>{
+    const itemNames=(group.items||[]).map(item=>`${esc(item.name||'Band Factory item')}${item.size?` · ${esc(item.size)}`:''} × ${Number(item.qty||1)}`).join('<br>')||'Items saved with your order';
+    const label=pickup?'Pickup':(info.split?`Delivery ${index+1}`:'Delivery');
+    return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:10px 0 0;background:#FFF7FA;border:1px solid #EBDDE3"><tr><td style="padding:14px 16px"><div style="font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A7280">${label}</div><div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;font-weight:700;color:#111111">${esc(BFFulfilment.formatDate(group.date))}</div><div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#756A6E">${itemNames}</div></td></tr></table>`;
+  }).join('');
+  return `${intro}<div style="margin-top:16px"><div style="margin-bottom:7px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E6A78">Fulfilment</div>${cards}</div>`;
+}
+
 async function ensureTrackingToken(orderId,existingOrder){
   const ref=db.collection('orders').doc(orderId);
   let order=existingOrder;
@@ -134,10 +149,10 @@ async function sendPurchase(order){
   const access=await ensureTrackingToken(order.id,order);order=access?.order||order;
   const total=money(order.total),ref=order.id;
   const customerName=String(order.name||'there').trim();
-  const customerBody=`${paragraph(`Hi ${customerName}, thanks for your order. Your payment has been received and ${ref} is confirmed.`)}${orderItems(order)}${infoGrid([['Order number',ref],['Status',order.status||'Preparing'],['Fulfilment',order.fulfilment||'Delivery'],['Total paid',total],['Placed',date(order.createdAt)]])}${paragraph('We will email you when your order status changes. You can also track it on the Band Factory website at any time.')}`;
+  const customerBody=`${paragraph(`Hi ${customerName}, thanks for your order. Your payment has been received and ${ref} is confirmed.`)}${orderItems(order)}${fulfilmentEmailBlock(order)}${infoGrid([['Order number',ref],['Status',order.status||'Preparing'],['Fulfilment',order.fulfilment||'Delivery'],['Delivery fee',order.deliveryFeeStatus||'To be communicated'],['Total paid',total],['Placed',date(order.createdAt)]])}${paragraph('We will email you when your order status changes. You can also track it on the Band Factory website at any time.')}`;
   const jobs=[];
   if(order.email)jobs.push(resend({to:order.email,subject:`Order ${ref} confirmed | Band Factory`,html:shell({eyebrow:'Order confirmed',title:'Thank you for your order.',lead:'Payment received. We are getting your Band Factory order ready.',body:customerBody,cta:'Track your order',ctaUrl:trackingUrl(access.token),accent:'#F4B6CA',footer:'Keep this email for your order reference and tracking link.'})}));
-  jobs.push(resend({to:ADMIN_EMAIL,replyTo:order.email||undefined,subject:`New paid order ${ref} | ${total}`,html:shell({eyebrow:'New paid order',title:'A new order is in.',lead:`${order.name||'A customer'} completed payment on the website.`,body:`${infoGrid([['Order number',ref],['Customer',order.name],['Email',order.email],['Phone',order.phone],['Order type',order.type||'Retail'],['Fulfilment',order.fulfilment||'Delivery'],['Total',total]])}${orderItems(order)}`,cta:'Open admin',ctaUrl:`${SITE_URL()}/admin.html`,accent:'#E890AE',footer:'Band Factory website notification.'})}));
+  jobs.push(resend({to:ADMIN_EMAIL,replyTo:order.email||undefined,subject:`New paid order ${ref} | ${total}`,html:shell({eyebrow:'New paid order',title:'A new order is in.',lead:`${order.name||'A customer'} completed payment on the website.`,body:`${infoGrid([['Order number',ref],['Customer',order.name],['Email',order.email],['Phone',order.phone],['Order type',order.type||'Retail'],['Fulfilment',order.fulfilment||'Delivery'],['Delivery fee',order.deliveryFeeStatus||'To be communicated'],['Total',total]])}${fulfilmentEmailBlock(order)}${orderItems(order)}`,cta:'Open admin',ctaUrl:`${SITE_URL()}/admin.html`,accent:'#E890AE',footer:'Band Factory website notification.'})}));
   return Promise.allSettled(jobs);
 }
 
@@ -151,7 +166,7 @@ const statusCopy={
 async function sendStatus(order,status){
   if(!order?.email)return {skipped:true};
   const access=await ensureTrackingToken(order.id,order);const [title,lead,accent]=statusCopy[status]||['Your order has an update.',`Your order is now ${status}.`,'#F4B6CA'];
-  const body=`${infoGrid([['Order number',order.id],['Current status',status],['Fulfilment',order.fulfilment||'Delivery'],['Order total',money(order.total)]])}${paragraph('Use the button below to open this order directly on the Band Factory website.')}`;
+  const body=`${infoGrid([['Order number',order.id],['Current status',status],['Fulfilment',order.fulfilment||'Delivery'],['Delivery fee',order.deliveryFeeStatus||'To be communicated'],['Order total',money(order.total)]])}${fulfilmentEmailBlock(order)}${paragraph('Use the button below to open this order directly on the Band Factory website.')}`;
   return resend({to:order.email,subject:`Order ${order.id}: ${status} | Band Factory`,html:shell({eyebrow:'Order update',title,lead,body,cta:'Track your order',ctaUrl:trackingUrl(access.token),accent,footer:'You are receiving this because this email address was used for this order.'})});
 }
 
@@ -215,4 +230,4 @@ async function dispatchStoredEvent(type,id){
   }
 }
 
-module.exports={admin,db,ADMIN_EMAIL,FROM_EMAIL,SITE_URL,esc,money,date,normalizePhone,statusKey,resend,shell,infoGrid,paragraph,quote,ensureTrackingToken,trackingUrl,sendPurchase,sendStatus,sendSubscriber,sendContact,sendReview,sendGenericCustomer,sendBroadcast,getAdmin,dispatchStoredEvent};
+module.exports={admin,db,ADMIN_EMAIL,FROM_EMAIL,SITE_URL,esc,money,date,normalizePhone,statusKey,resend,shell,infoGrid,paragraph,quote,fulfilmentEmailBlock,ensureTrackingToken,trackingUrl,sendPurchase,sendStatus,sendSubscriber,sendContact,sendReview,sendGenericCustomer,sendBroadcast,getAdmin,dispatchStoredEvent};

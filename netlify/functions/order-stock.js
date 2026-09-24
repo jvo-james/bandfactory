@@ -1,13 +1,35 @@
+const {isPreorder}=require('../../fulfilment');
 const number=value=>Number(value||0);
 const PRINT_IDS=new Set(['ribbed-cherry-milk','ribbed-navy-milk','ribbed-noir-gold']);
 function cloneStyles(product={}){const styles=JSON.parse(JSON.stringify(product.styles||{}));for(const style of ['flat','twisted']){styles[style]||={colors:{}};styles[style].colors||={};const legacy=product.colors||{};for(const [color,data] of Object.entries(legacy))if(!styles[style].colors[color])styles[style].colors[color]={...data};}return styles;}
 function cloneSizes(product={}){return JSON.parse(JSON.stringify(product.sizes||{}));}
 function cloneCatalog(product={}){return {items:JSON.parse(JSON.stringify(product.items||[]))};}
 function styleNeedForStandard(item,style){const mult=Math.max(1,number(item.qty||1));if(item.style==='mixed')return number(item.styleAllocations?.[style]||0)*mult;return item.style===style?number(item.bundlePieces||0)*mult:0;}
-function orderUsesSmoothStock(order={}){return (order.items||[]).some(item=>(item.material||'smooth')==='smooth'&&(item.type==='retail'||item.type==='wholesale'));}
-function orderUsesRibbedStock(order={}){return (order.items||[]).some(item=>item.type==='catalog'||(item.type==='wholesale'&&item.material==='ribbed'));}
+function orderUsesSmoothStock(order={}){return (order.items||[]).some(item=>!isPreorder(item)&&(item.material||'smooth')==='smooth'&&(item.type==='retail'||item.type==='wholesale'));}
+function orderUsesRibbedStock(order={}){return (order.items||[]).some(item=>!isPreorder(item)&&(item.type==='catalog'||(item.type==='wholesale'&&item.material==='ribbed')||item.type==='wholesale-product'));}
 function orderUsesApparelStock(order={}){return (order.items||[]).some(item=>item.type==='apparel'&&item.productId==='spandex-tube-top');}
 function orderUsesManagedStock(order={}){return orderUsesSmoothStock(order)||orderUsesRibbedStock(order)||orderUsesApparelStock(order);}
+function normalizeWholesale(product={}){
+ const raw=product.wholesale||{};
+ const tiers=(Array.isArray(raw.tiers)?raw.tiers:[]).map(t=>({minQty:Math.max(1,Math.floor(number(t?.minQty))),price:Math.max(0,number(t?.price))})).filter(t=>t.minQty>0&&t.price>0).sort((a,b)=>a.minQty-b.minQty);
+ return {enabled:raw.enabled===true,minQty:Math.max(1,Math.floor(number(raw.minQty||tiers[0]?.minQty||1))),tiers};
+}
+function wholesalePrice(product,qty){const w=normalizeWholesale(product),n=Math.max(1,Math.floor(number(qty)));let selected=null;for(const tier of w.tiers)if(n>=tier.minQty)selected=tier;return selected?.price||0;}
+function validateWholesaleItems(order={},catalogProduct={}){
+ const catalog=Array.isArray(catalogProduct.items)?catalogProduct.items:[],errors=[];
+ for(const item of order.items||[]){
+  if(item.type!=='wholesale-product')continue;
+  const product=catalog.find(x=>x.id===item.productId);
+  if(!product||product.deleted===true||product.available===false){errors.push(`${item.name||'Wholesale product'} is no longer available.`);continue;}
+  const w=normalizeWholesale(product),qty=Math.max(0,Math.floor(number(item.qty)));
+  if(!w.enabled||!w.tiers.length){errors.push(`${product.name||item.name||'This product'} is not currently available for wholesale.`);continue;}
+  if(qty<w.minQty){errors.push(`${product.name||item.name||'This product'} has a minimum wholesale order of ${w.minQty} units.`);continue;}
+  const expected=wholesalePrice(product,qty);
+  if(!expected||Math.abs(number(item.price)-expected)>0.001){errors.push(`The wholesale price for ${product.name||item.name||'this product'} has changed. Please add it to your Bag again.`);continue;}
+  if(product.sizes&&Object.keys(product.sizes).length){const size=String(item.size||'');const variant=product.sizes[size];if(!variant||variant.available===false)errors.push(`${product.name||item.name||'This product'} is not available in the selected size.`);}
+ }
+ return errors;
+}
 function applyOrderToStock(order={},smoothProduct={},apparelProduct={},catalogProduct={}){
  const styles=cloneStyles(smoothProduct),sizes=cloneSizes(apparelProduct),catalog=cloneCatalog(catalogProduct),shortages=[],deducted={smooth:{flat:{},twisted:{}},ribbed:{},catalog:{},apparel:{sizes:{}}};
  const addSmooth=(style,color,qty)=>{deducted.smooth[style][color]=(deducted.smooth[style][color]||0)+qty};
@@ -19,9 +41,11 @@ function applyOrderToStock(order={},smoothProduct={},apparelProduct={},catalogPr
  const consumeCatalog=(id,size,qty,label)=>{qty=Math.max(0,number(qty));const item=catalog.items.find(x=>x.id===id);if(!item){shortages.push(`${label||'Product'}: inventory item not found`);return;}let stock=0,used=0;if(item.sizes&&Object.keys(item.sizes).length){const current=item.sizes[size]||{};stock=current.available===false?0:Math.max(0,number(current.stock));used=Math.min(stock,qty);item.sizes[size]={...current,stock:stock-used};}else{stock=item.available===false?0:Math.max(0,number(item.stock));used=Math.min(stock,qty);item.stock=stock-used;}if(used){deducted.catalog[id]||={sizes:{},stock:0};if(item.sizes&&Object.keys(item.sizes).length)deducted.catalog[id].sizes[size]=(deducted.catalog[id].sizes[size]||0)+used;else deducted.catalog[id].stock+=used;}if(used<qty)shortages.push(`${label||item.name}: needed ${qty}, available ${stock}`);};
  const consumeApparel=(size,qty)=>{size=String(size||'').toUpperCase();qty=Math.max(0,number(qty));if(!size||qty<=0)return;const current=sizes[size]||{},stock=current.available===false?0:Math.max(0,number(current.stock)),used=Math.min(stock,qty);sizes[size]={...current,stock:stock-used};if(used)deducted.apparel.sizes[size]=(deducted.apparel.sizes[size]||0)+used;if(used<qty)shortages.push(`Spandex Tube Top size ${size}: needed ${qty}, available ${stock}`);};
  for(const item of order.items||[]){
+  if(isPreorder(item))continue;
   if(item.type==='catalog'){if(item.category==='ribbed')consumeRibbed(item.productId,item.style,number(item.qty),`${item.color||item.name||'Ribbed'} ${item.style||'flat'}`);else consumeCatalog(item.productId,item.size,number(item.qty),item.name);continue;}
   if(item.type==='apparel'&&item.productId==='spandex-tube-top'){consumeApparel(item.size,number(item.qty));continue;}
   if(item.type==='wholesale'&&item.material==='ribbed'){const mult=Math.max(1,number(item.qty||1));if(item.wholesaleProductId){consumeRibbed(item.wholesaleProductId,'flat',number(item.bundlePieces)*mult,item.wholesaleProductName||item.name);continue;}if(item.wholesaleMode==='custom'&&item.allocations){if(item.style==='mixed'){for(const style of ['flat','twisted'])for(const [color,qty] of Object.entries(item.allocations?.[style]||{})){const product=catalog.items.find(x=>x.category==='ribbed'&&!PRINT_IDS.has(x.id)&&String(x.color||'').toLowerCase()===String(color).toLowerCase());if(product)consumeRibbed(product.id,style,number(qty)*mult,`${color} ${style}`);else shortages.push(`${color} ${style}: inventory item not found`);}}else{const style=item.style==='twisted'?'twisted':'flat';for(const [color,qty] of Object.entries(item.allocations||{})){const product=catalog.items.find(x=>x.category==='ribbed'&&!PRINT_IDS.has(x.id)&&String(x.color||'').toLowerCase()===String(color).toLowerCase());if(product)consumeRibbed(product.id,style,number(qty)*mult,`${color} ${style}`);else shortages.push(`${color} ${style}: inventory item not found`);}}}else for(const style of ['flat','twisted']){const need=styleNeedForStandard(item,style);if(need>0)consumeRibbedStandard(style,need,`${item.name||'Ribbed wholesale'} (${style})`);}continue;}
+  if(item.type==='wholesale-product'){consumeCatalog(item.productId,item.size,number(item.qty),item.name||'Wholesale product');continue;}
   if((item.material||'smooth')!=='smooth')continue;
   if(item.type==='retail')consume(item.style==='twisted'?'twisted':'flat',item.color,number(item.qty),`${item.color} ${item.style||'flat'}`);
   if(item.type==='wholesale'){const mult=Math.max(1,number(item.qty||1));if(item.wholesaleMode==='custom'&&item.allocations){if(item.style==='mixed'){for(const style of ['flat','twisted'])for(const [color,qty] of Object.entries(item.allocations?.[style]||{}))consume(style,color,number(qty)*mult,`${color} ${style}`);}else{const style=item.style==='twisted'?'twisted':'flat';for(const [color,qty] of Object.entries(item.allocations||{}))consume(style,color,number(qty)*mult,`${color} ${style}`);}}else for(const style of ['flat','twisted']){const need=styleNeedForStandard(item,style);if(need>0)consumeStandard(style,need,`${item.name||'Standard wholesale'} (${style})`);}}
@@ -29,4 +53,4 @@ function applyOrderToStock(order={},smoothProduct={},apparelProduct={},catalogPr
  return {styles,sizes,catalog,shortages,deducted};
 }
 function restoreDeductions(smoothProduct={},apparelProduct={},catalogProduct={},deducted={}){const styles=cloneStyles(smoothProduct),sizes=cloneSizes(apparelProduct),catalog=cloneCatalog(catalogProduct);const smooth=deducted.smooth||deducted;for(const style of ['flat','twisted'])for(const [color,qty] of Object.entries(smooth?.[style]||{})){styles[style]||={colors:{}};styles[style].colors||={};const current=styles[style].colors[color]||{};styles[style].colors[color]={...current,stock:Math.max(0,number(current.stock))+Math.max(0,number(qty))};}for(const [id,byStyle] of Object.entries(deducted.ribbed||{})){const item=catalog.items.find(x=>x.id===id);if(!item)continue;item.styles=item.styles||{};for(const style of ['flat','twisted']){const qty=Math.max(0,number(byStyle?.[style]));if(!qty)continue;const current=item.styles[style]||(style==='flat'?{stock:number(item.stock),available:item.available!==false}:{stock:0,available:false});item.styles[style]={...current,stock:Math.max(0,number(current.stock))+qty};}if(item.styles.flat){item.stock=item.styles.flat.stock;item.available=item.styles.flat.available!==false;}}for(const [id,d] of Object.entries(deducted.catalog||{})){const item=catalog.items.find(x=>x.id===id);if(!item)continue;if(d.stock)item.stock=Math.max(0,number(item.stock))+number(d.stock);for(const [size,qty] of Object.entries(d.sizes||{})){item.sizes=item.sizes||{};const current=item.sizes[size]||{};item.sizes[size]={...current,stock:Math.max(0,number(current.stock))+number(qty)};}}for(const [size,qty] of Object.entries(deducted.apparel?.sizes||{})){const current=sizes[size]||{};sizes[size]={...current,stock:Math.max(0,number(current.stock))+Math.max(0,number(qty))};}return {styles,sizes,catalog};}
-module.exports={number,applyOrderToStock,restoreDeductions,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock};
+module.exports={number,applyOrderToStock,restoreDeductions,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock,validateWholesaleItems};

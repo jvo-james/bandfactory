@@ -1,7 +1,7 @@
 const crypto=require('crypto');
 const admin=require('firebase-admin');
 const {dispatchStoredEvent}=require('./email-core');
-const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock}=require('./order-stock');
+const {number,applyOrderToStock,orderUsesManagedStock,orderUsesSmoothStock,orderUsesRibbedStock,orderUsesApparelStock,validateWholesaleItems}=require('./order-stock');
 if(!admin.apps.length){admin.initializeApp({credential:admin.credential.cert({projectId:process.env.FIREBASE_PROJECT_ID,clientEmail:process.env.FIREBASE_CLIENT_EMAIL,privateKey:String(process.env.FIREBASE_PRIVATE_KEY||'').replace(/\\n/g,'\n')})});}
 const db=admin.firestore();
 const normalizePhone=value=>{let digits=String(value||'').replace(/\D/g,'');if(digits.startsWith('0')&&digits.length>=10)digits='233'+digits.slice(1);return digits};
@@ -18,7 +18,9 @@ exports.handler=async event=>{
   await db.runTransaction(async tx=>{
    const seen=await tx.get(paymentRef);if(seen.exists)return;const latestSnap=await tx.get(orderRef);if(!latestSnap.exists)throw new Error('Order disappeared');const latest=latestSnap.data()||{};
    const reservationSnap=await tx.get(reservationRef);const hasReservation=reservationSnap.exists&&['reserved','finalized'].includes(reservationSnap.data()?.status);
-   let stockResult=null,productSnap=null,catalogSnap=null,apparelSnap=null;if(orderUsesManagedStock(latest)&&!hasReservation){if(orderUsesSmoothStock(latest))productSnap=await tx.get(productRef);if(orderUsesRibbedStock(latest))catalogSnap=await tx.get(catalogRef);if(orderUsesApparelStock(latest))apparelSnap=await tx.get(apparelRef);if((!orderUsesSmoothStock(latest)||productSnap?.exists)&&(!orderUsesRibbedStock(latest)||catalogSnap?.exists)&&(!orderUsesApparelStock(latest)||apparelSnap?.exists))stockResult=applyOrderToStock(latest,productSnap?.data()||{},apparelSnap?.data()||{},catalogSnap?.data()||{});}
+   const needsWholesaleValidation=(latest.items||[]).some(item=>item.type==='wholesale-product');
+   let stockResult=null,productSnap=null,catalogSnap=null,apparelSnap=null;if(needsWholesaleValidation||orderUsesRibbedStock(latest))catalogSnap=await tx.get(catalogRef);if(needsWholesaleValidation){if(!catalogSnap?.exists)throw new Error('Wholesale product information is temporarily unavailable.');const wholesaleErrors=validateWholesaleItems(latest,catalogSnap.data()||{});if(wholesaleErrors.length)throw new Error(wholesaleErrors[0]);}
+   if(orderUsesManagedStock(latest)&&!hasReservation){if(orderUsesSmoothStock(latest))productSnap=await tx.get(productRef);if(orderUsesApparelStock(latest))apparelSnap=await tx.get(apparelRef);if((!orderUsesSmoothStock(latest)||productSnap?.exists)&&(!orderUsesRibbedStock(latest)||catalogSnap?.exists)&&(!orderUsesApparelStock(latest)||apparelSnap?.exists))stockResult=applyOrderToStock(latest,productSnap?.data()||{},apparelSnap?.data()||{},catalogSnap?.data()||{});}
    if(stockResult?.shortages?.length)throw new Error(`Paid order ${orderId} has insufficient stock: ${stockResult.shortages.join('; ')}`);
    const t=admin.firestore.FieldValue.serverTimestamp(),stockSyncStatus=orderUsesManagedStock(latest)?(hasReservation?'updated':(stockResult?'updated':'needs-review')):'not-required';
    tx.set(orderRef,{payment:'Paid',status:'Preparing',paystackReference:reference,serverVerified:true,stockSyncStatus,verification:{reference,amount:paid,currency,paidAt:payment.paid_at||null,channel:payment.channel||''},verifiedAt:t,updatedAt:t},{merge:true});
