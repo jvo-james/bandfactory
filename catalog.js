@@ -21,6 +21,11 @@ window.BF_CATEGORY_DEFAULTS = [
   {id:'sets',name:'Sets',eyebrow:'Basics',description:'Coordinated Band Factory sets.',image:'images/second-skin-long-sleeve.jpg',sortOrder:4,visible:true,system:true,url:'sets.html'}
 ];
 
+// Pre-order apparel always exposes the full standard size range.
+// These sizes are virtual storefront options and do not represent current stock.
+const BF_PREORDER_SIZES=['2XS','XS','S','M','L','XL','2XL'];
+window.BF_PREORDER_SIZES=BF_PREORDER_SIZES;
+
 function bfSafeVariantId(value){return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80);}
 function bfNormaliseVariant(v,index=0){
   const source=v&&typeof v==='object'?v:{};
@@ -101,7 +106,7 @@ window.BFCatalog = {
   },
   variantView(item,variantId=''){
     if(!this.hasVariants(item))return {...item,masterProductId:item?.masterProductId||item?.id,variantId:item?.variantId||''};
-    const v=this.variant(item,variantId),sizes=v.sizes||{};
+    const v=this.variant(item,variantId),sizes=Object.fromEntries(this.sizeEntries(item,v.id));
     return {...item,masterProductId:item.id,variantId:v.id,color:v.color||item.color||'',subtitle:v.color||item.subtitle||'',image:v.image||item.image||'',images:v.images||item.images||[],sizes,available:item.available!==false&&v.available!==false,variantName:v.color||'',stock:undefined};
   },
   expandVariants(items=[]){
@@ -116,11 +121,22 @@ window.BFCatalog = {
   priceHtml(price,compareAt=0,extraClass=''){const current=Number(price||0),old=Number(compareAt||0);if(!current)return 'View product';return old>current?`<span class="sale-price-wrap ${extraClass}"><del>${BF.money(old)}</del><strong>${BF.money(current)}</strong><span class="sale-pill">Sale</span></span>`:`<span class="sale-price-wrap ${extraClass}"><strong>${BF.money(current)}</strong></span>`;},
   stock(item,size='',variantId=''){
     const v=variantId&&this.hasVariants(item)?this.variant(item,variantId):item;
+    if(this.isPreorder(item)){
+      if(v?.available===false)return 0;
+      if(!size)return Infinity;
+      return BF_PREORDER_SIZES.includes(String(size).trim().toUpperCase())?Infinity:0;
+    }
     if(v?.sizes&&Object.keys(v.sizes).length){const d=v.sizes[size]||{};return d.available===false?0:Math.max(0,Number(d.stock||0));}
     if(variantId&&this.hasVariants(item))return v.available===false?0:Math.max(0,Number(v.stock??0));
     return v?.available===false?0:Math.max(0,Number(v?.stock??0));
   },
-  sizeEntries(item,variantId=''){const v=variantId&&this.hasVariants(item)?this.variant(item,variantId):item;return Object.entries(v?.sizes||{});},
+  preorderSizes(){return [...BF_PREORDER_SIZES];},
+  isPreorderSize(size=''){return BF_PREORDER_SIZES.includes(String(size||'').trim().toUpperCase());},
+  sizeEntries(item,variantId=''){
+    if(this.isPreorder(item))return BF_PREORDER_SIZES.map(size=>[size,{available:true,preorder:true}]);
+    const v=variantId&&this.hasVariants(item)?this.variant(item,variantId):item;
+    return Object.entries(v?.sizes||{});
+  },
   fulfilment(item={}){
     const f=item?.fulfilment||{};
     const type=String(item?.fulfilmentType||f.type||(item?.preorder===true?'preorder':'standard')).trim().toLowerCase()==='preorder'?'preorder':'standard';
@@ -141,9 +157,9 @@ window.BFCatalog = {
   purchasable(item={},variantId='',size=''){
     if(item?.available===false)return false;
     if(this.isPreorder(item)){
-      if(this.hasVariants(item)){const v=this.variant(item,variantId);if(v?.available===false)return false;if(v?.sizes&&Object.keys(v.sizes).length){return size?v.sizes[size]?.available!==false:Object.values(v.sizes).some(d=>d?.available!==false);}return true;}
-      if(item?.sizes&&Object.keys(item.sizes).length){return size?item.sizes[size]?.available!==false:Object.values(item.sizes).some(d=>d?.available!==false);}
-      return true;
+      const v=this.hasVariants(item)?this.variant(item,variantId):item;
+      if(v?.available===false)return false;
+      return size?this.isPreorderSize(size):true;
     }
     if(this.hasVariants(item)){const selected=variantId?this.variant(item,variantId):null,vars=selected?[selected]:this.variants(item);return vars.some(v=>v.available!==false&&(v.sizes&&Object.keys(v.sizes).length?(size? v.sizes[size]?.available!==false&&Number(v.sizes[size]?.stock||0)>0:Object.values(v.sizes).some(d=>d?.available!==false&&Number(d?.stock||0)>0)):Number(v.stock||0)>0));}
     if(item?.category==='ribbed')return ['flat','twisted'].some(style=>{const v=this.variant(item,style);return v.available!==false&&Number(v.stock||0)>0;});
