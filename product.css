@@ -28,7 +28,139 @@ body{background:#fff}.pdp{display:grid;grid-template-columns:minmax(0,1.42fr) mi
 .item-variant-option>span:last-child{font-size:10px;line-height:1.25;font-weight:700}
 @media(max-width:600px){.catalog-fulfilment-notice{padding:14px}.item-variant-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.item-variant-option{grid-template-columns:38px 1fr;padding:7px}.item-variant-thumb{width:38px;height:48px}}
 
-
 /* ===== PRODUCT IMAGE LIGHTBOX ===== */
-.product-lightbox-open{overflow:hidden!important}.bf-item-lightbox{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:26px;opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s ease}.bf-item-lightbox[hidden]{display:none}.bf-item-lightbox.is-open{opacity:1;visibility:visible}.bf-item-lightbox-backdrop{position:absolute;inset:0;background:rgba(17,17,17,.86);backdrop-filter:blur(7px)}.bf-item-lightbox-dialog{position:relative;z-index:1;width:min(92vw,940px);max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:13px}.bf-item-lightbox-image-wrap{position:relative;width:min(92vw,820px);height:min(74vh,760px);display:grid;place-items:center;background:#fff;box-shadow:0 24px 70px rgba(0,0,0,.24);overflow:hidden}.bf-item-lightbox-image-wrap img{display:block;width:100%;height:100%;object-fit:contain}.bf-item-lightbox-close{position:absolute;right:-2px;top:-47px;width:38px;height:38px;border:1px solid rgba(255,255,255,.7);background:#fff;color:#111;border-radius:50%;font-size:25px;line-height:1;display:grid;place-items:center;z-index:2}.bf-item-lightbox-close:hover{background:var(--pink);border-color:var(--pink)}.bf-item-lightbox-controls{display:flex;align-items:center;justify-content:center;gap:22px;color:#fff}.bf-item-lightbox-controls button{min-width:108px;border:0;background:rgba(255,255,255,.11);color:#fff;padding:10px 14px;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.bf-item-lightbox-controls button:hover:not(:disabled){background:#fff;color:#111}.bf-item-lightbox-controls button:disabled{display:none}.bf-item-lightbox-controls span{min-width:50px;text-align:center;font-size:9px;letter-spacing:.1em}.pdp-image-wrap img[role="button"]{cursor:zoom-in}.item-gallery button{cursor:pointer}
-@media(max-width:700px){.bf-item-lightbox{padding:20px 12px}.bf-item-lightbox-dialog{width:100%;max-height:90vh;gap:11px}.bf-item-lightbox-image-wrap{width:100%;height:min(70vh,680px)}.bf-item-lightbox-close{right:0;top:-45px;width:36px;height:36px}.bf-item-lightbox-controls{gap:10px;width:100%}.bf-item-lightbox-controls button{flex:1;min-width:0;padding:10px 8px}.bf-item-lightbox-controls span{min-width:42px}}
+.product-lightbox-open{overflow:hidden!important}
+.bf-item-lightbox{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:grid;
+  place-items:center;
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .18s ease,visibility .18s ease;
+}
+.bf-item-lightbox[hidden]{display:none}
+.bf-item-lightbox.is-open{opacity:1;visibility:visible}
+.bf-item-lightbox-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(10,9,10,.88);
+  backdrop-filter:blur(8px);
+}
+.bf-item-lightbox-dialog{
+  position:relative;
+  z-index:1;
+  width:min(96vw,1100px);
+  max-width:1100px;
+  max-height:calc(100dvh - 24px);
+  display:grid;
+  justify-items:center;
+  align-content:center;
+  gap:12px;
+}
+.bf-item-lightbox-image-wrap{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:auto;
+  height:auto;
+  max-width:min(94vw,1000px);
+  max-height:calc(100dvh - 92px);
+  overflow:visible;
+  background:transparent;
+  box-shadow:0 26px 80px rgba(0,0,0,.34);
+}
+.bf-item-lightbox-image-wrap img{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:min(94vw,1000px);
+  max-height:calc(100dvh - 92px);
+  object-fit:contain;
+  background:#fff;
+}
+.bf-item-lightbox-close{
+  position:fixed;
+  top:max(14px,env(safe-area-inset-top));
+  right:max(14px,env(safe-area-inset-right));
+  z-index:3;
+  width:42px;
+  height:42px;
+  border:1px solid rgba(255,255,255,.65);
+  background:rgba(255,255,255,.97);
+  color:#111;
+  border-radius:50%;
+  font-size:25px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+}
+.bf-item-lightbox-close:hover{background:var(--pink);border-color:var(--pink);transform:scale(1.03)}
+.bf-item-lightbox-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  color:#fff;
+}
+.bf-item-lightbox-controls button{
+  min-width:116px;
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.11);
+  color:#fff;
+  padding:10px 14px;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  transition:background .18s ease,color .18s ease,border-color .18s ease;
+}
+.bf-item-lightbox-controls button:hover:not(:disabled){background:#fff;color:#111;border-color:#fff}
+.bf-item-lightbox-controls button:disabled,.bf-item-lightbox-controls button[hidden]{display:none}
+.bf-item-lightbox-controls span{min-width:56px;text-align:center;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.82)}
+.pdp-image-wrap img[role="button"]{cursor:zoom-in}
+.item-gallery button{cursor:pointer}
+
+@media(max-width:700px){
+  .bf-item-lightbox{
+    padding:12px;
+  }
+  .bf-item-lightbox-dialog{
+    width:100%;
+    max-width:100%;
+    max-height:calc(100dvh - 24px);
+    gap:10px;
+  }
+  .bf-item-lightbox-image-wrap{
+    max-width:100%;
+    max-height:calc(100dvh - 92px);
+  }
+  .bf-item-lightbox-image-wrap img{
+    max-width:100%;
+    max-height:calc(100dvh - 92px);
+  }
+  .bf-item-lightbox-close{
+    top:max(10px,env(safe-area-inset-top));
+    right:max(10px,env(safe-area-inset-right));
+    width:38px;
+    height:38px;
+    font-size:23px;
+  }
+  .bf-item-lightbox-controls{
+    width:min(100%,430px);
+    gap:8px;
+  }
+  .bf-item-lightbox-controls button{
+    flex:1;
+    min-width:0;
+    padding:10px 8px;
+  }
+  .bf-item-lightbox-controls span{min-width:42px;font-size:8px}
+}
+
+@media(max-width:420px){
+  .bf-item-lightbox-controls button{font-size:8px}
+}
