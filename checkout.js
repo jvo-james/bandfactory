@@ -138,15 +138,38 @@ function checkoutFulfilmentInfo(fdOrPlan){
   return {...built,fulfilment,pickupDate};
 }
 
-function mixedFulfilmentDates(){
-  if(!window.BFFulfilment||!window.__bfDispatchDate||!cart.length)return false;
+function currentDispatchDate(){
+  const existing=window.__bfDispatchDate;
+  if(existing instanceof Date && !Number.isNaN(existing.getTime())) return existing;
+  const fallback=nextDispatch(checkoutSettings||{});
+  if(fallback) window.__bfDispatchDate=fallback;
+  return fallback;
+}
+
+function fulfilmentDateForItem(item){
+  const fallback=currentDispatchDate();
   try{
-    const readyDate=window.__bfDispatchDate.toISOString();
-    const hasPreorder=window.BFFulfilment.cartHasPreorder?.(cart);
-    const hasReadyItems=cart.some(item=>!window.BFFulfilment.isPreorder(item));
-    if(!hasPreorder||!hasReadyItems)return false;
-    const separate=window.BFFulfilment.buildGroups(cart,{mode:'delivery',plan:'separate',standardDate:readyDate,status:'Preparing'});
-    return Boolean(separate?.mixed || (separate?.groups?.length>1));
+    return window.BFFulfilment?.itemFulfilmentDate?.(item,fallback)||fallback||null;
+  }catch{
+    return fallback||null;
+  }
+}
+
+function mixedFulfilmentDates(){
+  if(!window.BFFulfilment||!cart.length)return false;
+  try{
+    const hasPreorder=Boolean(window.BFFulfilment.cartHasPreorder?.(cart));
+    if(!hasPreorder)return false;
+
+    // A fulfilment choice is useful whenever the cart has more than one delivery date.
+    // This covers the common ready-item + preorder case and also future cases where
+    // two preorder products have different fulfilment dates.
+    const dates=cart
+      .map(item=>fulfilmentDateForItem(item))
+      .filter(Boolean)
+      .map(date=>window.BFFulfilment.dateKey?.(date)||new Intl.DateTimeFormat('en-CA').format(date));
+
+    return new Set(dates).size>1;
   }catch(error){
     console.warn('[Band Factory] Could not compare fulfilment dates.',error);
     return false;
@@ -158,45 +181,34 @@ function renderFulfilmentPlan(){
   if(!card)return;
 
   const delivery=selectedFulfilment()==='delivery';
-  card.hidden=true;
-  card.style.display=delivery?'':'none';
-  if(!delivery)return;
-
-  let show=false;
-  try{ show=mixedFulfilmentDates(); }catch{}
+  const show=delivery && mixedFulfilmentDates();
   card.hidden=!show;
   card.style.display=show?'':'none';
   if(!show)return;
 
-  try{
-    const readyDate=window.__bfDispatchDate;
-    const preorderDates=cart
-      .filter(i=>window.BFFulfilment.isPreorder(i))
-      .map(i=>window.BFFulfilment.itemFulfilmentDate(i,readyDate))
-      .filter(Boolean);
-    const latestPreorder=window.BFFulfilment.latestDate(preorderDates);
+  const readyDate=currentDispatchDate();
+  const preorderDates=cart
+    .filter(i=>window.BFFulfilment?.isPreorder?.(i))
+    .map(i=>fulfilmentDateForItem(i))
+    .filter(Boolean);
+  const latestPreorder=window.BFFulfilment?.latestDate?.(preorderDates)||null;
 
-    $('#fulfilmentPlanIntro').textContent='Your bag contains items that are ready on different dates. Choose whether to receive them separately or wait and receive everything together.';
-    $('#togetherPlanCopy').textContent=latestPreorder
-      ? `We’ll hold your ready items and send your complete order on ${formatDate(latestPreorder)}. One delivery fee applies.`
-      : 'We’ll hold your ready items and send your complete order on the later fulfilment date. One delivery fee applies.';
-    $('#separatePlanCopy').textContent=readyDate
-      ? `Ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.`
-      : 'Ready items go first and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.';
+  $('#fulfilmentPlanIntro').textContent='Your bag contains items that are ready on different dates. Choose whether to receive them separately or wait and receive everything together.';
+  $('#togetherPlanCopy').textContent=latestPreorder
+    ? `We’ll hold your ready items and send your complete order on ${formatDate(latestPreorder)}. One delivery fee applies.`
+    : 'We’ll hold your ready items and send your complete order on the later fulfilment date. One delivery fee applies.';
+  $('#separatePlanCopy').textContent=readyDate
+    ? `Ready items go on ${formatDate(readyDate)} and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.`
+    : 'Ready items go first and pre-order items follow on their fulfilment date. A delivery fee applies to each delivery.';
 
-    const plan=$('[name="fulfilmentPlan"]:checked')?.value||'together';
-    const fd=new FormData($('#checkoutForm'));
-    fd.set('fulfilmentPlan',plan);
-    const info=checkoutFulfilmentInfo(fd);
-    const groupCopy=(group)=>`${formatDate(group.date)} · ${group.items.length} item${group.items.length===1?'':'s'}`;
-    $('#fulfilmentPlanSummary').innerHTML=info.groups.length
-      ? `<strong>${plan==='separate'?'Your delivery plan':'One delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
-      : '';
-  }catch(error){
-    console.warn('[Band Factory] Could not render the fulfilment choices yet.',error);
-    card.hidden=true;
-    card.style.display='none';
-  }
+  const plan=$('[name="fulfilmentPlan"]:checked')?.value||'together';
+  const fd=new FormData($('#checkoutForm'));
+  fd.set('fulfilmentPlan',plan);
+  const info=checkoutFulfilmentInfo(fd);
+  const groupCopy=(group)=>`${formatDate(group.date)} · ${group.items.length} item${group.items.length===1?'':'s'}`;
+  $('#fulfilmentPlanSummary').innerHTML=info.groups.length
+    ? `<strong>${plan==='separate'?'Your delivery plan':'One delivery'}</strong><br>${info.groups.map(groupCopy).join('<br>')}`
+    : '';
 }
 
 function renderDispatchNote(){
@@ -206,7 +218,7 @@ function renderDispatchNote(){
     note.textContent='';
     return;
   }
-  const base=window.__bfDispatchDate;
+  const base=currentDispatchDate();
   if(!base){
     note.textContent='The next dispatch date will appear here.';
     return;
