@@ -2442,7 +2442,21 @@ function syncStudioFeaturedVariantSelect(current=''){
   select.value=[...select.options].some(o=>o.value===previous)?previous:select.options[0]?.value||'';
   select.dataset.current=select.value;
 }
-function syncStudioVariantMode(){const toggle=document.getElementById('studioVariantMode'),enabled=toggle?.checked===true,ribbed=document.getElementById('studioProductCategory')?.value==='ribbed';if(toggle)toggle.disabled=ribbed;document.getElementById('studioVariantBuilder')?.toggleAttribute('hidden',!enabled||ribbed);document.getElementById('studioSingleSizeGroup')?.toggleAttribute('hidden',enabled||ribbed);document.querySelector('.studio-simple-stock')?.toggleAttribute('hidden',enabled||ribbed);document.querySelector('.studio-ribbed-fields')?.toggleAttribute('hidden',!ribbed);}
+function syncStudioVariantMode(){
+  const toggle=document.getElementById('studioVariantMode'),enabled=toggle?.checked===true,ribbed=document.getElementById('studioProductCategory')?.value==='ribbed';
+  if(toggle)toggle.disabled=ribbed;
+  const variantBuilder=document.getElementById('studioVariantBuilder');
+  const singleSizeGroup=document.getElementById('studioSingleSizeGroup');
+  variantBuilder?.toggleAttribute('hidden',!enabled||ribbed);
+  singleSizeGroup?.toggleAttribute('hidden',enabled||ribbed);
+  // Hidden variant inputs still participate in native form validation unless they are
+  // disabled. A required colour input here used to block Save for non-variant products
+  // with no visible browser error. Only the active editor mode should validate.
+  variantBuilder?.querySelectorAll('input,select,textarea').forEach(el=>{el.disabled=!enabled||ribbed});
+  singleSizeGroup?.querySelectorAll('input,select,textarea').forEach(el=>{el.disabled=enabled||ribbed});
+  document.querySelector('.studio-simple-stock')?.toggleAttribute('hidden',enabled||ribbed);
+  document.querySelector('.studio-ribbed-fields')?.toggleAttribute('hidden',!ribbed);
+}
 
 function openProductStudio(id=''){
   const existing=(DATA.catalog||[]).find(p=>p.id===id)||{},isNew=!existing.id,categories=studioLiveCategories().filter(c=>c.id!=='smooth'),wholesale=BFCatalog.wholesale(existing),fulfilment=BFCatalog.fulfilment(existing),variantMode=Array.isArray(existing.variants)&&existing.variants.length>0||isNew;
@@ -2452,20 +2466,115 @@ function openProductStudio(id=''){
   const categorySelect=document.getElementById('studioProductCategory');categorySelect?.addEventListener('change',syncStudioVariantMode);document.getElementById('studioVariantMode')?.addEventListener('change',syncStudioVariantMode);document.getElementById('studioWholesaleEnabled')?.addEventListener('change',syncStudioCommercialFields);document.getElementById('studioFulfilmentType')?.addEventListener('change',syncStudioCommercialFields);syncStudioVariantMode();syncStudioCommercialFields();renderStudioGallery();syncStudioSizeEmptyState();
 }
 window.openProductStudio=openProductStudio;
+function studioSaveButtonBusy(form,busy){
+  const button=form?.querySelector('.studio-form-actions button[type=submit]');
+  if(!button)return;
+  if(busy){
+    button.disabled=true;
+    button.classList.add('is-loading');
+    button.setAttribute('aria-busy','true');
+    button.dataset.originalLabel=button.innerHTML;
+  }else{
+    button.disabled=false;
+    button.classList.remove('is-loading');
+    button.removeAttribute('aria-busy');
+    if(button.dataset.originalLabel){button.innerHTML=button.dataset.originalLabel;delete button.dataset.originalLabel;}
+  }
+}
+
+function stripUndefinedDeep(value){
+  if(Array.isArray(value))return value.map(stripUndefinedDeep);
+  if(value&&typeof value==='object'&&Object.getPrototypeOf(value)===Object.prototype){
+    const out={};
+    Object.entries(value).forEach(([key,val])=>{if(val!==undefined)out[key]=stripUndefinedDeep(val)});
+    return out;
+  }
+  return value;
+}
+
 async function saveStudioProduct(e,id){
-  e.preventDefault();const name=document.getElementById('studioProductName').value.trim(),category=document.getElementById('studioProductCategory').value;if(!name||!category)return BF.toast('Add a product name and choose a category.');
-  return withAdminLoading(async()=>{
-    let wholesale,fulfilment,variants=[];try{wholesale=category==='ribbed'?{enabled:false,minQty:1,tiers:[]}:collectStudioWholesale();const type=document.getElementById('studioFulfilmentType')?.value==='preorder'?'preorder':'standard';const date=type==='preorder'?(document.getElementById('studioPreorderDate')?.value||''):'';if(type==='preorder'&&!date)throw new Error('Choose a fulfilment date for this pre-order.');fulfilment={type,date};if(category!=='ribbed'&&document.getElementById('studioVariantMode')?.checked)variants=collectStudioVariants();}catch(error){return BF.toast(error.message||'Please check the product settings.');}
-    let cleanId=id||`${studioSlug(category)}-${studioSlug(name)}`;if(!id&&DATA.catalog.some(p=>p.id===cleanId))cleanId+=`-${Date.now().toString().slice(-4)}`;const existing=DATA.catalog.find(p=>p.id===id)||{},sizes=collectStudioSizes(),stock=Math.max(0,Number(document.getElementById('studioProductStock')?.value||0)),available=document.getElementById('studioProductAvailable').value==='true';
-    const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle').value.trim(),color:document.getElementById('studioVariantMode')?.checked?'':document.getElementById('studioProductSubtitle').value.trim(),description:document.getElementById('studioProductDescription').value.trim(),price:document.getElementById('studioProductPrice').value===''?null:Number(document.getElementById('studioProductPrice').value),compareAtPrice:document.getElementById('studioProductCompareAtPrice')?.value===''?null:Number(document.getElementById('studioProductCompareAtPrice')?.value||0),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack').value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder').value||99)),image:document.getElementById('studioProductImage').value||existing.image||'',images:studioGalleryImages(),wholesale,fulfilment};
-    const variantMode=category!=='ribbed'&&document.getElementById('studioVariantMode')?.checked;if(variantMode){item.variants=variants;delete item.sizes;delete item.styles;item.featuredVariantId=document.getElementById('studioFeaturedVariant')?.value||variants[0]?.id||'';item.featuredColor=variants.find(v=>v.id===item.featuredVariantId)?.color||variants[0]?.color||'';const featured=variants.find(v=>v.id===item.featuredVariantId)||variants[0];const first=featured?.image||item.image;if(first)item.image=first;item.color='';}else{delete item.variants;delete item.featuredVariantId;delete item.featuredColor;if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;}
-    if(category==='ribbed'){const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';item.styles=item.styles||{};item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};item.stock=flatStock;item.available=flatAvailable;}else if(existing.category==='ribbed'){delete item.styles;}
-    if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await BFStore.log(id?'Catalog product updated':'Catalog product created',{productId:cleanId});closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();
-  },'Saving product…');
+  e.preventDefault();
+  const form=e.currentTarget||document.getElementById('studioProductForm');
+  if(form?.dataset.saving==='true')return;
+  const name=document.getElementById('studioProductName')?.value.trim()||'',category=document.getElementById('studioProductCategory')?.value||'';
+  if(!name||!category)return BF.toast('Add a product name and choose a category.');
+
+  form?.setAttribute('data-saving','true');
+  studioSaveButtonBusy(form,true);
+  startAdminLoading('Saving product…');
+  try{
+    // Let the browser paint the overlay/button spinner before the Firestore work starts.
+    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+
+    let wholesale,fulfilment,variants=[];
+    try{
+      wholesale=category==='ribbed'?{enabled:false,minQty:1,tiers:[]}:collectStudioWholesale();
+      const type=document.getElementById('studioFulfilmentType')?.value==='preorder'?'preorder':'standard';
+      const date=type==='preorder'?(document.getElementById('studioPreorderDate')?.value||''):'';
+      if(type==='preorder'&&!date)throw new Error('Choose a fulfilment date for this pre-order.');
+      fulfilment={type,date};
+      if(category!=='ribbed'&&document.getElementById('studioVariantMode')?.checked)variants=collectStudioVariants();
+    }catch(error){
+      BF.toast(error.message||'Please check the product settings.');
+      return;
+    }
+
+    let cleanId=id||`${studioSlug(category)}-${studioSlug(name)}`;
+    if(!id&&DATA.catalog.some(p=>p.id===cleanId))cleanId+=`-${Date.now().toString().slice(-4)}`;
+    const existing=DATA.catalog.find(p=>p.id===id)||{},sizes=collectStudioSizes(),stock=Math.max(0,Number(document.getElementById('studioProductStock')?.value||0)),available=document.getElementById('studioProductAvailable').value==='true';
+    const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle')?.value.trim()||'',color:document.getElementById('studioVariantMode')?.checked?'':(document.getElementById('studioProductSubtitle')?.value.trim()||''),description:document.getElementById('studioProductDescription')?.value.trim()||'',price:document.getElementById('studioProductPrice')?.value===''?null:Number(document.getElementById('studioProductPrice')?.value),compareAtPrice:document.getElementById('studioProductCompareAtPrice')?.value===''?null:Number(document.getElementById('studioProductCompareAtPrice')?.value||0),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack')?.value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder')?.value||99)),image:document.getElementById('studioProductImage')?.value||existing.image||'',images:studioGalleryImages(),wholesale,fulfilment};
+
+    const variantMode=category!=='ribbed'&&document.getElementById('studioVariantMode')?.checked;
+    if(variantMode){
+      item.variants=variants;delete item.sizes;delete item.styles;
+      item.featuredVariantId=document.getElementById('studioFeaturedVariant')?.value||variants[0]?.id||'';
+      item.featuredColor=variants.find(v=>v.id===item.featuredVariantId)?.color||variants[0]?.color||'';
+      const featured=variants.find(v=>v.id===item.featuredVariantId)||variants[0],first=featured?.image||item.image;
+      if(first)item.image=first;
+      item.color='';
+    }else{
+      delete item.variants;delete item.featuredVariantId;delete item.featuredColor;
+      if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;
+    }
+
+    if(category==='ribbed'){
+      const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';
+      item.styles=item.styles||{};
+      item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};
+      item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};
+      item.stock=flatStock;item.available=flatAvailable;
+    }else if(existing.category==='ribbed'){delete item.styles;}
+
+    const nextCatalog=id?DATA.catalog.map(p=>p.id===id?item:p):[...DATA.catalog,item];
+    const payload=await persistStudioProducts(nextCatalog);
+    const saved=await BFStore.getDoc('products/catalog',null);
+    const savedProduct=Array.isArray(saved?.items)?saved.items.find(p=>p.id===cleanId):null;
+    if(!savedProduct)throw new Error('The product save could not be verified. Please try again.');
+
+    DATA.catalog=payload;
+    closeStudioModal();
+    // Activity logging is secondary: never hold the save spinner open or make a
+    // successful product save look like a failure because logging is unavailable.
+    BFStore.log(id?'Catalog product updated':'Catalog product created',{productId:cleanId})
+      .catch(logError=>console.warn('Product saved, but activity logging failed:',logError));
+    BF.toast(`${name} saved.`);
+    renderCatalogProducts();renderCatalogStudio();renderHairbandEditorChoices();
+  }catch(error){
+    console.error('Product save failed:',error);
+    BF.toast(error?.message?`Could not save product: ${error.message}`:'Could not save product. Please try again.');
+  }finally{
+    stopAdminLoading();
+    form?.removeAttribute('data-saving');
+    studioSaveButtonBusy(form,false);
+  }
 }
 window.saveStudioProduct=saveStudioProduct;
 
-async function persistStudioProducts(){await BFStore.setDoc('products/catalog',{items:DATA.catalog},false)}
+async function persistStudioProducts(items=DATA.catalog){
+  const payload=Array.isArray(items)?items.map(stripUndefinedDeep):[];
+  await BFStore.setDoc('products/catalog',{items:payload},false);
+  return payload;
+}
 async function deleteStudioProduct(id){DATA.catalog=DATA.catalog.map(p=>p.id===id?{...p,deleted:true,available:false}:p);await persistStudioProducts();closeStudioModal();renderCatalogProducts();renderCatalogStudio();BF.toast('Product removed from the storefront.')}
 
 
