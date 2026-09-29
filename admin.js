@@ -6,6 +6,11 @@ const fmtDate=v=>{
   const d=v.toDate?v.toDate():new Date(v);
   return isNaN(d)?'-':new Intl.DateTimeFormat('en-GH',{day:'numeric',month:'short',year:'numeric'}).format(d);
 };
+const fmtDateTime=v=>{
+  if(!v)return '-';
+  const d=v.toDate?v.toDate():new Date(v);
+  return isNaN(d)?'-':new Intl.DateTimeFormat('en-GH',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}).format(d);
+};
 
 function startAdminLoading(label='Working…'){
   loadingDepth++;
@@ -53,7 +58,7 @@ function showSection(id,options={}){
 }
 window.showSection=showSection;
 
-const ADMIN_PAGE_SIZES={orders:100,reviews:60,customers:100,subscribers:100,notifications:60,messages:60,activity:80,abandonedCarts:80};
+const ADMIN_PAGE_SIZES={orders:100,reviews:60,customers:100,subscribers:100,notifications:60,messages:60,activity:200,abandonedCarts:80};
 const ADMIN_PAGE_CONFIG={
   orders:{section:'ordersPanel',orderBy:'createdAt',dir:'desc',label:'orders'},
   reviews:{section:'reviewsPanel',orderBy:'createdAt',dir:'desc',label:'reviews'},
@@ -2063,10 +2068,51 @@ function showNotificationPopoverOnLoad(){
 }
 
 function friendlyActivity(action=''){
-  const map={'Product settings updated':'Products and colour settings changed','Wholesale pricing updated':'Wholesale prices changed','Review status updated':'A review decision was saved','Subscriber broadcast sent':'An update was sent to subscribers','Homepage content updated':'Homepage wording changed','Delivery settings updated':'Delivery settings changed','Store settings updated':'Store settings changed','Order status updated':'An order status changed'};
+  const map={'Product added':'Product added','Product edited':'Product updated','Product removed':'Product removed','Catalog product created':'Product added','Catalog product updated':'Product updated','Smooth colour created':'Smooth colour added','Smooth colour updated':'Smooth colour updated','Smooth colour removed':'Smooth colour removed','Product settings updated':'Products and colour settings changed','Wholesale pricing updated':'Wholesale prices changed','Review status updated':'A review decision was saved','Subscriber broadcast sent':'An update was sent to subscribers','Homepage content updated':'Homepage wording changed','Delivery settings updated':'Delivery settings changed','Store settings updated':'Store settings changed','Order status updated':'An order status changed'};
   return map[action]||action;
 }
-function renderActivity(){document.getElementById('activityList').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<div class="notification-card"><div><strong>${friendlyActivity(a.action)}</strong><br><small>${fmtDate(a.createdAt)}</small></div></div>`).join(''):'<p>No activity recorded yet.</p>'}
+function activityValue(value,field=''){
+  if(value===undefined||value===null||value==='')return '—';
+  if(typeof value==='boolean')return value?'Yes':'No';
+  if(Array.isArray(value)){
+    if(field==='variants')return value.map(v=>v?.color||v?.name||v?.id).filter(Boolean).join(', ')||'—';
+    if(field==='images')return `${value.length} image${value.length===1?'':'s'}`;
+    return value.join(', ');
+  }
+  if(typeof value==='object'){
+    if(field==='sizes')return Object.entries(value).map(([k,v])=>`${k}: ${v?.stock??v??0}`).join(' · ')||'—';
+    if(field==='fulfilment')return value.type==='preorder'?`Pre-order${value.date?` · ${value.date}`:''}`:'Standard / ready stock';
+    if(field==='wholesale')return value.enabled===true?'Wholesale enabled':'Wholesale disabled';
+    try{return JSON.stringify(value).replace(/[{}"]/g,'').slice(0,180)+(JSON.stringify(value).length>180?'…':'')}catch{return '[details]'}
+  }
+  return String(value);
+}
+function activityChangesHtml(changes=[]){
+  return (Array.isArray(changes)?changes:[]).slice(0,8).map(c=>`<div class="activity-change"><span>${escapeAdminValue(c.label||c.field||'Changed')}</span><b>${escapeAdminValue(activityValue(c.before,c.field))}</b><i>→</i><strong>${escapeAdminValue(activityValue(c.after,c.field))}</strong></div>`).join('');
+}
+function activityActor(a){
+  return a.actorEmail&&a.actorEmail!=='System' ? a.actorEmail : 'System / automatic';
+}
+function renderActivity(){
+  const box=document.getElementById('activityList');if(!box)return;
+  if(!DATA.activity.length){box.innerHTML='<div class="activity-empty">No activity recorded yet.</div>';return;}
+  box.innerHTML=DATA.activity.map(a=>{
+    const isProduct=a.entityType==='product';
+    const tone=(a.changeType||'').toLowerCase();
+    const title=friendlyActivity(a.action);
+    const entity=a.entityName||a.productName||a.colour||a.orderId||'';
+    const detail=entity?`<span class="activity-entity">${escapeAdminValue(entity)}</span>`:'';
+    const changes=activityChangesHtml(a.changes);
+    return `<article class="activity-entry ${escapeAdminValue(tone)}">
+      <div class="activity-entry-icon ${isProduct?'product':''}"><i class="fa-solid ${tone==='added'||tone==='created'?'fa-plus':tone==='removed'||tone==='deleted'?'fa-minus':'fa-pen'}"></i></div>
+      <div class="activity-entry-main">
+        <div class="activity-entry-top"><strong>${escapeAdminValue(title)}</strong>${detail}</div>
+        ${changes?`<div class="activity-changes">${changes}</div>`:''}
+        <div class="activity-entry-meta"><span>${escapeAdminValue(activityActor(a))}</span><time>${escapeAdminValue(fmtDateTime(a.createdAt))}</time></div>
+      </div>
+    </article>`;
+  }).join('');
+}
 function renderSettings(){document.getElementById('storeEmail').value=DATA.settings.storeEmail||BF_CONFIG.contactEmail||'bandfactoryy@gmail.com';document.getElementById('instagramUrl').value=DATA.settings.instagramUrl||BF_CONFIG.socials.instagram;document.getElementById('tiktokUrl').value=DATA.settings.tiktokUrl||BF_CONFIG.socials.tiktok;const current=document.getElementById('currentAdminEmail');if(current&&window.__bfAuth?.currentUser)current.textContent=window.__bfAuth.currentUser.email||'Admin'}
 async function saveSettings(){return withAdminLoading(async()=>{await BFStore.setDoc('settings/store',{storeEmail:document.getElementById('storeEmail').value,instagramUrl:document.getElementById('instagramUrl').value,tiktokUrl:document.getElementById('tiktokUrl').value});await BFStore.log('Store settings updated');BF.toast('Store settings saved');await loadAll()},'Saving store settings…')}
 
@@ -2241,7 +2287,7 @@ function openSmoothColourStudio(name=''){
 }
 window.openSmoothColourStudio=openSmoothColourStudio;
 async function saveSmoothColour(e,oldName=''){e.preventDefault();return withAdminLoading(async()=>{const name=document.getElementById('smoothColourName').value.trim();if(!name)return BF.toast('Enter the colour name.');const palette=smoothPalette().filter(c=>c.name!==oldName);if(palette.some(c=>c.name.toLowerCase()===name.toLowerCase()))return BF.toast('That colour already exists.');palette.push({name,hex:document.getElementById('smoothColourHex').value,image:document.getElementById('smoothColourImage').value,visible:true});const styles=JSON.parse(JSON.stringify(DATA.products.styles||{}));for(const style of ['flat','twisted']){styles[style]||={colors:{}};styles[style].colors||={};if(oldName&&oldName!==name&&styles[style].colors[oldName])delete styles[style].colors[oldName];styles[style].colors[name]={stock:Math.max(0,Number(document.getElementById(style==='flat'?'smoothFlatStock':'smoothTwistedStock').value||0)),available:document.getElementById(style==='flat'?'smoothFlatAvailableEdit':'smoothTwistedAvailableEdit').value==='true'};}const colors={...(DATA.products.colors||{})};if(oldName&&oldName!==name)delete colors[oldName];colors[name]={...(colors[name]||{}),...styles.flat.colors[name]};await BFStore.setDoc('products/smooth',{...DATA.products,palette,styles,colors},false);await BFStore.log(oldName?'Smooth colour updated':'Smooth colour created',{colour:name});closeStudioModal();BF.toast(`${name} saved.`);await loadAll()},'Saving colour…')}
-async function deleteSmoothColour(name){return withAdminLoading(async()=>{const palette=smoothPalette().filter(c=>c.name!==name);const styles=JSON.parse(JSON.stringify(DATA.products.styles||{})),colors={...(DATA.products.colors||{})};for(const style of ['flat','twisted'])if(styles[style]?.colors)delete styles[style].colors[name];delete colors[name];await BFStore.setDoc('products/smooth',{...DATA.products,palette,styles,colors},false);closeStudioModal();BF.toast(`${name} removed.`);await loadAll()},'Removing colour…')}
+async function deleteSmoothColour(name){return withAdminLoading(async()=>{const existing=smoothPalette().find(c=>c.name===name)||{name};const palette=smoothPalette().filter(c=>c.name!==name);const styles=JSON.parse(JSON.stringify(DATA.products.styles||{})),colors={...(DATA.products.colors||{})};for(const style of ['flat','twisted'])if(styles[style]?.colors)delete styles[style].colors[name];delete colors[name];await BFStore.setDoc('products/smooth',{...DATA.products,palette,styles,colors},false);try{await BFStore.log('Smooth colour removed',{entityType:'smooth-colour',entityId:name,entityName:name,changeType:'removed',changes:[{field:'Colour',before:name,after:'Removed'}]})}catch(error){console.warn('[Band Factory] Smooth colour activity logging failed:',error)}closeStudioModal();BF.toast(`${name} removed.`);await loadAll()},'Removing colour…')}
 
 /* =====================================================
    CATALOG STUDIO  -  categories, products & images
@@ -2500,13 +2546,13 @@ async function saveStudioProduct(e,id){
     const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle').value.trim(),color:document.getElementById('studioVariantMode')?.checked?'':document.getElementById('studioProductSubtitle').value.trim(),description:document.getElementById('studioProductDescription').value.trim(),price:document.getElementById('studioProductPrice').value===''?null:Number(document.getElementById('studioProductPrice').value),compareAtPrice:document.getElementById('studioProductCompareAtPrice')?.value===''?null:Number(document.getElementById('studioProductCompareAtPrice')?.value||0),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack').value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder').value||99)),image:document.getElementById('studioProductImage').value||existing.image||'',images:studioGalleryImages(),wholesale,fulfilment};
     const variantMode=category!=='ribbed'&&document.getElementById('studioVariantMode')?.checked;if(variantMode){item.variants=variants;delete item.sizes;delete item.styles;item.featuredVariantId=document.getElementById('studioFeaturedVariant')?.value||variants[0]?.id||'';item.featuredColor=variants.find(v=>v.id===item.featuredVariantId)?.color||variants[0]?.color||'';const featured=variants.find(v=>v.id===item.featuredVariantId)||variants[0];const first=featured?.image||item.image;if(first)item.image=first;item.color='';}else{delete item.variants;delete item.featuredVariantId;delete item.featuredColor;if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;}
     if(category==='ribbed'){const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';item.styles=item.styles||{};item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};item.stock=flatStock;item.available=flatAvailable;}else if(existing.category==='ribbed'){delete item.styles;}
-    if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await BFStore.log(id?'Catalog product updated':'Catalog product created',{productId:cleanId});closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();
+    if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await logProductActivity(id?'edited':'added',existing,item,cleanId);closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();
   },'Saving product…');
 }
 window.saveStudioProduct=saveStudioProduct;
 
 async function persistStudioProducts(){await BFStore.setDoc('products/catalog',{items:DATA.catalog},false)}
-async function deleteStudioProduct(id){DATA.catalog=DATA.catalog.map(p=>p.id===id?{...p,deleted:true,available:false}:p);await persistStudioProducts();closeStudioModal();renderCatalogProducts();renderCatalogStudio();BF.toast('Product removed from the storefront.')}
+async function deleteStudioProduct(id){const existing=DATA.catalog.find(p=>p.id===id)||{};const item={...existing,deleted:true,available:false};DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);await persistStudioProducts();await logProductActivity('removed',existing,item,id);closeStudioModal();renderCatalogProducts();renderCatalogStudio();BF.toast('Product removed from the storefront.')}
 
 
 /* =====================================================
@@ -2578,6 +2624,34 @@ function openSmoothColourStudio(name='',preferredStyle='flat'){
 window.openSmoothColourStudio=openSmoothColourStudio;
 async function saveSmoothColour(e,oldName=''){e.preventDefault();return withAdminLoading(async()=>{const name=document.getElementById('smoothColourName').value.trim();if(!name)return BF.toast('Enter the colour name.');const palette=smoothPalette().filter(c=>c.name!==oldName);if(palette.some(c=>c.name.toLowerCase()===name.toLowerCase()))return BF.toast('That colour already exists.');const old=smoothPalette().find(c=>c.name===oldName)||{};palette.push({name,hex:document.getElementById('smoothColourHex').value,flatImage:document.getElementById('smoothFlatImage')?.value??old.flatImage??old.image??'',twistedImage:document.getElementById('smoothTwistedImage')?.value??old.twistedImage??'',visible:true});const styles=JSON.parse(JSON.stringify(DATA.products.styles||{}));for(const style of ['flat','twisted']){styles[style]||={colors:{}};styles[style].colors||={};if(oldName&&oldName!==name&&styles[style].colors[oldName])delete styles[style].colors[oldName];styles[style].colors[name]={stock:Math.max(0,Number(document.getElementById(style==='flat'?'smoothFlatStock':'smoothTwistedStock').value||0)),available:document.getElementById(style==='flat'?'smoothFlatAvailableEdit':'smoothTwistedAvailableEdit').value==='true'};}const colors={...(DATA.products.colors||{})};if(oldName&&oldName!==name)delete colors[oldName];colors[name]={...(colors[name]||{}),...styles.flat.colors[name]};await BFStore.setDoc('products/smooth',{...DATA.products,palette,styles,colors},false);await BFStore.log(oldName?'Smooth colour updated':'Smooth colour created',{colour:name});closeStudioModal();BF.toast(`${name} saved.`);await loadAll();renderHairbandEditorChoices()},'Saving colour…')}
 
+function productActivityChanges(before={},after={}){
+  const fields=['name','category','subtitle','description','price','compareAtPrice','available','stock','packSize','featuredOrder','image','twistedImage','images','sizes','variants','featuredVariantId','featuredColor','wholesale','fulfilment','deleted'];
+  const labels={name:'Name',category:'Category',subtitle:'Short detail',description:'Description',price:'Selling price',compareAtPrice:'Old price',available:'Availability',stock:'Stock',packSize:'Pack size',featuredOrder:'Display order',image:'Product image',twistedImage:'Twisted image',images:'Gallery',sizes:'Sizes',variants:'Colours / variants',featuredVariantId:'Default colour',featuredColor:'Default colour',wholesale:'Wholesale',fulfilment:'Fulfilment',deleted:'Storefront status'};
+  const changes=[];
+  fields.forEach(field=>{
+    const a=before?.[field],b=after?.[field],sa=JSON.stringify(a??null),sb=JSON.stringify(b??null);
+    if(sa!==sb)changes.push({field,label:labels[field]||field,before:a,after:b});
+  });
+  return changes;
+}
+async function logProductActivity(changeType,before={},after={},productId=''){
+  const item=after?.id?after:(before||{});
+  const id=productId||item.id||before?.id||'';
+  const name=after?.name||before?.name||id||'Product';
+  const changes=productActivityChanges(before,after);
+  try{
+    await BFStore.log(changeType==='added'?'Product added':changeType==='removed'?'Product removed':'Product edited',{
+      entityType:'product',
+      entityId:id,
+      entityName:name,
+      changeType,
+      changes
+    });
+  }catch(error){
+    console.warn('[Band Factory] Product activity logging failed:',error);
+  }
+}
+
 const _legacyOpenProductStudio=window.openProductStudio;
 const _legacySaveStudioProduct=saveStudioProduct;
 function enhanceRibbedProductStudio(id='',preferredStyle='flat'){
@@ -2601,7 +2675,7 @@ saveStudioProduct=async function(e,id){
   if(!twistedInput)return _legacySaveStudioProduct(e,id);
   e.preventDefault();
   const category=document.getElementById('studioProductCategory').value,name=document.getElementById('studioProductName').value.trim();if(!name)return BF.toast('Enter the product name.');
-  return withAdminLoading(async()=>{let cleanId=id||`${studioSlug(category)}-${studioSlug(name)}`;if(!id&&DATA.catalog.some(p=>p.id===cleanId))cleanId+=`-${Date.now().toString().slice(-4)}`;const existing=DATA.catalog.find(p=>p.id===id)||{},sizes=collectStudioSizes(),stock=Math.max(0,Number(document.getElementById('studioProductStock')?.value||0)),available=document.getElementById('studioProductAvailable').value==='true';const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle').value.trim(),color:document.getElementById('studioProductSubtitle').value.trim(),description:document.getElementById('studioProductDescription').value.trim(),price:document.getElementById('studioProductPrice').value===''?null:Number(document.getElementById('studioProductPrice').value),compareAtPrice:document.getElementById('studioProductCompareAtPrice')?.value===''?null:Number(document.getElementById('studioProductCompareAtPrice')?.value||0),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack').value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder').value||99)),image:document.getElementById('studioProductImage')?.value??existing.image??'',twistedImage:twistedInput.value,images:studioGalleryImages()};if(document.getElementById('studioVariantMode')?.checked===true){const variants=collectStudioVariants();item.variants=variants;item.featuredVariantId=document.getElementById('studioFeaturedVariant')?.value||variants[0]?.id||'';item.featuredColor=variants.find(v=>v.id===item.featuredVariantId)?.color||variants[0]?.color||'';item.image=variants.find(v=>v.id===item.featuredVariantId)?.image||item.image||'';}else{delete item.variants;delete item.featuredVariantId;delete item.featuredColor;}if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;if(category==='ribbed'){const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';item.styles=item.styles||{};item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};item.stock=flatStock;item.available=flatAvailable;}if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await BFStore.log(id?'Catalog product updated':'Catalog product created',{productId:cleanId});closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();renderHairbandEditorChoices()},'Saving product…');
+  return withAdminLoading(async()=>{let cleanId=id||`${studioSlug(category)}-${studioSlug(name)}`;if(!id&&DATA.catalog.some(p=>p.id===cleanId))cleanId+=`-${Date.now().toString().slice(-4)}`;const existing=DATA.catalog.find(p=>p.id===id)||{},sizes=collectStudioSizes(),stock=Math.max(0,Number(document.getElementById('studioProductStock')?.value||0)),available=document.getElementById('studioProductAvailable').value==='true';const item={...existing,id:cleanId,category,name,subtitle:document.getElementById('studioProductSubtitle').value.trim(),color:document.getElementById('studioProductSubtitle').value.trim(),description:document.getElementById('studioProductDescription').value.trim(),price:document.getElementById('studioProductPrice').value===''?null:Number(document.getElementById('studioProductPrice').value),compareAtPrice:document.getElementById('studioProductCompareAtPrice')?.value===''?null:Number(document.getElementById('studioProductCompareAtPrice')?.value||0),available,stock,packSize:Math.max(1,Number(document.getElementById('studioProductPack').value||1)),featuredOrder:Math.max(1,Number(document.getElementById('studioProductOrder').value||99)),image:document.getElementById('studioProductImage')?.value??existing.image??'',twistedImage:twistedInput.value,images:studioGalleryImages()};if(document.getElementById('studioVariantMode')?.checked===true){const variants=collectStudioVariants();item.variants=variants;item.featuredVariantId=document.getElementById('studioFeaturedVariant')?.value||variants[0]?.id||'';item.featuredColor=variants.find(v=>v.id===item.featuredVariantId)?.color||variants[0]?.color||'';item.image=variants.find(v=>v.id===item.featuredVariantId)?.image||item.image||'';}else{delete item.variants;delete item.featuredVariantId;delete item.featuredColor;}if(Object.keys(sizes).length)item.sizes=sizes;else delete item.sizes;if(category==='ribbed'){const flatStock=Math.max(0,Number(document.getElementById('studioRibbedFlatStock')?.value||0)),twistedStock=Math.max(0,Number(document.getElementById('studioRibbedTwistedStock')?.value||0)),flatAvailable=document.getElementById('studioRibbedFlatAvailable')?.value==='true',twistedAvailable=document.getElementById('studioRibbedTwistedAvailable')?.value==='true';item.styles=item.styles||{};item.styles.flat={...(item.styles.flat||{}),stock:flatStock,available:flatAvailable};item.styles.twisted={...(item.styles.twisted||{}),stock:twistedStock,available:twistedAvailable};item.stock=flatStock;item.available=flatAvailable;}if(id)DATA.catalog=DATA.catalog.map(p=>p.id===id?item:p);else DATA.catalog.push(item);await persistStudioProducts();await logProductActivity(id?'edited':'added',existing,item,cleanId);closeStudioModal();BF.toast(`${name} saved.`);renderCatalogProducts();renderCatalogStudio();renderHairbandEditorChoices()},'Saving product…');
 };
 window.saveStudioProduct=saveStudioProduct;
 

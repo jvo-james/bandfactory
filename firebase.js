@@ -160,7 +160,7 @@
       });
     },
     async notify(type,title,message,meta={}){return api.add('notifications',{type,title,message,read:false,...meta})},
-    async log(action,meta={}){return api.add('activity',{action,...meta})}
+    async log(action,meta={}){const user=window.__bfAuth?.currentUser;return api.add('activity',{action,...meta,actorUid:user?.uid||'',actorEmail:user?.email||'System'})}
   };
   window.BFStore=api;
 })();
