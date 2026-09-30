@@ -578,7 +578,7 @@ function renderHomeProducts() {
 function shadeOptions(name){
     const options=[];
     if(homeCategories.some(c=>c.id==='smooth'&&c.visible!==false))for(const style of ['flat','twisted']) if(BF.variantAvailable(homeInventory,homeSettings,style,name)) options.push({name:`Smooth ${style[0].toUpperCase()+style.slice(1)} Hairband`,meta:name,image:BF.imageForProduct(style,name),url:`product.html?color=${encodeURIComponent(name)}&style=${style}`});
-    homeCatalog.filter(item=>homeCategories.some(c=>c.id==='ribbed'&&c.visible!==false)&&item.category==='ribbed'&&String(item.color||'').toLowerCase()===name.toLowerCase()&&item.available!==false&&Number(item.stock??0)>0).forEach(item=>options.push({name:item.name,meta:'Ribbed Hairband',image:BFCatalog.image(item),url:`item.html?id=${encodeURIComponent(item.id)}`}));
+    homeCatalog.filter(item=>homeCategories.some(c=>c.id==='ribbed'&&c.visible!==false)&&item.category==='ribbed'&&String(item.color||'').toLowerCase()===name.toLowerCase()&&item.available!==false&&['flat','twisted'].some(style=>{const v=BFCatalog.variant(item,style);return v.available!==false&&Number(v.stock??0)>0})).forEach(item=>{const style=['flat','twisted'].find(s=>{const v=BFCatalog.variant(item,s);return v.available!==false&&Number(v.stock??0)>0})||'flat';options.push({name:item.name,meta:`Ribbed ${style[0].toUpperCase()+style.slice(1)} Hairband`,image:BFCatalog.image(item,style),url:`item.html?id=${encodeURIComponent(item.id)}&style=${style}`})});
     return options;
 }
 function openShadePicker(name){
