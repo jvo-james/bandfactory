@@ -108,8 +108,10 @@ const allProgress = () => activeStyles().some(style => selectedColors[style].len
 function allWholesaleColours() {
   if(wholesaleMaterial==='ribbed'){
     const hex={Black:'#111',White:'#f7f4ef',Yellow:'#f4d84a','Baby Pink':'#f6bfd3','Hot Pink':'#ef4d94',Chartreuse:'#8fb339',Green:'#2e7d32',Teal:'#017f7c','Royal Blue':'#2852af',Orange:'#ef8b3a',Burgundy:'#681c2c',Caramel:'#c68642',Flamingo:'#f47680'};
-    const names=[...new Set((catalogItems||[]).filter(x=>x.category==='ribbed'&&!RIBBED_PRINTS.some(p=>p.id===x.id)&&x.color).map(x=>x.color))];
-    return names.map(name=>[name,hex[name]||'#d8c7ce']);
+    const rows=(catalogItems||[]).filter(x=>x.category==='ribbed'&&!RIBBED_PRINTS.some(p=>p.id===x.id)&&x.color&&x.deleted!==true);
+    const byName=new Map();
+    rows.forEach(item=>{const name=String(item.color||'').trim();if(!name)return;byName.set(name,item.hex||item.colorHex||hex[name]||'#d8c7ce');});
+    return [...byName.entries()];
   }
   const map = new Map([...(BF.colors || []), ...WHOLESALE_EXTRA_COLOURS]);
   return [...map.entries()];

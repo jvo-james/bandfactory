@@ -62,7 +62,10 @@ window.BFCatalog = {
       item.styles=item.styles||{};
       item.styles.flat={...legacy,...(item.styles.flat||{})};
       item.styles.twisted={stock:0,available:false,...(item.styles.twisted||{})};
-      item.stock=Number(item.styles.flat.stock??0);item.available=item.styles.flat.available!==false;
+      item.stock=Number(item.styles.flat.stock??0);
+      const flatLive=item.styles.flat.available!==false&&Number(item.styles.flat.stock||0)>0;
+      const twistedLive=item.styles.twisted.available!==false&&Number(item.styles.twisted.stock||0)>0;
+      item.available=flatLive||twistedLive;
     }
     return items.filter(x=>x.deleted!==true);
   },
@@ -155,6 +158,9 @@ window.BFCatalog = {
   wholesalePriceForQty(itemOrWholesale={},qty=1){const data=itemOrWholesale?.wholesale?this.wholesale(itemOrWholesale):itemOrWholesale;const tiers=Array.isArray(data?.tiers)?data.tiers:[];const n=Math.max(1,Math.floor(Number(qty||1)));let selected=null;for(const tier of tiers){if(n>=Number(tier.minQty))selected=tier;}return selected?Number(selected.price):0;},
   wholesaleCompare(item,qty=1){const retail=this.price(item,{}),wholesale=this.wholesalePriceForQty(item,qty);return retail>wholesale&&wholesale>0?Math.max(1,Math.round(((retail-wholesale)/retail)*100)):0;},
   purchasable(item={},variantId='',size=''){
+    if(item?.category==='ribbed'&&!this.hasVariants(item)){
+      return ['flat','twisted'].some(style=>{const v=this.variant(item,style);return v.available!==false&&Number(v.stock||0)>0;});
+    }
     if(item?.available===false)return false;
     if(this.isPreorder(item)){
       const v=this.hasVariants(item)?this.variant(item,variantId):item;
@@ -162,7 +168,6 @@ window.BFCatalog = {
       return size?this.isPreorderSize(size):true;
     }
     if(this.hasVariants(item)){const selected=variantId?this.variant(item,variantId):null,vars=selected?[selected]:this.variants(item);return vars.some(v=>v.available!==false&&(v.sizes&&Object.keys(v.sizes).length?(size? v.sizes[size]?.available!==false&&Number(v.sizes[size]?.stock||0)>0:Object.values(v.sizes).some(d=>d?.available!==false&&Number(d?.stock||0)>0)):Number(v.stock||0)>0));}
-    if(item?.category==='ribbed')return ['flat','twisted'].some(style=>{const v=this.variant(item,style);return v.available!==false&&Number(v.stock||0)>0;});
     if(item?.sizes&&Object.keys(item.sizes).length)return Object.values(item.sizes).some(v=>v?.available!==false&&Number(v?.stock||0)>0);
     return Number(item?.stock||0)>0;
   },
