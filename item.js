@@ -8,7 +8,12 @@ function hasColorVariants(){return !!currentItem?.variants?.length;}
 function activeProduct(){return hasColorVariants()?BFCatalog.variantView(currentItem,selectedVariantId):currentItem||{};}
 function itemHasSizes(){return (BFCatalog.sizeEntries(currentItem,hasColorVariants()?selectedVariantId:'')||[]).length>0;}
 function currentVariant(){if(currentItem?.category==='ribbed'&&!hasColorVariants())return BFCatalog.variant(currentItem,selectedRibbedStyle);if(hasColorVariants())return BFCatalog.variant(currentItem,selectedVariantId);return activeProduct();}
-function itemStock(){const p=activeProduct();return BFCatalog.stock(currentItem,selectedSize,hasColorVariants()?selectedVariantId:'');}
+function itemStock(){
+  // Ribbed hairbands have independent Flat and Twisted inventory. Read the selected
+  // style's stock instead of the product-level (Flat) stock for both styles.
+  if(currentItem?.category==='ribbed'&&!hasColorVariants())return BFCatalog.stock(currentVariant()||{},selectedSize);
+  return BFCatalog.stock(currentItem,selectedSize,hasColorVariants()?selectedVariantId:'');
+}
 function itemIsPreorder(){return !!BFCatalog?.isPreorder?.(currentItem);}
 function currentImage(){const direct=BFCatalog.image(currentItem,currentItem?.category==='ribbed'&&!hasColorVariants()?selectedRibbedStyle:'flat',hasColorVariants()?selectedVariantId:'');return direct&&direct!=='images/placeholder-product.svg'?direct:BFCatalog.fallbackImage(currentItem,allItems,allCategories);}
 function itemTitle(){if(currentItem?.category==='ribbed'&&!hasColorVariants()){const style=selectedRibbedStyle==='twisted'?'Twisted':'Flat';return `${style} ${String(currentItem.name||'').replace(/^(Flat |Twisted )?/,'')}`;}return hasColorVariants()&&activeProduct().color?`${currentItem.name} · ${activeProduct().color}`:currentItem.name;}
@@ -54,7 +59,11 @@ function renderItemView(){
   const back=$id('itemBackLink');if(back){back.href=currentItem.category==='ribbed'?`ribbed.html?style=${selectedRibbedStyle}`:currentItem.category==='tops'?'tops.html':currentItem.category==='sets'?'sets.html':BFCatalog.categoryUrl(categoryInfo);back.innerHTML=`<i class="fa-solid fa-arrow-left"></i> Back to ${esc(categoryInfo?.name||'collection')}`;}
   updateBuy();
 }
-function updateBuy(){const price=BFCatalog.price(currentItem,currentSettings),btn=$id('itemAdd');$id('qtyValue').textContent=qty;if(!btn)return;const preorder=itemIsPreorder(),p=activeProduct(),ribbed=currentItem?.category==='ribbed'&&!hasColorVariants(),styleUnavailable=ribbed&&currentVariant()?.available===false,noStock=!preorder&&BFCatalog.stock(currentItem,selectedSize,hasColorVariants()?selectedVariantId:'')<=0;btn.textContent=itemHasSizes()&&!selectedSize?'Choose a size':price?`Add to Bag · ${BF.money(price*qty)}`:'Add to Bag';btn.disabled=p.available===false||styleUnavailable||(!preorder&&noStock)||(itemHasSizes()&&!selectedSize);}
+function updateBuy(){
+  const price=BFCatalog.price(currentItem,currentSettings),btn=$id('itemAdd');$id('qtyValue').textContent=qty;if(!btn)return;
+  const preorder=itemIsPreorder(),p=activeProduct(),ribbed=currentItem?.category==='ribbed'&&!hasColorVariants(),styleUnavailable=ribbed&&currentVariant()?.available===false,noStock=!preorder&&itemStock()<=0;
+  btn.textContent=itemHasSizes()&&!selectedSize?'Choose a size':price?`Add to Bag · ${BF.money(price*qty)}`:'Add to Bag';btn.disabled=p.available===false||styleUnavailable||(!preorder&&noStock)||(itemHasSizes()&&!selectedSize);
+}
 async function initItem(){
   const params=new URLSearchParams(location.search),id=params.get('id');selectedRibbedStyle=params.get('style')==='twisted'?'twisted':'flat';selectedVariantId=params.get('variant')||'';[allItems,currentSettings,allCategories]=await Promise.all([BFCatalog.load(),BFStore.getDoc('settings/store',{}),BFCatalog.loadCategories()]);currentItem=allItems.find(x=>x.id===id);if(!currentItem||!allCategories.some(c=>c.id===currentItem.category&&c.visible!==false)){location.href='shop.html';return;}
   if(hasColorVariants()){const v=BFCatalog.variant(currentItem,selectedVariantId);selectedVariantId=v.id;}
