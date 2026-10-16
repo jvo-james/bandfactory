@@ -37,7 +37,7 @@ function bfNormaliseVariant(v,index=0){
   const images=Array.isArray(source.images)?source.images.filter(Boolean):[];
   const image=source.image||images[0]||'';
   const hex=String(source.hex||source.colorHex||'').trim();
-  return {id,color,hex,image,images,sizes,available:source.available!==false,featuredOrder:Number(source.featuredOrder||index+1)};
+  return {id,color,hex,image,images,sizes,stock:Math.max(0,Number(source.stock??0)),available:source.available!==false,featuredOrder:Number(source.featuredOrder||index+1)};
 }
 function bfVariantSource(item){return Array.isArray(item?.variants)?item.variants.map(bfNormaliseVariant).filter(Boolean):[];}
 
@@ -110,7 +110,7 @@ window.BFCatalog = {
   variantView(item,variantId=''){
     if(!this.hasVariants(item))return {...item,masterProductId:item?.masterProductId||item?.id,variantId:item?.variantId||''};
     const v=this.variant(item,variantId),sizes=Object.fromEntries(this.sizeEntries(item,v.id));
-    return {...item,masterProductId:item.id,variantId:v.id,color:v.color||item.color||'',subtitle:v.color||item.subtitle||'',image:v.image||item.image||'',images:v.images||item.images||[],sizes,available:item.available!==false&&v.available!==false,variantName:v.color||'',stock:undefined};
+    return {...item,masterProductId:item.id,variantId:v.id,color:v.color||item.color||'',subtitle:v.color||item.subtitle||'',image:v.image||item.image||'',images:v.images||item.images||[],sizes,available:item.available!==false&&v.available!==false,variantName:v.color||'',stock:v.stock};
   },
   expandVariants(items=[]){
     const out=[];
@@ -198,6 +198,8 @@ window.BFCatalog = {
         const src=variant.image||fallback;
         if(image){image.src=src;image.alt=`${product.name||'Product'}${variant.color?' in '+variant.color:''}`;}
         if(colourLabel)colourLabel.textContent=variant.color||'';
+        const status=card.querySelector('.catalog-status');
+        if(status){const preorder=this.isPreorder(product),available=this.purchasable(product,variant.id);status.textContent=preorder?'Pre-order':available?'Available':'Sold out';status.classList.toggle('preorder',preorder);}
         buttons.forEach(btn=>{const active=btn.dataset.cardVariant===variant.id;btn.classList.toggle('is-active',active);btn.setAttribute('aria-pressed',active?'true':'false');});
         const retailUrl=`item.html?id=${encodeURIComponent(product.id)}&variant=${encodeURIComponent(variant.id)}`;
         const wholesaleUrl=`wholesale-product.html?id=${encodeURIComponent(product.id)}&variant=${encodeURIComponent(variant.id)}`;
