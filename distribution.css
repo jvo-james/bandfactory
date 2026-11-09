@@ -1,0 +1,117 @@
+.distribution-portal{background:#fbf7f8;color:#20181b}
+.distribution-hero{position:relative;overflow:hidden;background:#171315;color:#fff;min-height:590px;display:flex;align-items:center}
+.distribution-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#171315 0%,rgba(23,19,21,.98) 33%,rgba(23,19,21,.76) 58%,rgba(23,19,21,.24) 100%);z-index:1}
+.distribution-hero-art{position:absolute;inset:0 0 0 38%;background:url("images/wholesale-bundle.webp") center 42%/cover no-repeat;opacity:.8}
+.distribution-hero-art:after{content:"";position:absolute;width:560px;height:560px;right:-180px;top:-220px;border:1px solid rgba(255,255,255,.24);border-radius:50%;box-shadow:0 0 0 65px rgba(244,182,202,.045),0 0 0 130px rgba(244,182,202,.025)}
+.distribution-hero-inner{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:40px;align-items:end;padding-top:100px;padding-bottom:90px}
+.distribution-hero-copy{max-width:770px}
+.distribution-eyebrow,.distribution-kicker{display:block;font-size:9px;line-height:1.4;letter-spacing:.19em;text-transform:uppercase;font-weight:800}
+.distribution-eyebrow{color:#f2bdcf}
+.distribution-hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(58px,8.2vw,108px);letter-spacing:-.06em;line-height:.88;margin:20px 0 24px}
+.distribution-hero h1 em,.distribution-intro h2 em,.distribution-terms-heading h2 em,.distribution-contact h2 em{font-weight:500;color:#f2bdcf}
+.distribution-hero-copy>p{max-width:620px;color:#e0d5d9;font-size:14px;line-height:1.8;margin:0}
+.distribution-hero-actions{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:32px}
+.distribution-button{display:inline-flex;min-height:52px;padding:0 22px;align-items:center;justify-content:center;gap:11px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s ease,color .2s ease,transform .2s ease}
+.distribution-button:hover{transform:translateY(-2px)}
+.distribution-button-light{background:#fff;color:#171315;border:1px solid #fff}
+.distribution-button-light:hover{background:#f2bdcf;border-color:#f2bdcf;color:#171315}
+.distribution-button i{font-size:17px}
+.distribution-text-link{font-size:9px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:#f4dce5;border-bottom:1px solid rgba(244,220,229,.5);padding-bottom:5px}
+.distribution-text-link span{margin-left:7px}
+.distribution-hero-note{display:flex;gap:14px;align-items:center;justify-self:end;padding:14px 0 4px 18px;border-left:1px solid rgba(255,255,255,.34);color:#e0d5d9;font-size:10px;line-height:1.6}
+.distribution-hero-note strong{font-family:var(--serif);font-size:38px;font-weight:500;color:#f2bdcf}
+.distribution-intro{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(40px,9vw,130px);padding-top:100px;padding-bottom:68px}
+.distribution-kicker{color:#9a6f7e;margin-bottom:13px}
+.distribution-intro h2,.distribution-terms-heading h2,.distribution-contact h2{font-family:var(--serif);font-size:clamp(43px,5.2vw,68px);font-weight:500;letter-spacing:-.05em;line-height:.97;margin:0}
+.distribution-intro h2 em{color:#a87587}
+.distribution-intro-copy{padding-top:22px;max-width:700px}
+.distribution-intro-copy p{font-size:13px;line-height:1.85;color:#70636a;margin:0 0 17px}
+.distribution-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #e5d7dc;background:#fff;margin-bottom:105px}
+.distribution-benefit{padding:27px 29px 30px;min-height:200px}
+.distribution-benefit+.distribution-benefit{border-left:1px solid #e5d7dc}
+.distribution-benefit>span{font-size:8px;letter-spacing:.15em;color:#9a7180;font-weight:800}
+.distribution-benefit h3{font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.05;margin:17px 0 9px;letter-spacing:-.025em}
+.distribution-benefit p{font-size:11px;line-height:1.7;color:#766971;margin:0;max-width:330px}
+.distribution-process{background:#f1e8eb;padding:86px 0 92px}
+.distribution-section-heading{display:grid;grid-template-columns:1fr .65fr;gap:50px;align-items:end;margin-bottom:42px}
+.distribution-section-heading h2{font-family:var(--serif);font-weight:500;font-size:clamp(44px,5.5vw,70px);line-height:.95;letter-spacing:-.05em;margin:0}
+.distribution-section-heading>p{font-size:12px;line-height:1.75;color:#75666d;max-width:420px;margin:0 0 3px}
+.distribution-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #d8c8cf}
+.distribution-steps article{padding:24px 24px 8px 0;min-width:0}
+.distribution-steps article+article{border-left:1px solid #d8c8cf;padding-left:24px}
+.distribution-steps article>b{display:inline-grid;place-items:center;width:34px;height:34px;border:1px solid #bf9ba9;color:#895f70;font-size:9px;letter-spacing:.08em}
+.distribution-steps h3{font-family:var(--serif);font-size:24px;line-height:1.1;font-weight:500;margin:22px 0 9px}
+.distribution-steps p{font-size:11px;line-height:1.75;color:#75666d;margin:0;max-width:245px}
+.distribution-terms{display:grid;grid-template-columns:.76fr 1.24fr;gap:clamp(40px,8vw,110px);padding-top:105px;padding-bottom:105px;scroll-margin-top:100px}
+.distribution-terms-heading{position:sticky;top:110px;align-self:start}
+.distribution-terms-heading h2 em{color:#a87587}
+.distribution-terms-heading>p{font-size:12px;line-height:1.8;color:#766971;max-width:350px;margin:18px 0 0}
+.distribution-terms-list{border-top:1px solid #dfd1d7}
+.distribution-term{display:grid;grid-template-columns:38px 1fr;gap:17px;padding:21px 0 23px;border-bottom:1px solid #dfd1d7}
+.distribution-term>span{font-family:var(--serif);font-size:20px;color:#a87587;padding-top:1px}
+.distribution-term h3{font-family:var(--serif);font-size:21px;font-weight:500;line-height:1.2;margin:0 0 8px}
+.distribution-term p{font-size:11px;line-height:1.8;color:#71646b;margin:0}
+.distribution-terms-note{grid-column:2;display:flex;gap:10px;align-items:flex-start;background:#f1e8eb;padding:16px 17px;margin:0;font-size:10px;line-height:1.7;color:#6f5c65}
+.distribution-terms-note i{color:#976f7e;margin-top:2px}
+.distribution-contact{background:#171315;color:#fff;padding:78px 0 82px;position:relative;overflow:hidden}
+.distribution-contact:after{content:"";position:absolute;width:420px;height:420px;border:1px solid rgba(244,182,202,.22);border-radius:50%;right:-160px;bottom:-290px;box-shadow:0 0 0 55px rgba(244,182,202,.035),0 0 0 110px rgba(244,182,202,.02)}
+.distribution-contact-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:55px;align-items:center}
+.distribution-contact .distribution-kicker{color:#f2bdcf}
+.distribution-contact h2{font-size:clamp(48px,6vw,76px)}
+.distribution-contact h2 em{color:#f2bdcf}
+.distribution-contact-inner>div:first-child>p{max-width:600px;font-size:12px;line-height:1.8;color:#d8cccf;margin:18px 0 0}
+.distribution-contact-action{display:grid;justify-items:start;gap:12px;flex:0 0 auto}
+.distribution-button-dark{background:#f2bdcf;color:#171315;border:1px solid #f2bdcf}
+.distribution-button-dark:hover{background:#fff;border-color:#fff;color:#171315}
+.distribution-contact-action>span{font-size:9px;letter-spacing:.06em;color:#c8b9bf}
+@media(max-width:850px){
+  .distribution-hero{min-height:560px}
+  .distribution-hero-inner{grid-template-columns:1fr;gap:48px;padding-top:85px;padding-bottom:55px}
+  .distribution-hero-art{left:20%;opacity:.58}
+  .distribution-hero-note{justify-self:start}
+  .distribution-intro{grid-template-columns:1fr;gap:12px;padding-top:75px}
+  .distribution-intro-copy{padding-top:0}
+  .distribution-benefits{margin-bottom:75px}
+  .distribution-section-heading{grid-template-columns:1fr;gap:18px}
+  .distribution-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .distribution-steps article:nth-child(3){border-left:0;padding-left:0;border-top:1px solid #d8c8cf;margin-top:20px;padding-top:25px}
+  .distribution-steps article:nth-child(4){border-top:1px solid #d8c8cf;margin-top:20px;padding-top:25px}
+  .distribution-terms{grid-template-columns:1fr;gap:36px;padding-top:80px;padding-bottom:80px}
+  .distribution-terms-heading{position:static}
+  .distribution-terms-note{grid-column:1}
+  .distribution-contact-inner{align-items:flex-start;flex-direction:column;gap:30px}
+}
+@media(max-width:600px){
+  .distribution-hero{min-height:0}
+  .distribution-hero:before{background:linear-gradient(90deg,rgba(23,19,21,.97),rgba(23,19,21,.78))}
+  .distribution-hero-art{left:0;background-position:58% center;opacity:.48}
+  .distribution-hero-inner{padding-top:82px;padding-bottom:45px;gap:38px}
+  .distribution-hero h1{font-size:clamp(53px,15vw,78px)}
+  .distribution-hero-copy>p{font-size:12px}
+  .distribution-hero-actions{align-items:flex-start;flex-direction:column;gap:18px;margin-top:25px}
+  .distribution-button{width:100%;min-height:50px}
+  .distribution-hero-note{font-size:9px}
+  .distribution-intro{padding-top:62px;padding-bottom:45px;gap:20px}
+  .distribution-intro h2,.distribution-terms-heading h2{font-size:46px}
+  .distribution-intro-copy p{font-size:12px}
+  .distribution-benefits{grid-template-columns:1fr;margin-bottom:60px}
+  .distribution-benefit{min-height:0;padding:22px 20px 24px}
+  .distribution-benefit+.distribution-benefit{border-left:0;border-top:1px solid #e5d7dc}
+  .distribution-benefit h3{font-size:26px;margin-top:12px}
+  .distribution-process{padding:62px 0 66px}
+  .distribution-section-heading{gap:15px;margin-bottom:30px}
+  .distribution-section-heading h2{font-size:49px}
+  .distribution-steps{grid-template-columns:1fr;border-top:0}
+  .distribution-steps article,.distribution-steps article+article,.distribution-steps article:nth-child(3),.distribution-steps article:nth-child(4){border-left:0;border-top:1px solid #d8c8cf;margin:0;padding:19px 0 20px;display:grid;grid-template-columns:38px 1fr;column-gap:13px;align-items:start}
+  .distribution-steps article>b{grid-row:1/3}
+  .distribution-steps h3{font-size:23px;margin:2px 0 6px}
+  .distribution-steps p{grid-column:2;max-width:none}
+  .distribution-terms{padding-top:62px;padding-bottom:62px;gap:25px}
+  .distribution-term{grid-template-columns:29px 1fr;gap:12px;padding:18px 0 19px}
+  .distribution-term h3{font-size:19px}
+  .distribution-term p{font-size:10.5px}
+  .distribution-terms-note{padding:14px;font-size:9.5px}
+  .distribution-contact{padding:61px 0 64px}
+  .distribution-contact h2{font-size:54px}
+  .distribution-contact-inner>div:first-child>p{font-size:11px}
+}
