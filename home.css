@@ -2846,3 +2846,21 @@
 @media(max-width:1100px){.home-preorder-grid,.product-edit{grid-template-columns:repeat(3,minmax(0,1fr))}.product-edit{gap:14px!important}}
 @media(max-width:900px){.home-preorder-head{display:grid;align-items:start;gap:16px}.home-preorder-grid,.product-edit{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important}.home-preorder-section{padding:62px 0}}
 @media(max-width:600px){.home-preorder-section{padding:56px 0}.home-preorder-grid,.product-edit{gap:9px!important}.home-preorder-copy{padding:10px 9px 12px}.home-preorder-title-row h3{font-size:9px}.home-preorder-title-row p{font-size:8px}.home-preorder-swatch{width:24px;height:24px;flex-basis:24px}.home-preorder-prices{grid-template-columns:1fr}.home-preorder-prices>a{padding:8px}.home-preorder-prices>a+a{border-left:0;border-top:1px solid #ece6e8}.home-preorder-foot span,.home-preorder-foot a{font-size:7.5px}.product-edit .home-product .meta{padding-top:8px}.product-edit .home-product .meta h3{font-size:9px}.product-edit .home-product .meta p .sale-price-wrap strong{font-size:11px}}
+
+/* Homepage link to the Distribution Portal */
+.home-distribution-strip{padding:42px 0;background:#f8f3f5;border-top:1px solid #eadfe3;border-bottom:1px solid #eadfe3}
+.home-distribution-inner{display:flex;align-items:center;justify-content:space-between;gap:28px}
+.home-distribution-inner>div{max-width:720px}
+.home-distribution-inner .eyebrow{margin-bottom:8px}
+.home-distribution-inner h2{margin:0 0 8px;font-family:var(--serif);font-size:clamp(27px,3.5vw,39px);line-height:1.04;font-weight:500;letter-spacing:-.035em}
+.home-distribution-inner p{margin:0;color:#70636a;font-size:13px;line-height:1.7}
+.home-distribution-inner>a{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 18px;flex:0 0 auto;background:#20191c;color:#fff;text-decoration:none;font-size:10px;font-weight:800;letter-spacing:.06em}
+.home-distribution-inner>a i{transition:transform .2s ease}
+.home-distribution-inner>a:hover i{transform:translateX(4px)}
+@media(max-width:700px){
+  .home-distribution-strip{padding:32px 0}
+  .home-distribution-inner{display:grid;gap:18px}
+  .home-distribution-inner h2{font-size:31px}
+  .home-distribution-inner p{font-size:12px}
+  .home-distribution-inner>a{width:100%;min-height:50px}
+}
